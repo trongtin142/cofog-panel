@@ -230,8 +230,8 @@ def table_overlap(h: pd.DataFrame) -> pd.DataFrame:
     sub_pos = lambda g: g[[SG, LG]].fillna(0).sum(axis=1) > 0  # noqa: E731
     for div, g in list(gg_obs.groupby("DIV")) + [("All", gg_obs)]:
         for name, est, ident, mask in [
-            ("CG proxy", "EST_CG", "IDENT_CG", g["EST_CG"].notna()),
-            ("CG proxy, subnational > 0", "EST_CG", "IDENT_CG", g["EST_CG"].notna() & sub_pos(g)),
+            ("CGSS alone", "EST_CG", "IDENT_CG", g["EST_CG"].notna()),
+            ("CGSS alone, subnational > 0", "EST_CG", "IDENT_CG", g["EST_CG"].notna() & sub_pos(g)),
             ("T2 sum, complete", "EST_T2", "IDENT_T2", g["T2_COMPLETE"]),
             ("T2 sum, incomplete", "EST_T2", "IDENT_T2", g["EST_T2"].notna() & ~g["T2_COMPLETE"]),
             ("T3 sum, complete", "EST_T3", "IDENT_T3", g["T3_COMPLETE"]),
@@ -549,7 +549,7 @@ def fig_overlap(h: pd.DataFrame, path: Path):
     import matplotlib.pyplot as plt
     g = h[h[GG].notna() & (h[GG] > 0) & (h["COMPLETE"] == True)]
     order = list(DIVISIONS)[::-1]
-    panels = [("EST_CG", "IDENT_CG", g["EST_CG"].notna(), "CG proxy", INK2),
+    panels = [("EST_CG", "IDENT_CG", g["EST_CG"].notna(), "CGSS alone", INK2),
               ("EST_T2", "IDENT_T2", g["T2_COMPLETE"], "T2 sum, complete", TIER_COLORS["T2"]),
               ("EST_T3", "IDENT_T3", g["T3_COMPLETE"], "T3 sum, complete", TIER_COLORS["T3"]),
               ("EST_T3", "IDENT_T3", g["EST_T3"].notna() & ~g["T3_COMPLETE"], "T3 sum, incomplete", TIER_COLORS["T3"])]
