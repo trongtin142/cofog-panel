@@ -1,11 +1,11 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 title: "COFOG-Panel: harmonising IMF GFS COFOG data into reproducible panel datasets"
-version: 1.0.0
+version: 1.0.1
 date-released: 2026-10-20
 license: MIT
 repository-code: "https://github.com/trongtin142/cofog-panel"
-doi: 10.5281/zenodo.23511908
+# doi of v1.0.0: 10.5281/zenodo.23511908 (v1.0.1 DOI added after its Zenodo release)
 authors:
   - family-names: Nguyen
     given-names: Trong Tin
