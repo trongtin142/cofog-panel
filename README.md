@@ -2,7 +2,7 @@
 # COFOG-Panel: Harmonizing IMF GFS COFOG Data into Reproducible Panel Datasets
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![tests](https://github.com/royalgarter/cofog-panel/actions/workflows/tests.yml/badge.svg)](https://github.com/royalgarter/cofog-panel/actions/workflows/tests.yml)
+[![tests](https://github.com/trongtin142/cofog-panel/actions/workflows/tests.yml/badge.svg)](https://github.com/trongtin142/cofog-panel/actions/workflows/tests.yml)
 
 COFOG-Panel turns a raw extract of the IMF Government Finance Statistics (GFS) dataset on expenditure by function of government (COFOG) into a country-year panel for any COFOG division or group. Countries report GFS COFOG data for different government subsectors; the tool selects one value per country-year with a documented three-tier rule and records, for every value, where it came from.
 
@@ -43,7 +43,7 @@ Further rules: reported zeros are kept unless `--zero-as-missing` is given; shar
 ## 2. Installation
 
 ```bash
-git clone https://github.com/royalgarter/cofog-panel.git
+git clone https://github.com/trongtin142/cofog-panel.git
 cd cofog-panel
 python -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate

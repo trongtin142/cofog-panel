@@ -16,7 +16,7 @@ setup(
     description="Tool to harmonize IMF GFS COFOG data into reproducible panel datasets.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/royalgarter/cofog-panel",
+    url="https://github.com/trongtin142/cofog-panel",
     packages=find_packages(exclude=("tests",)), # Ensure only directories with __init__.py are included
     install_requires=[
         "pandas>=2.0.0",
