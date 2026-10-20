@@ -55,6 +55,7 @@ def verify_cofog_format(file_path: Path) -> Tuple[bool, Dict[str, Any]]:
         
         # Read only the first row (header)
         header_row_tuple = next(ws.iter_rows(min_row=1, max_row=1, values_only=True))
+        wb.close()
         
         # Convert all headers to strings immediately
         uploaded_headers = [str(col).strip() for col in header_row_tuple if col is not None]
@@ -74,15 +75,17 @@ def verify_cofog_format(file_path: Path) -> Tuple[bool, Dict[str, Any]]:
         verification_status["Missing_Headers"] = missing
 
     # 2. Check if all year columns exist
-    uploaded_years = [h for h in uploaded_headers if h.isdigit() and START_YEAR <= int(h) <= END_YEAR]
+    # Later IMF releases append new years, so any contiguous run starting at START_YEAR is accepted
+    uploaded_years = sorted(int(h) for h in uploaded_headers if h.isdigit() and len(h) == 4)
+    expected_run = list(range(START_YEAR, (uploaded_years[-1] if uploaded_years else START_YEAR) + 1))
 
-    if len(uploaded_years) != len(YEAR_COLUMNS_SAMPLE):
+    if not uploaded_years or uploaded_years != expected_run or uploaded_years[-1] < END_YEAR:
         verification_status["Year_Mismatch"] = True
         verification_status["Match"] = False
 
     # 3. Check for headers that are neither fixed nor year columns
     fixed_set = set(FIXED_HEADERS_SAMPLE)
-    year_set = set(YEAR_COLUMNS_SAMPLE)
+    year_set = {str(y) for y in uploaded_years}
     
     # Headers present but not part of fixed or year columns
     extra = [h for h in uploaded_headers if h not in fixed_set and h not in year_set]
@@ -107,7 +110,7 @@ def verify_cofog_format(file_path: Path) -> Tuple[bool, Dict[str, Any]]:
         if verification_status["Extra_Headers"]:
             print(f"   -> UNKNOWN Extra Headers ({len(verification_status['Extra_Headers'])}): {verification_status['Extra_Headers']}")
         if verification_status["Year_Mismatch"]:
-            print(f"   -> Year Column Count Mismatch (Expected {len(YEAR_COLUMNS_SAMPLE)} columns).")
+            print(f"   -> Year columns must run contiguously from {START_YEAR} to at least {END_YEAR}.")
     
     print("="*40)
     
@@ -144,9 +147,9 @@ def verify_country_format(file_path: Path) -> Tuple[bool, Dict[str, Any]]:
     try:
         # Auto-detect file format
         if file_path.suffix == '.csv':
-            df = pd.read_csv(file_path)
+            df = pd.read_csv(file_path, keep_default_na=False)
         elif file_path.suffix in ('.xlsx', '.xls'):
-            df = pd.read_excel(file_path)
+            df = pd.read_excel(file_path, keep_default_na=False)
         else:
             print(f"❌ Error: Unsupported file format for lookup: {file_path.suffix}. Must be .csv or .xlsx.")
             verification_status["Valid"] = False

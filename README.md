@@ -2,97 +2,107 @@
 # COFOG-Panel: Harmonizing IMF GFS COFOG Data into Reproducible Panel Datasets
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/Status-Ready%20for%20Publishing-brightgreen.svg)](https://github.com/yourusername/COFOG-Panel)
+[![tests](https://github.com/royalgarter/cofog-panel/actions/workflows/tests.yml/badge.svg)](https://github.com/royalgarter/cofog-panel/actions/workflows/tests.yml)
 
-This repository contains the Python pipeline designed to ingest raw Government Finance Statistics (GFS) data organized by COFOG (Classification of the Functions of Government), harmonize it, and output a clean, reproducible panel dataset suitable for econometric analysis.
+COFOG-Panel turns a raw extract of the IMF Government Finance Statistics (GFS) dataset on expenditure by function of government (COFOG) into a country-year panel for any COFOG division or group. Countries report GFS COFOG data for different government subsectors; the tool selects one value per country-year with a documented three-tier rule and records, for every value, where it came from.
 
-## 1. Overview and Architecture
+## 1. Overview
 
-COFOG-Panel operates as a modular CLI tool, allowing users to execute individual ETL stages or run the full pipeline sequentially. The entire process is **Local-First**, relying solely on local file inputs and generating output XLSX files to ensure maximum reproducibility.
+The pipeline runs locally on Excel files in five stages, each available as a sub-command; `cofog-panel run` executes all of them in sequence.
 
-The core pipeline stages are mapped to specific CLI commands.
-
-## 2. Installation and Setup
-
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/yourusername/COFOG-Panel.git
-    cd COFOG-Panel
-    ```
-2.  **Set up Virtual Environment (Recommended):**
-    ```bash
-    python -m venv venv
-    source venv/bin/activate  # On Windows use: .\venv\Scripts\activate
-    ```
-3.  **Install Dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-4.  **Install Dependencies (Editable Mode):**
-    To use the CLI commands (e.g., `cofog-panel`), install the package in editable mode. **This requires a `setup.py` or `pyproject.toml` file in the root directory.**
-    ```bash
-    pip install -e .
-    ```
-    *(Ensure your `requirements.txt` is referenced correctly in your setup file.)*
-
-## 3. Command Line Interface (CLI) Reference
-
-All operations are executed via the primary command: `cofog-panel`.
-
-### A. Validation Commands (Stages 1 & 2)
-
-| Command | Purpose | Key Options | Example |
+| Stage | Command | Module | What it does |
 | :--- | :--- | :--- | :--- |
-| `check-format` | Verifies the header structure of the main COFOG source Excel file (Stage 1). | `--source-file`: Required path to the raw data Excel file. | `cofog-panel check-format --source-file ./data/gfs_raw_data.xlsx` |
-| `check-country-format` | Verifies the structure of the required Country Code mapping file. | `--lookup-file`: Required path to country code lookup file. | `cofog-panel check-country-format --lookup-file ./data/country_codes.xlsx` |
+| 1 | `check-format` | `checks.py` | Checks the metadata columns and the year columns (contiguous from 1972) of the GFS extract |
+| 2 | `check-country-format` | `checks.py` | Checks the country lookup file (`name`, `alpha-2`, `alpha-3`, `country-code`, no duplicates) |
+| 3 | `seed-master` | `master_seed.py` | Creates an empty master panel (`SortKey` = ISO3 + year; 1972–2025 by default, `--start-year`/`--end-year`) |
+| 4 | `split` | `etl.py` | Filters one transformation and one COFOG function, writes one file per country into a directory it owns |
+| 5 | `aggregate` | `aggregate.py` | Applies the selection rule and writes values and traceability columns |
 
-### B. Stage 3: Seeding the Master Schema (B1)
+### Selection rule (`--sector "General government"`, default)
 
-Creates the base file that will hold the final panel dataset.
+| Tier | Value used |
+| :--- | :--- |
+| T1 | General government (GG), if reported |
+| T2 | otherwise, if Central government incl. social security (CGSS) is reported: CGSS + State + Local |
+| T3 | otherwise: Central government excluding social security (or, if not reported, Budgetary + Extrabudgetary CG) + Social security funds + State + Local, over the reported sectors |
 
-| Command | Purpose | Key Options | Example |
-| :--- | :--- | :--- | :--- |
-| `seed-master` | Creates the `COFOG_MASTER_SCHEMA.xlsx` locally based on country codes. | `--lookup-file`: Required path to country code lookup file. | `cofog-panel seed-master --lookup-file ./data/country_codes.xlsx` |
-| | | `--output-dir`: Directory to save the master file (Default: `./output`). | |
+T2 and T3 are unconsolidated sums: transfers between the levels (and, in T3, between central units) that are recorded under the same function are counted twice. Other `--sector` values: `"Central government including social security"` (C1 = CGSS, C2 = central core + SSF) or any single sector name (D = that sector only).
 
-### C. Stage 4: ETL and Data Splitting (B2)
+### Output columns
 
-Filters the raw data and saves country-specific subsets as local XLSX files.
+| Column | Content |
+| :--- | :--- |
+| `SortKey`, `Country`, `Year` | Panel keys |
+| `DATA_NEW` (or `--data-col`) | Selected value |
+| `SOURCE_TIER` | T1, T2, T3, C1, C2 or D |
+| `SOURCE_SECTORS` | Sectors that entered the value, e.g. `CGSS+LG`, `BCG+SG` |
+| `SOURCE_COMPLETE` | `Y`/`N`. A T2/T3/C2 sum is `N` if it misses a level (State, Local, Social security funds, Extrabudgetary CG) that the country reports in another year of the series, or the central core. A T1 value is `N` if GG equals CGSS exactly while State or Local government report positive spending in that year. |
 
-| Command | Purpose | Key Options | Example |
-| :--- | :--- | :--- | :--- |
-| `split` | Filters raw data by COFOG and Transformation Type, splitting outputs into country-specific XLSX files. | `--source-file`: Required path to the raw data Excel file. | `cofog-panel split --source-file ./data/gfs_raw_data.xlsx --cofog "Defence" --filter-type "Percent of GDP"` |
-| | | `--cofog`: **Required**. The specific COFOG category to process (e.g., "Defence"). | |
-| | | `--filter-type`: Transformation type filter (Default: "Percent of GDP"). | |
-| | | `--output-dir`: Directory to store split XLSX files (Default: `./intermediate_splits`). | |
+Further rules: reported zeros are kept unless `--zero-as-missing` is given; shares of total outlays are never summed (T1 only); IMF codes KOS and WBG are mapped to ISO XKX and PSE. Values are written as numbers. Running `aggregate` again on the same master keeps earlier columns; use different `--data-col`/`--tier-col` names for each indicator.
 
-### D. Stage 5: Harmonization and Aggregation (B3)
+## 2. Installation
 
-Applies the advanced 3-Tier Harmonization Algorithm to combine sector data and updates the Master File.
+```bash
+git clone https://github.com/royalgarter/cofog-panel.git
+cd cofog-panel
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+pip install -e .                # add [dev] to install pytest
+```
 
-| Command | Purpose | Key Options | Example |
-| :--- | :--- | :--- | :--- |
-| `aggregate` | Runs the 3-Tier algorithm based on the specified sector logic and updates the Master File. | `--master-file`: Required path to the Master XLSX file. | `cofog-panel aggregate --master-file ./output/COFOG_MASTER_SCHEMA.xlsx --folder-path ./intermediate_splits --data-col "DATA_DEFENCE" --sector "Local Government"` |
-| | | `--folder-path`: Required path to the directory containing split XLSX files. | |
-| | | `--data-col`: **Required**. The name of the new column to populate in the Master File. | |
-| | | `--sector`: Controls the harmonization rule (Default: `"General government"`). | |
+Requires Python 3.10 or later. `cofog-panel --version` prints the installed version.
 
-### E. Orchestrator Command (Full Pipeline)
+## 3. Usage
 
-This command automates Stages 1 through 5 sequentially, ensuring all paths and parameters flow correctly.
+Download the GFS COFOG dataset from the [IMF data portal](https://data.imf.org/en/datasets/IMF.STA:GFS_COFOG) as Excel and save it as `data/gfs_raw_data.xlsx`. The file is not included in the repository because the IMF terms of use apply to it (see `DATA_LICENSE.md`).
 
-| Command | Purpose | Key Options | Example |
-| :--- | :--- | :--- | :--- |
-| `run` | Executes the full, reproducible pipeline in sequence using only local files. | `--source-file`, `--lookup-file`: Required input files. | `cofog-panel run --source-file ./data/gfs_raw_data.xlsx --lookup-file ./data/country_codes.xlsx --cofog "Defence" --sector "General government"` |
-| | | `--cofog`, `--filter-type`, `--sector`: Parameters carried through the pipeline. | |
-| | | `--output-cols`: Column name for the final result in the Master File. | |
+Full pipeline, environmental protection, per cent of GDP:
 
-## 4. Data Format Requirements
+```bash
+cofog-panel run --source-file data/gfs_raw_data.xlsx --lookup-file data/country_codes.xlsx \
+  --cofog "05" --filter-type "Percent of GDP" --sector "General government" --data-col DATA_ENV
+```
 
-For the pipeline to run successfully, ensure your input files adhere to the expected structure:
+`--cofog` accepts a COFOG code (`05`, `07.3`) or the exact label used in the file (`"Environmental protection"`). `--filter-type` is one of `"Percent of GDP"`, `"Domestic currency"`, `"Percent of total outlays"`.
 
-*   **Raw Data (`--source-file`):** Must contain columns named `SERIES_CODE`, `TYPE_OF_TRANSFORMATION`, `COFOG`, `SECTOR`, and subsequent columns representing Years (e.g., 1990, 2023).
-*   **Lookup File (`--lookup-file`):** Must contain columns named `name` and `alpha-3`.
+Individual stages:
 
----
-*Developed for submission to SoftwareX, Elsevier.*
+```bash
+cofog-panel check-format --source-file data/gfs_raw_data.xlsx
+cofog-panel check-country-format --lookup-file data/country_codes.xlsx
+cofog-panel seed-master --lookup-file data/country_codes.xlsx --output-dir output
+cofog-panel split --source-file data/gfs_raw_data.xlsx --cofog "07" --output-dir intermediate_splits
+cofog-panel aggregate --master-file output/COFOG_MASTER_SCHEMA.xlsx --folder-path intermediate_splits \
+  --data-col DATA_HEALTH --sector "General government"
+```
+
+`split` writes only into an empty directory or one it created before (marked by a `.cofog_panel_split` file), and replaces the country files from its previous run there. It never deletes files in other directories. `aggregate` fails (non-zero exit) if any country file cannot be read.
+
+The selection rule can also be called from Python:
+
+```python
+from decimal import Decimal
+from cofog_panel import resolve_value
+
+value, tier, sectors = resolve_value({
+    "general government": None,
+    "central government including social security": Decimal("0.5"),
+    "local government": Decimal("0.3"),
+})
+# Decimal('0.8'), 'T2', ['central government including social security', 'local government']
+```
+
+## 4. Tests
+
+```bash
+pip install -e .[dev]
+pytest
+```
+
+## 5. Data
+
+`data/country_codes.xlsx` is an ISO 3166 lookup with Kosovo (XKX) added. The IMF GFS data are not covered by the MIT License: see `DATA_LICENSE.md` for the IMF terms, the required attribution and the transformation notice.
+
+## 6. Citation
+
+See `CITATION.cff`. If you use the software, please cite the release DOI.

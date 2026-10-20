@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "COFOG-Panel: harmonising IMF GFS COFOG data into reproducible panel datasets"
+version: 1.0.0
+date-released: 2026-10-20
+license: MIT
+repository-code: "https://github.com/royalgarter/cofog-panel"
+# doi: 10.5281/zenodo.XXXXXXX   # add after the first Zenodo release
+authors:
+  - family-names: Nguyen
+    given-names: Trong Tin
+    email: nttin@hcmiu.edu.vn
+    affiliation: "International University, VNU-HCM, Ho Chi Minh City, Vietnam"
+keywords: [COFOG, IMF GFS, government expenditure, panel data, harmonisation]
