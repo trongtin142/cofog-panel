@@ -46,6 +46,9 @@ SECTORS = [GG, CGSS, CGXSS, BCG, EBCG, SSF, SG, LG]
 IDENTITY_TOL = 1e-6          # relative tolerance for "estimate equals reported GG"
 ADJ_K = 3                    # overlap years used for the consolidation ratio
 ADJ_DISTANCES = (1, 3, 5)    # minimum distance (years) between held-out year and ratio years
+ADJ_K_ALT = (1, 3, 5)        # sensitivity of the adjustment to k
+BOOT_REPS = 1000             # country-cluster bootstrap replications
+BOOT_SEED = 20260203
 
 # Reference palette, categorical slots 1-3 (validated all-pairs, light mode)
 TIER_COLORS = {"T1": "#2a78d6", "T2": "#eb6834", "T3": "#1baf7a"}
@@ -257,6 +260,23 @@ def _later_ratio(years: np.ndarray, ratios: np.ndarray, y: int, d: int, k: int =
     return float(np.median(ratios[nearest]))
 
 
+ADJ_SPECS = {"EST_T2": ("T2_COMPLETE", "T2_SECTORS", "IDENT_T2"), "EST_T3": ("T3_COMPLETE", "T3_SECTORS", "IDENT_T3")}
+
+
+def _adjust_eval(h: pd.DataFrame, est: str, d: int, k: int = ADJ_K) -> pd.DataFrame:
+    """Held-out overlap years with the ratio predicted from later years (column ADJ = adjusted estimate)."""
+    compl, sect, ident = ADJ_SPECS[est]
+    o = h[h[GG].notna() & (h[GG] > 0) & (h["COMPLETE"] == True) & h[compl] & (h[est] > 0)].copy()
+    o["RATIO"] = o[GG] / o[est]
+    r_hat = pd.Series(np.nan, index=o.index)
+    for _, g in o.groupby(["ISO", "DIV", sect]):
+        yrs, rat = g["YEAR"].to_numpy(), g["RATIO"].to_numpy()
+        r_hat.loc[g.index] = [_later_ratio(yrs, rat, y, d, k) for y in yrs]
+    x = o[r_hat.notna() & ~o[ident]].copy()
+    x["ADJ"] = r_hat[x.index] * x[est]
+    return x
+
+
 def table_adjustment(h: pd.DataFrame) -> pd.DataFrame:
     """
     Out-of-sample test of the consolidation adjustment, designed like its actual use.
@@ -266,17 +286,9 @@ def table_adjustment(h: pd.DataFrame) -> pd.DataFrame:
     components (SECTORS). Evaluation is on held-out years where the sum is not identical to GG.
     """
     rows = []
-    for est, compl, sect, ident, label in [("EST_T2", "T2_COMPLETE", "T2_SECTORS", "IDENT_T2", "T2 sum"),
-                                           ("EST_T3", "T3_COMPLETE", "T3_SECTORS", "IDENT_T3", "T3 sum")]:
-        o = h[h[GG].notna() & (h[GG] > 0) & (h["COMPLETE"] == True) & h[compl] & (h[est] > 0)].copy()
-        o["RATIO"] = o[GG] / o[est]
+    for est, label in [("EST_T2", "T2 sum"), ("EST_T3", "T3 sum")]:
         for d in ADJ_DISTANCES:
-            r_hat = pd.Series(np.nan, index=o.index)
-            for _, g in o.groupby(["ISO", "DIV", sect]):
-                yrs, rat = g["YEAR"].to_numpy(), g["RATIO"].to_numpy()
-                r_hat.loc[g.index] = [_later_ratio(yrs, rat, y, d) for y in yrs]
-            x = o[r_hat.notna() & ~o[ident]].copy()
-            x["ADJ"] = r_hat[x.index] * x[est]
+            x = _adjust_eval(h, est, d)
             for div, g in list(x.groupby("DIV")) + [("All", x)]:
                 un, ad = _err_stats(g[est], g[GG]), _err_stats(g["ADJ"], g[GG])
                 rows.append({"DIV": div, "Function": DIVISIONS.get(div, "All divisions"), "Estimator": label,
@@ -287,6 +299,66 @@ def table_adjustment(h: pd.DataFrame) -> pd.DataFrame:
                              "Adjusted within 5% (%)": ad.get("Within 5% (%)"),
                              "Adjusted P10 ratio": ad.get("P10 ratio"),
                              "Adjusted P90 ratio": ad.get("P90 ratio")})
+    return pd.DataFrame(rows)
+
+
+def table_adjust_k(h: pd.DataFrame) -> pd.DataFrame:
+    """Sensitivity of the adjustment to the number k of overlap years used for the ratio."""
+    rows = []
+    for est, label in [("EST_T2", "T2 sum"), ("EST_T3", "T3 sum")]:
+        for d in ADJ_DISTANCES:
+            for k in ADJ_K_ALT:
+                x = _adjust_eval(h, est, d, k)
+                for div, g in [(v, x[x["DIV"] == v]) for v in ("01", "05", "09")] + [("All", x)]:
+                    ad = _err_stats(g["ADJ"], g[GG])
+                    rows.append({"DIV": div, "Function": DIVISIONS.get(div, "All divisions"), "Estimator": label,
+                                 "Min. distance (years)": d, "k": k, "N": ad.get("N", 0),
+                                 "Adjusted median ratio": ad.get("Median ratio"),
+                                 "Adjusted within 5% (%)": ad.get("Within 5% (%)"),
+                                 "Adjusted P90 ratio": ad.get("P90 ratio")})
+    return pd.DataFrame(rows)
+
+
+def _boot_ci(iso: np.ndarray, ratio: np.ndarray, rng: np.random.Generator) -> dict:
+    """95% country-cluster bootstrap intervals for the median ratio and the share within 5%."""
+    codes, inv = np.unique(iso, return_inverse=True)
+    groups = [np.flatnonzero(inv == i) for i in range(len(codes))]
+    med, w5 = np.empty(BOOT_REPS), np.empty(BOOT_REPS)
+    for b in range(BOOT_REPS):
+        r = ratio[np.concatenate([groups[i] for i in rng.integers(0, len(groups), len(groups))])]
+        med[b], w5[b] = np.median(r), 100 * np.mean(np.abs(r - 1) <= 0.05)
+    return {"Countries": len(codes),
+            "Median ratio, 95% CI": f"{np.percentile(med, 2.5):.2f}–{np.percentile(med, 97.5):.2f}",
+            "Within 5% (%), 95% CI": f"{np.percentile(w5, 2.5):.1f}–{np.percentile(w5, 97.5):.1f}"}
+
+
+def table_bootstrap(h: pd.DataFrame) -> pd.DataFrame:
+    """Country-cluster bootstrap intervals for the key statistics of Tables 4 and 5."""
+    rng = np.random.default_rng(BOOT_SEED)
+    rows = []
+    gg_obs = h[h[GG].notna() & (h[GG] > 0) & (h["COMPLETE"] == True)]
+    for div, g in list(gg_obs.groupby("DIV")) + [("All", gg_obs)]:
+        for name, est, ident, compl in [("T2 sum, complete", "EST_T2", "IDENT_T2", "T2_COMPLETE"),
+                                        ("T3 sum, complete", "EST_T3", "IDENT_T3", "T3_COMPLETE")]:
+            x = g[g[compl] & g[est].notna() & ~g[ident]]
+            x = x[x[GG] > 0]
+            r = (x[est] / x[GG]).to_numpy()
+            rows.append({"Table": "4 (excl. identities)", "DIV": div, "Function": DIVISIONS.get(div, "All divisions"),
+                         "Estimator": name, "Min. distance (years)": None, "N": len(r),
+                         "Median ratio": round(float(np.median(r)), 3),
+                         "Within 5% (%)": round(100 * float(np.mean(np.abs(r - 1) <= 0.05)), 1),
+                         **_boot_ci(x["ISO"].to_numpy(), r, rng)})
+    for est, label in [("EST_T2", "T2 sum"), ("EST_T3", "T3 sum")]:
+        for d in ADJ_DISTANCES:
+            x = _adjust_eval(h, est, d)
+            for div, g in [(v, x[x["DIV"] == v]) for v in ("01", "05", "09")] + [("All", x)]:
+                for kind, col in (("unadjusted", est), ("adjusted", "ADJ")):
+                    r = (g[col] / g[GG]).to_numpy()
+                    rows.append({"Table": "5", "DIV": div, "Function": DIVISIONS.get(div, "All divisions"),
+                                 "Estimator": f"{label}, {kind}", "Min. distance (years)": d, "N": len(r),
+                                 "Median ratio": round(float(np.median(r)), 3),
+                                 "Within 5% (%)": round(100 * float(np.mean(np.abs(r - 1) <= 0.05)), 1),
+                                 **_boot_ci(g["ISO"].to_numpy(), r, rng)})
     return pd.DataFrame(rows)
 
 
@@ -574,6 +646,8 @@ def main():
         "supp_adjust_reach": table_adjust_reach(h),
         "supp_zeros": table_zeros(h),
         "supp_eurostat": t_eu,
+        "supp_bootstrap": table_bootstrap(h),
+        "supp_adjust_k": table_adjust_k(h),
     }
     for name, t in tables.items():
         t.to_csv(OUT / f"{name}.csv", index=False)
