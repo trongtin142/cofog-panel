@@ -38,6 +38,9 @@ Archive = "https://doi.org/10.5281/zenodo.23511907"
 [tool.setuptools]
 packages = ["cofog_panel"]
 
+[tool.setuptools.package-data]
+cofog_panel = ["data/*.xlsx"]
+
 [tool.setuptools.dynamic]
 version = { attr = "cofog_panel.__version__" }
 

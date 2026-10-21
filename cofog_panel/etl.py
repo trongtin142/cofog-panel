@@ -9,6 +9,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 import openpyxl
 import pandas as pd
 
+from .messages import DOWNLOAD_HINT, hint_for_write_error, print_error
 from .options import OptionError, normalise_transformation
 
 COUNTRY_FILE_PATTERN = re.compile(r"^[A-Z]{3}\.xlsx$")
@@ -110,35 +111,39 @@ def split_data(
     try:
         transformation = normalise_transformation(filter_type)
     except OptionError as exc:
-        print(f"❌ {exc}")
+        print_error(exc.what, exc.hint)
         return output_dir, False
     if not source_file_path.exists():
-        print(f"❌ Error: Source file not found at {source_file_path}")
+        print_error(f"Source file not found: {source_file_path}", DOWNLOAD_HINT)
         return output_dir, False
     # Checked before the long scan, so that a wrong directory fails at once
     if not _directory_usable(output_dir):
-        print(f"❌ {output_dir} is not empty and was not created by 'cofog-panel split'. "
-              f"Choose an empty or new --output-dir.")
+        print_error(f"{output_dir} is not empty and was not created by 'cofog-panel split'.",
+                    "Choose an empty or new --output-dir (the default is intermediate_splits).")
         return output_dir, False
 
     print(f"Filtering data by Transformation: {transformation} and COFOGs: {selectors}...")
     try:
         header, by_country, n_read = _scan(source_file_path, transformation, selectors)
     except KeyError as exc:
-        print(f"❌ Header Error: Missing essential column for filtering: {exc.args[0]}")
+        print_error(f"Missing essential column for filtering: {exc.args[0]}.",
+                    "Use the Excel download of IMF.STA:GFS_COFOG without changes; 'cofog-panel check-format' checks it.")
         return output_dir, False
     except Exception as exc:
-        print(f"❌ Error reading Excel workbook structure: {exc}")
+        print_error(f"Cannot read {source_file_path.name} as an Excel workbook ({exc}).",
+                    "Use the .xlsx download from the IMF portal and close the file if it is open in another program.")
         return output_dir, False
 
     n_kept = sum(len(rows) for rows in by_country.values())
     print(f"\n--- Filtering complete. Total Processed: {n_read}. Total Valid: {n_kept} ---")
     if n_kept == 0:
-        print(f"❌ No rows matched COFOG {selectors} with transformation '{transformation}'.")
+        print_error(f"No rows matched COFOG {sorted(selectors)} with transformation '{transformation}'.",
+                    "Run 'cofog-panel list-cofog' to see the COFOG codes and labels in the file.")
         return output_dir, False
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    (output_dir / SPLIT_MARKER).write_text(_MARKER_TEXT)
+    notes = f"cofog={','.join(sorted(selectors))}\ntransformation={transformation}\n"
+    (output_dir / SPLIT_MARKER).write_text(_MARKER_TEXT + notes)
     previous = [f for f in output_dir.glob("*.xlsx") if COUNTRY_FILE_PATTERN.match(f.name)]
     if previous:
         print(f"🧹 Removing {len(previous)} country files from a previous split in {output_dir}.")
@@ -151,8 +156,43 @@ def split_data(
             pd.DataFrame(rows, columns=header).to_excel(output_dir / f"{country}.xlsx", index=False, sheet_name=country)
             print(f"Wrote {len(rows)} rows for {country}.")
         except Exception as exc:
-            print(f"❌ Critical Error writing file {country}: {exc}")
+            print_error(f"Cannot write {country}.xlsx ({exc}).", hint_for_write_error(exc))
             ok = False
 
     print("\n=== SPLIT STAGE COMPLETED ===")
     return output_dir, ok
+
+
+def read_split_marker(directory: Path) -> Dict[str, str]:
+    """Settings recorded by the last split in a directory, e.g. {'cofog': '05', 'transformation': ...}."""
+    marker = directory / SPLIT_MARKER
+    if not marker.exists():
+        return {}
+    pairs = (line.split("=", 1) for line in marker.read_text().splitlines() if "=" in line)
+    return {key.strip(): value.strip() for key, value in pairs}
+
+
+def list_cofog(source_file_path: Path) -> List[Tuple[str, str, int]]:
+    """
+    COFOG functions in an extract: (code, label, number of countries), sorted by code.
+    Reads the whole file once (about a minute for the full IMF extract).
+    """
+    book = openpyxl.load_workbook(source_file_path, read_only=True, data_only=True)
+    try:
+        rows = book.active.iter_rows(values_only=True)
+        header = ["" if cell is None else str(cell).strip() for cell in next(rows, ())]
+        missing = [c for c in ("SERIES_CODE", "COFOG") if c not in header]
+        if missing:
+            raise KeyError(missing)
+        at_series, at_cofog = header.index("SERIES_CODE"), header.index("COFOG")
+        countries: Dict[Tuple[str, str], set] = {}
+        for row in rows:
+            code = _cofog_code_from_series(row[at_series])
+            if code is None:
+                continue
+            label = "" if row[at_cofog] is None else str(row[at_cofog]).strip()
+            countries.setdefault((code, label), set()).add(_country_of(row[at_series]))
+    finally:
+        book.close()
+    return sorted(((code, label, len(isos)) for (code, label), isos in countries.items()),
+                  key=lambda item: ([int(part) for part in item[0].split(".")], item[1]))

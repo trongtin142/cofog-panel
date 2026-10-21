@@ -9,6 +9,10 @@ from typing import Tuple
 import pandas as pd
 
 from .checks import read_lookup
+from .messages import hint_for_write_error, print_error
+
+# Lookup bundled with the package (ISO 3166 with Kosovo, XKX): the default --lookup-file
+PACKAGED_LOOKUP = Path(__file__).resolve().parent / "data" / "country_codes.xlsx"
 
 DEFAULT_START_YEAR = 1972  # first year of the IMF GFS COFOG data
 DEFAULT_END_YEAR = 2025
@@ -43,13 +47,14 @@ def seed_master(
     target = output_path / output_name
     print(f"\n--- SEEDING MASTER: Processing {lookup_file_path.name} ---")
     if not lookup_file_path.exists():
-        print(f"❌ Error: Lookup file not found at {lookup_file_path}")
+        print_error(f"Lookup file not found: {lookup_file_path}", "Omit --lookup-file to use the lookup bundled with the package, or give the path of your own file.")
         return Path(""), False
 
     try:
         lookup = read_lookup(lookup_file_path)
         if not {"name", "alpha-3"} <= set(lookup.columns):
-            print("❌ Error: Lookup file must contain 'name' and 'alpha-3' columns.")
+            print_error("Lookup file must contain 'name' and 'alpha-3' columns.",
+                        "Check the column names in the first row, or omit --lookup-file to use the bundled lookup.")
             return target, False
         panel = build_panel(lookup, start_year, end_year)
         if target.exists():
@@ -57,7 +62,7 @@ def seed_master(
         output_path.mkdir(parents=True, exist_ok=True)
         panel.to_excel(target, index=False, sheet_name=MASTER_SHEET)
     except Exception as exc:
-        print(f"❌ Error during master seeding: {exc}")
+        print_error(f"Cannot write the master file {target} ({exc}).", hint_for_write_error(exc))
         return target, False
 
     print(f"✅ SUCCESS: Master XLSX file created with {len(panel)} rows ({start_year}-{end_year}).")

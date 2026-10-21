@@ -1,5 +1,15 @@
 # Changelog
 
+## Planned (v1.1.0)
+
+- Cache: read the source Excel file once and keep a Parquet copy keyed by its SHA-256, with a `--no-cache` flag.
+- `--cofog` accepts several codes in one run.
+- Progress bar and summary table instead of one log line per country; `--quiet` and `--verbose` flags; no emoji, or safe handling of the console encoding on Windows.
+- `--format xlsx|csv|parquet` and a `--long` option for long-format output.
+- A `<master>.provenance.json` file (version, SHA-256 of the source, command run, time, columns created).
+- High-level Python API `build_panel(...)` returning a DataFrame.
+- "Open in Colab" badge for `cofog.ipynb`.
+
 ## 1.0.3 (2026-10-22)
 
 The core modules (`checks.py`, `cli.py`, `etl.py`, `master_seed.py`, `aggregate.py`, `__init__.py`) were rewritten, and packaging moved from `setup.py` to `pyproject.toml`. The selection rule and the completeness flags are unchanged: the SJIAOS replication gives the same tables as 1.0.2.
@@ -10,7 +20,12 @@ Fixes:
 - `cofog-panel run` no longer rebuilds an existing master, which deleted the indicator columns in it. The master is kept and the new columns are added. The new flag `--overwrite-master` rebuilds it, with a warning.
 - Options are checked before the extract is read. `--filter-type` ignores letter case and an unknown value is rejected at once with the three accepted values. `--cofog` must be a COFOG code (01 to 10, or a group such as 07.3) or a label present in the file; otherwise the closest codes or labels are suggested. `split` also checks its output directory before the scan.
 
-Other changes: the README describes the `[replication]` extra and uses the Zenodo DOI for all versions (10.5281/zenodo.23511907).
+Easier use (all earlier commands and options still work):
+
+- README: "Quickstart in 3 steps" (install, download the IMF file, one command) with a sample of the output and a short explanation of the tiers and of Y/N; Windows instructions (PowerShell activation, quoted paths with spaces). The README also describes the `[replication]` extra and uses the Zenodo DOI for all versions (10.5281/zenodo.23511907).
+- Defaults: `--lookup-file` is optional (the country lookup is bundled with the package), `--source-file` defaults to `data/gfs_raw_data.xlsx`, and the data column is named after the COFOG code (`DATA_05`, `DATA_07_3`) instead of `DATA_NEW`. An explicit `--data-col DATA_NEW` keeps the earlier column names. `aggregate` takes the code from the split directory.
+- New commands: `list-cofog` (COFOG codes and labels in the extract, with the number of countries) and `list-sectors` (accepted `--sector` and `--filter-type` values).
+- Errors: one line on what went wrong and one `Hint:` line on how to fix it, without traceback unless `--debug` is given. Exit codes: 0 success, 1 data or option error, 2 command-line usage error. `aggregate` now fails on a missing master file or split directory instead of writing empty columns.
 
 ## 1.0.2 (2026-10-21)
 

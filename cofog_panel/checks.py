@@ -9,6 +9,8 @@ from typing import Any, Dict, List, Tuple
 import openpyxl
 import pandas as pd
 
+from .messages import DOWNLOAD_HINT, print_error
+
 # Metadata columns of an IMF GFS COFOG Excel download, in the order the IMF writes them
 IMF_METADATA_COLUMNS = (
     "DATASET", "SERIES_CODE", "OBS_MEASURE", "COUNTRY", "SECTOR", "GFS_GRP",
@@ -73,6 +75,7 @@ def _print_format_report(name: str, details: Dict[str, Any]) -> None:
             print(f"   -> UNKNOWN Extra Headers ({len(extra)}): {extra}")
         if details["Year_Mismatch"]:
             print(f"   -> Year columns must run contiguously from {START_YEAR} to at least {END_YEAR}.")
+        print("   Hint: download IMF.STA:GFS_COFOG again as Excel and use the file without changing its columns.")
     print(_RULE)
 
 
@@ -88,12 +91,13 @@ def verify_cofog_format(file_path: Path) -> Tuple[bool, Dict[str, Any]]:
         "Year_Mismatch": False, "Total_Columns": 0,
     }
     if not file_path.exists():
-        print(f"❌ Error: File not found at {file_path}")
+        print_error(f"Source file not found: {file_path}", DOWNLOAD_HINT)
         return False, details
     try:
         headers = read_header(file_path)
     except Exception as exc:  # not a workbook, or damaged
-        print(f"❌ Error reading Excel file structure: {exc}")
+        print_error(f"Cannot read {file_path.name} as an Excel workbook ({exc}).",
+                    "Use the .xlsx download from the IMF portal and close the file if it is open in another program.")
         return False, details
 
     years = sorted(int(h) for h in headers if len(h) == 4 and h.isdigit())
@@ -112,15 +116,15 @@ def verify_country_format(file_path: Path) -> Tuple[bool, Dict[str, Any]]:
     """Check that the lookup file has the ISO columns and no repeated alpha-3 code."""
     details: Dict[str, Any] = {"Valid": False, "Missing_Columns": [], "Duplicate_Alpha3": False, "Total_Rows": 0}
     if not file_path.exists():
-        print(f"❌ Error: File not found at {file_path}")
+        print_error(f"Lookup file not found: {file_path}", "Omit --lookup-file to use the lookup bundled with the package, or give the path of your own file.")
         return False, details
     try:
         table = read_lookup(file_path)
     except ValueError as exc:
-        print(f"❌ Error: {exc}")
+        print_error(str(exc), "Save the lookup as .xlsx or .csv.")
         return False, details
     except Exception as exc:
-        print(f"❌ Error processing lookup file {file_path}: {exc}")
+        print_error(f"Cannot read the lookup file {file_path} ({exc}).", "Omit --lookup-file to use the lookup bundled with the package, or give the path of your own file.")
         return False, details
 
     columns = list(table.columns)
@@ -136,6 +140,7 @@ def verify_country_format(file_path: Path) -> Tuple[bool, Dict[str, Any]]:
         if details["Duplicate_Alpha3"]:
             print("   -> Duplicate 'alpha-3' codes found.")
         print(f"   -> Columns found: {columns}")
+        print("   Hint: the lookup needs the columns name, alpha-2, alpha-3 and country-code, one row per alpha-3 code.")
         return False, details
 
     print("✅ SUCCESS: Country lookup file structure is VALID.")

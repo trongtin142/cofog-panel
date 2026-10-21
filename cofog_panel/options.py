@@ -103,7 +103,15 @@ CODE_PATTERN = re.compile(r"(0[1-9]|10)(\.[0-9]{1,2})?")
 
 
 class OptionError(ValueError):
-    """An option value that cannot be used. The message lists what is accepted."""
+    """
+    An option value that cannot be used: `what` says what is wrong, `hint` how to fix it.
+    str() gives both, so the full message is available to scripts.
+    """
+
+    def __init__(self, what: str, hint: str = ""):
+        super().__init__(f"{what} {hint}".strip())
+        self.what = what
+        self.hint = hint
 
 
 def normalise_transformation(value: str) -> str:
@@ -113,7 +121,7 @@ def normalise_transformation(value: str) -> str:
         if name.casefold() == wanted:
             return name
     accepted = ", ".join(f"'{name}'" for name in TRANSFORMATIONS)
-    raise OptionError(f"Invalid --filter-type '{value}'. Choose one of: {accepted} (letter case does not matter).")
+    raise OptionError(f"Invalid --filter-type '{value}'.", f"Choose one of: {accepted} (letter case does not matter).")
 
 
 def workbook_strings(path: Path) -> Optional[Set[str]]:
@@ -209,9 +217,22 @@ def check_cofog(value: str, source_file: Optional[Path] = None) -> str:
     file_labels = labels_in_file(source_file) if source_file is not None and source_file.exists() else set()
     if text in file_labels:
         return text
-    message = (f"Invalid --cofog '{value}'. Use a COFOG code (01 to 10, or a group such as 07.3) "
-               f"or the exact label used in the file (e.g. 'Environmental protection').")
     hints = suggest_cofog(text)
-    if hints:
-        message += " Did you mean: " + ", ".join(hints) + "?"
-    raise OptionError(message)
+    hint = ("Did you mean: " + ", ".join(hints) + "? ") if hints else ""
+    hint += ("Use a COFOG code (01 to 10, or a group such as 07.3) or the exact label used in the file; "
+             "'cofog-panel list-cofog' lists them.")
+    raise OptionError(f"Invalid --cofog '{value}'.", hint)
+
+
+def data_column_for(selector: str) -> str:
+    """
+    Default data column for a COFOG selector: '05' -> DATA_05, '07.3' -> DATA_07_3,
+    'Environmental protection' -> DATA_05, any other label -> DATA_<LABEL IN CAPITALS>.
+    """
+    text = selector.strip()
+    if not CODE_PATTERN.fullmatch(text):
+        code_of = {label: code for code, label in COFOG_LABELS.items()}
+        if text not in code_of:
+            return "DATA_" + (re.sub(r"[^0-9A-Za-z]+", "_", text).strip("_").upper() or "NEW")
+        text = code_of[text]
+    return "DATA_" + text.replace(".", "_")

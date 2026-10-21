@@ -150,7 +150,7 @@ def test_invalid_filter_type_fails_before_reading(tmp_path):
     # The source file does not exist: the error must concern the option, not the file
     result = runner.invoke(app, ["split", "--source-file", str(tmp_path / "absent.xlsx"), "--cofog", "05",
                                  "--filter-type", "Percent GDP", "--output-dir", str(tmp_path / "s")])
-    assert result.exit_code == 2
+    assert result.exit_code == 1
     assert "Invalid --filter-type" in result.output
     for name in TRANSFORMATIONS:
         assert name in result.output
@@ -192,6 +192,6 @@ def test_invalid_cofog_on_command_line(extract):
     tmp, raw_path, lookup_path = extract
     result = runner.invoke(app, ["run", "--source-file", str(raw_path), "--lookup-file", str(lookup_path),
                                  "--cofog", "5", "--output-dir", str(tmp / "out")])
-    assert result.exit_code == 2
+    assert result.exit_code == 1
     assert "Did you mean" in result.output and "'05'" in result.output
     assert not (tmp / "out").exists()

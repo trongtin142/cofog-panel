@@ -12,6 +12,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 
+from .messages import hint_for_write_error, print_error
+
 # --- Sector names, normalised to lower case as they appear in IMF GFS COFOG ---
 GG = "general government"
 CGSS = "central government including social security"
@@ -302,13 +304,22 @@ def run_aggregation(
     complete_col_out = complete_col_out or default_complete
     print(f"\n--- AGGREGATE STAGE: Processing files in {source_folder_path.name} ---")
 
+    if not Path(master_file_path).exists():
+        print_error(f"Master file not found: {master_file_path}",
+                    "Create it with 'cofog-panel seed-master', or use 'cofog-panel run', which creates it.")
+        return False
+    if not Path(source_folder_path).is_dir():
+        print_error(f"Split directory not found: {source_folder_path}",
+                    "Create the country files with 'cofog-panel split', or give the directory with --folder-path.")
+        return False
     try:
         master = pd.read_excel(master_file_path, sheet_name=MASTER_SHEET, dtype=str, keep_default_na=False)
     except Exception as exc:
-        print(f"❌ Initialization Error reading Master XLSX: {exc}")
+        print_error(f"Cannot read the sheet '{MASTER_SHEET}' of {master_file_path} ({exc}).",
+                    "Use a master created by 'cofog-panel seed-master' and close it if it is open in Excel.")
         return False
     if "SortKey" not in master.columns:
-        print("❌ Initialization Error: Master XLSX missing 'SortKey' column.")
+        print_error("The master file has no 'SortKey' column.", "Use a master created by 'cofog-panel seed-master'.")
         return False
     print(f"✅ Master XLSX loaded: {len(master)} rows.")
 
@@ -362,7 +373,7 @@ def run_aggregation(
         with pd.ExcelWriter(master_file_path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
             out.to_excel(writer, sheet_name=MASTER_SHEET, index=False)
     except Exception as exc:
-        print(f"❌ FAILED TO WRITE TO MASTER XLSX FILE: {exc}")
+        print_error(f"Cannot write the master file {master_file_path} ({exc}).", hint_for_write_error(exc))
         return False
 
     tiers = master[tier_col_out].replace("", pd.NA).dropna().value_counts().to_dict()
@@ -373,6 +384,7 @@ def run_aggregation(
     if n_incomplete:
         print(f"   ⚠️ {n_incomplete} values are flagged incomplete ({complete_col_out} = N).")
     if failed:
-        print(f"❌ {len(failed)} country files could not be processed: {failed}")
+        print_error(f"{len(failed)} country files could not be processed: {failed}",
+                    "Run 'cofog-panel split' again to recreate the country files in this directory.")
         return False
     return True
