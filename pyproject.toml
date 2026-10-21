@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cofog-panel"
+dynamic = ["version"]
+description = "Harmonise IMF GFS COFOG data into reproducible country-year panel datasets."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Trong Tin Nguyen", email = "nttin@hcmiu.edu.vn" }]
+keywords = ["COFOG", "IMF GFS", "government expenditure", "panel data", "harmonisation"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+dependencies = [
+    "pandas>=2.0.0",
+    "openpyxl>=3.1.5",
+    "typer>=0.9.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+replication = ["statsmodels>=0.14", "matplotlib>=3.9"]
+
+[project.scripts]
+cofog-panel = "cofog_panel.cli:app"
+
+[project.urls]
+Repository = "https://github.com/trongtin142/cofog-panel"
+Archive = "https://doi.org/10.5281/zenodo.23511907"
+
+[tool.setuptools]
+packages = ["cofog_panel"]
+
+[tool.setuptools.dynamic]
+version = { attr = "cofog_panel.__version__" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

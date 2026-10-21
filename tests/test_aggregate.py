@@ -207,10 +207,10 @@ def test_pipeline_end_to_end(workspace):
     assert run_aggregation(master_path, split_dir, "DATA_ENV", "General government")
     out = pd.read_excel(master_path, sheet_name="MasterData", dtype=str).fillna("")
     out = out.set_index("SortKey")
-    assert list(out.columns) == ["Country", "Year", "DATA_ENV", "SOURCE_TIER", "SOURCE_SECTORS", "SOURCE_COMPLETE"]
-    assert out.at["AAA2002", "SOURCE_COMPLETE"] == "Y"
-    assert out.at["AAA2002", "SOURCE_SECTORS"] == "CGSS+LG"
-    assert out.at["AAA2003", "SOURCE_SECTORS"] == "BCG+LG"
+    assert list(out.columns) == ["Country", "Year", "DATA_ENV", "SOURCE_TIER", "SOURCE_SECTORS_ENV", "SOURCE_COMPLETE_ENV"]
+    assert out.at["AAA2002", "SOURCE_COMPLETE_ENV"] == "Y"
+    assert out.at["AAA2002", "SOURCE_SECTORS_ENV"] == "CGSS+LG"
+    assert out.at["AAA2003", "SOURCE_SECTORS_ENV"] == "BCG+LG"
 
     def cell(key):
         return float(out.at[key, "DATA_ENV"]), out.at[key, "SOURCE_TIER"]
