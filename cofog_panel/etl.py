@@ -6,11 +6,11 @@ import re
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-import openpyxl
 import pandas as pd
 
 from .messages import DOWNLOAD_HINT, hint_for_write_error, print_error
 from .options import OptionError, normalise_transformation
+from .source import open_rows
 
 COUNTRY_FILE_PATTERN = re.compile(r"^[A-Z]{3}\.xlsx$")
 # Marker file: country files are only ever deleted from directories that carry it
@@ -59,9 +59,7 @@ def _scan(source: Path, transformation: str, selectors: set) -> Tuple[List[str],
     Stream the extract once and keep the rows of the requested transformation and function.
     Returns (header, rows by country, number of rows read). Cells are kept as text.
     """
-    book = openpyxl.load_workbook(source, read_only=True, data_only=True)
-    try:
-        rows = book.active.iter_rows(values_only=True)
+    with open_rows(source) as rows:
         header = ["" if cell is None else str(cell).strip() for cell in next(rows, ())]
         missing = [c for c in _FILTER_COLUMNS if c not in header]
         if missing:
@@ -87,8 +85,6 @@ def _scan(source: Path, transformation: str, selectors: set) -> Tuple[List[str],
                 continue
             kept.setdefault(country, []).append(["" if cell is None else str(cell) for cell in row])
             n_kept += 1
-    finally:
-        book.close()
     return header, kept, n_read
 
 
@@ -130,8 +126,8 @@ def split_data(
                     "Use the Excel download of IMF.STA:GFS_COFOG without changes; 'cofog-panel check-format' checks it.")
         return output_dir, False
     except Exception as exc:
-        print_error(f"Cannot read {source_file_path.name} as an Excel workbook ({exc}).",
-                    "Use the .xlsx download from the IMF portal and close the file if it is open in another program.")
+        print_error(f"Cannot read {source_file_path.name} ({exc}).",
+                    "Use the CSV or Excel download from the IMF portal and close the file if it is open in another program.")
         return output_dir, False
 
     n_kept = sum(len(rows) for rows in by_country.values())
@@ -175,11 +171,9 @@ def read_split_marker(directory: Path) -> Dict[str, str]:
 def list_cofog(source_file_path: Path) -> List[Tuple[str, str, int]]:
     """
     COFOG functions in an extract: (code, label, number of countries), sorted by code.
-    Reads the whole file once (about a minute for the full IMF extract).
+    Reads the whole file once (seconds for the CSV download, about a minute for the Excel one).
     """
-    book = openpyxl.load_workbook(source_file_path, read_only=True, data_only=True)
-    try:
-        rows = book.active.iter_rows(values_only=True)
+    with open_rows(source_file_path) as rows:
         header = ["" if cell is None else str(cell).strip() for cell in next(rows, ())]
         missing = [c for c in ("SERIES_CODE", "COFOG") if c not in header]
         if missing:
@@ -192,7 +186,5 @@ def list_cofog(source_file_path: Path) -> List[Tuple[str, str, int]]:
                 continue
             label = "" if row[at_cofog] is None else str(row[at_cofog]).strip()
             countries.setdefault((code, label), set()).add(_country_of(row[at_series]))
-    finally:
-        book.close()
     return sorted(((code, label, len(isos)) for (code, label), isos in countries.items()),
                   key=lambda item: ([int(part) for part in item[0].split(".")], item[1]))

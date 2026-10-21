@@ -145,24 +145,20 @@ def workbook_strings(path: Path) -> Optional[Set[str]]:
 
 def labels_in_file(path: Path) -> Set[str]:
     """
-    Text values that may be COFOG labels in a workbook: its shared strings or, for workbooks
-    written with inline strings (e.g. by openpyxl), the values of its COFOG column.
+    Text values that may be COFOG labels in an extract: the shared strings of an IMF workbook or,
+    for CSV files and workbooks written with inline strings (e.g. by openpyxl), its COFOG column.
     """
     strings = workbook_strings(path)
     if strings is not None:
         return strings
+    from .source import open_rows
     try:
-        import openpyxl
-        book = openpyxl.load_workbook(path, read_only=True, data_only=True)
-        try:
-            rows = book.active.iter_rows(values_only=True)
+        with open_rows(path) as rows:
             header = ["" if cell is None else str(cell).strip() for cell in next(rows, ())]
             if "COFOG" not in header:
                 return set()
             at = header.index("COFOG")
             return {str(row[at]).strip() for row in rows if len(row) > at and row[at] is not None}
-        finally:
-            book.close()
     except Exception:
         return set()
 

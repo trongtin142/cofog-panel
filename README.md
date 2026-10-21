@@ -4,7 +4,7 @@
 [![tests](https://github.com/trongtin142/cofog-panel/actions/workflows/tests.yml/badge.svg)](https://github.com/trongtin142/cofog-panel/actions/workflows/tests.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23511907.svg)](https://doi.org/10.5281/zenodo.23511907)
 
-COFOG-Panel builds a country-year panel for any COFOG division or group from a raw Excel extract of the IMF Government Finance Statistics (GFS) dataset on expenditure by function of government. Countries report these data for different sets of government subsectors. The tool selects one value per country-year with a documented three-tier rule and records, next to every value, the tier, the sectors that entered it and whether it covers every level of government.
+COFOG-Panel builds a country-year panel for any COFOG division or group from a raw download (CSV or Excel) of the IMF Government Finance Statistics (GFS) dataset on expenditure by function of government. Countries report these data for different sets of government subsectors. The tool selects one value per country-year with a documented three-tier rule and records, next to every value, the tier, the sectors that entered it and whether it covers every level of government.
 
 The DOI badge points to all versions of the software. Each release also has its own DOI, listed on the Zenodo page and in `CITATION.cff`.
 
@@ -18,12 +18,14 @@ cd cofog-panel
 pip install -e .
 ```
 
-**2. Download the IMF data** (once):
+**2. Download the IMF data** (once, about 220 MB):
 
-1. Open the dataset page <https://data.imf.org/en/datasets/IMF.STA:GFS_COFOG> (Government Finance Statistics, expenditure by function of government).
-2. Click **DOWNLOAD**.
-3. Choose the whole dataset (all countries, sectors and years, not a filtered view) and the **Excel** (.xlsx) format.
-4. Save the file in the `data` folder of the repository as `data/gfs_raw_data.xlsx`.
+1. Open the dataset page <https://data.imf.org/en/datasets/IMF.STA:GFS_COFOG> ("GFS Government Expenditures by Function").
+2. Click **DOWNLOAD** (top right). A "Download Dataset" window opens.
+3. Keep the defaults: **Download full dataset** switched on, **File Format: CSV**, **Data format: Timeseries per row**. Click **DOWNLOAD** in the window.
+4. The browser saves a file named like `dataset_2026-..._IMF.STA_GFS_COFOG_11.0.0.csv`. Move it to the `data` folder of the repository and rename it `gfs_raw_data.csv`.
+
+An Excel download (`data/gfs_raw_data.xlsx`) works as well and is used when both files exist; the CSV file is read much faster.
 
 **3. Run** one command, here for environmental protection (COFOG 05):
 
@@ -41,7 +43,7 @@ The panel is written to `output/COFOG_MASTER_SCHEMA.xlsx` (sheet `MasterData`). 
 | ARM2014 | Armenia | 2014 | 0.097 | T3 | BCG | N |
 | DEU2015 | Germany | 2015 | 0.541 | T1 | GG | Y |
 
-Values are in per cent of GDP (rounded here; the file keeps all digits).
+Values are in per cent of GDP (rounded here; the file keeps all digits). They come from the release published on 3 February 2026; a later download gives revised values.
 
 * **T1**: general government (GG) as reported. **T2**: central government including social security (CGSS) plus the state and local levels that are reported. **T3**: the central government components (budgetary BCG, extrabudgetary EBCG, social security funds SSF) plus state (SG) and local (LG) government, when neither GG nor CGSS is reported.
 * **Y / N**: `Y` when the value covers every level of government that the country reports in its series; `N` when a level is missing (Armenia 2014 lacks the local level it reports in other years), so the value understates spending.
@@ -118,13 +120,13 @@ cofog-panel run --cofog 05 `
 
 ## 3. Usage
 
-Defaults: `--source-file` is `data/gfs_raw_data.xlsx` (relative to the current directory), `--lookup-file` is the country lookup bundled with the package, `--filter-type` is `"Percent of GDP"`, `--sector` is `"General government"` and the data column is named after the COFOG code. Only `--cofog` is required.
+Defaults: `--source-file` is `data/gfs_raw_data.xlsx`, or `data/gfs_raw_data.csv` if there is no Excel file (relative to the current directory), `--lookup-file` is the country lookup bundled with the package, `--filter-type` is `"Percent of GDP"`, `--sector` is `"General government"` and the data column is named after the COFOG code. Only `--cofog` is required.
 
 A second indicator is added to the same master by running the command again: `cofog-panel run --cofog 07 --tier-col TIER_07` adds `DATA_07`, `TIER_07`, `SOURCE_SECTORS_07` and `SOURCE_COMPLETE_07`. An existing master is kept and the new columns are added to it. `--overwrite-master` rebuilds the master from the lookup file instead, which deletes the indicator columns it holds; the tool prints a warning when it does so.
 
 Options:
 
-* `--cofog` takes a division or group code (`05`, `07.3`) or the exact label used in the file (`"Environmental protection"`). A value that is neither is rejected at once, with the closest codes or labels. `cofog-panel list-cofog` lists the codes and labels in the file with the number of countries (it reads the whole file, about a minute).
+* `--cofog` takes a division or group code (`05`, `07.3`) or the exact label used in the file (`"Environmental protection"`). A value that is neither is rejected at once, with the closest codes or labels. `cofog-panel list-cofog` lists the codes and labels in the file with the number of countries (it reads the whole file: seconds for the CSV download, about a minute for the Excel one).
 * `--filter-type` is one of `"Percent of GDP"`, `"Domestic currency"` and `"Percent of total outlays"`, in any letter case. Any other value is rejected at once.
 * `--sector` selects the method described in Section 1; `cofog-panel list-sectors` lists the accepted values.
 
@@ -133,7 +135,7 @@ These checks run before the extract is read, so a mistake is reported within sec
 Single stages:
 
 ```bash
-cofog-panel check-format                              # data/gfs_raw_data.xlsx by default
+cofog-panel check-format                              # data/gfs_raw_data.xlsx or .csv by default
 cofog-panel check-country-format                      # the bundled lookup by default
 cofog-panel seed-master --output-dir output
 cofog-panel split --cofog "07" --output-dir intermediate_splits
@@ -178,6 +180,8 @@ pytest
 ```
 
 ## 5. Data
+
+The source file can be the CSV or the Excel download of IMF.STA:GFS_COFOG; both have the same columns and give the same panel. The IMF revises the dataset in place: a download made on 21 October 2026 still carries the version number 11.0.0 but has a new `PUBLICATION_DATE` and revised values. Keep the downloaded file with your results and report its `PUBLICATION_DATE` (a column of the file) when you cite the data.
 
 The country lookup (`data/country_codes.xlsx`, also bundled in the package as `cofog_panel/data/country_codes.xlsx`) is an ISO 3166 lookup with Kosovo (XKX) added. The IMF GFS data are not covered by the MIT License: `DATA_LICENSE.md` gives the IMF terms, the required attribution and the notice on transformed data.
 

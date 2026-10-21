@@ -33,3 +33,4 @@ replication/*/output/
 
 # IMF data (download from the IMF portal; see DATA_LICENSE.md)
 data/gfs_raw_data.xlsx
+data/gfs_raw_data.csv

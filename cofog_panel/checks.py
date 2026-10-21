@@ -6,10 +6,10 @@ Both checks print a short report and return (ok, details) so that scripts can ac
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-import openpyxl
 import pandas as pd
 
 from .messages import DOWNLOAD_HINT, print_error
+from .source import open_rows
 
 # Metadata columns of an IMF GFS COFOG Excel download, in the order the IMF writes them
 IMF_METADATA_COLUMNS = (
@@ -37,12 +37,9 @@ _RULE = "=" * 40
 
 
 def read_header(path: Path) -> List[str]:
-    """First row of the active sheet, as stripped strings (empty cells dropped)."""
-    book = openpyxl.load_workbook(path, read_only=True, data_only=True)
-    try:
-        first_row = next(book.active.iter_rows(max_row=1, values_only=True), ())
-    finally:
-        book.close()
+    """Header row of the extract (.xlsx or .csv), as stripped strings (empty cells dropped)."""
+    with open_rows(path) as rows:
+        first_row = next(rows, ())
     return [str(cell).strip() for cell in first_row if cell is not None]
 
 
@@ -75,7 +72,7 @@ def _print_format_report(name: str, details: Dict[str, Any]) -> None:
             print(f"   -> UNKNOWN Extra Headers ({len(extra)}): {extra}")
         if details["Year_Mismatch"]:
             print(f"   -> Year columns must run contiguously from {START_YEAR} to at least {END_YEAR}.")
-        print("   Hint: download IMF.STA:GFS_COFOG again as Excel and use the file without changing its columns.")
+        print("   Hint: download IMF.STA:GFS_COFOG again (CSV or Excel) and use the file without changing its columns.")
     print(_RULE)
 
 
@@ -96,8 +93,8 @@ def verify_cofog_format(file_path: Path) -> Tuple[bool, Dict[str, Any]]:
     try:
         headers = read_header(file_path)
     except Exception as exc:  # not a workbook, or damaged
-        print_error(f"Cannot read {file_path.name} as an Excel workbook ({exc}).",
-                    "Use the .xlsx download from the IMF portal and close the file if it is open in another program.")
+        print_error(f"Cannot read {file_path.name} ({exc}).",
+                    "Use the CSV or Excel download from the IMF portal and close the file if it is open in another program.")
         return False, details
 
     years = sorted(int(h) for h in headers if len(h) == 4 and h.isdigit())

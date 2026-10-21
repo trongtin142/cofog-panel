@@ -29,6 +29,7 @@ from cofog_panel.master_seed import (  # noqa: E402
     DEFAULT_END_YEAR, DEFAULT_FILE_NAME, DEFAULT_START_YEAR, PACKAGED_LOOKUP, prepare_master, seed_master,
 )
 from cofog_panel.messages import DOWNLOAD_HINT, print_error  # noqa: E402
+from cofog_panel.source import default_source  # noqa: E402
 from cofog_panel.options import (  # noqa: E402
     COFOG_LABELS, OptionError, TRANSFORMATIONS, check_cofog, data_column_for, normalise_transformation,
 )
@@ -37,7 +38,6 @@ app = typer.Typer(help="COFOG-Panel: Tool for harmonizing IMF GFS COFOG data int
                   pretty_exceptions_enable=False)
 
 DEFAULT_MASTER_FILE_NAME = DEFAULT_FILE_NAME
-DEFAULT_SOURCE_FILE = Path("data/gfs_raw_data.xlsx")
 DEFAULT_OUTPUT_DIR = Path("./output")
 DEFAULT_SPLIT_DIR = Path("./intermediate_splits")
 DEFAULT_TRANSFORMATION = "Percent of GDP"
@@ -60,8 +60,9 @@ SECTOR_METHODS = {
 _state = {"debug": False}
 
 # --- Shared option types ---
-SourceFile = Annotated[Path, typer.Option(
-    "--source-file", help="Path to the raw COFOG Excel file (IMF.STA:GFS_COFOG download).")]
+SourceFile = Annotated[Optional[Path], typer.Option(
+    "--source-file", help="IMF.STA:GFS_COFOG download, CSV or Excel. "
+                          "Default: data/gfs_raw_data.xlsx, or data/gfs_raw_data.csv if there is no .xlsx.")]
 LookupFile = Annotated[Path, typer.Option(
     "--lookup-file", help="Country lookup file. Default: the lookup bundled with the package.")]
 Cofog = Annotated[str, typer.Option(
@@ -159,10 +160,11 @@ def list_sectors() -> None:
 
 @app.command("list-cofog")
 @_guarded
-def list_cofog_command(source_file: SourceFile = DEFAULT_SOURCE_FILE) -> None:
+def list_cofog_command(source_file: SourceFile = None) -> None:
     """Lists the COFOG codes and labels in the extract, with the number of countries (reads the whole file)."""
+    source_file = source_file or default_source()
     _require_source(source_file)
-    typer.echo(f"Reading {source_file.name} (about a minute for the full IMF extract)...")
+    typer.echo(f"Reading {source_file.name} (seconds for a CSV file, about a minute for an Excel file)...")
     try:
         functions = list_cofog(source_file)
     except KeyError as exc:
@@ -179,9 +181,9 @@ def list_cofog_command(source_file: SourceFile = DEFAULT_SOURCE_FILE) -> None:
 
 @app.command("check-format")
 @_guarded
-def check_format(source_file: SourceFile = DEFAULT_SOURCE_FILE) -> None:
+def check_format(source_file: SourceFile = None) -> None:
     """Verifies the header structure of the raw COFOG input file."""
-    if not verify_cofog_format(source_file)[0]:
+    if not verify_cofog_format(source_file or default_source())[0]:
         raise typer.Exit(code=1)
 
 
@@ -217,11 +219,12 @@ def seed(
 @_guarded
 def split(
     cofog: Cofog,
-    source_file: SourceFile = DEFAULT_SOURCE_FILE,
+    source_file: SourceFile = None,
     filter_type: FilterType = DEFAULT_TRANSFORMATION,
     output_dir: Annotated[Path, typer.Option("--output-dir", help="Directory to save intermediate country XLSX files.")] = DEFAULT_SPLIT_DIR,
 ) -> None:
     """Filters raw data and saves one XLSX file per country."""
+    source_file = source_file or default_source()
     transformation = normalise_transformation(filter_type)
     selector = check_cofog(cofog, source_file)
     _require_source(source_file)
@@ -265,7 +268,7 @@ def aggregate(
 def run(
     cofog: Annotated[str, typer.Option("--cofog", help="COFOG code (e.g. '05') or exact COFOG label "
                                                        "('cofog-panel list-cofog' lists them).")],
-    source_file: SourceFile = DEFAULT_SOURCE_FILE,
+    source_file: SourceFile = None,
     lookup_file: LookupFile = PACKAGED_LOOKUP,
     filter_type: FilterType = DEFAULT_TRANSFORMATION,
     output_dir: Annotated[Path, typer.Option("--output-dir", help="Directory for Master XLSX.")] = DEFAULT_OUTPUT_DIR,
@@ -283,6 +286,7 @@ def run(
                                    "By default an existing master is kept and the new indicator is added to it.")] = False,
 ) -> None:
     """Runs the full pipeline sequentially (stages 1 -> 5) using local files."""
+    source_file = source_file or default_source()
     _valid_sector(sector)
     transformation = normalise_transformation(filter_type)
     selector = check_cofog(cofog, source_file)

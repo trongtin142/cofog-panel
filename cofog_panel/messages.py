@@ -5,8 +5,8 @@ The command-line tool maps errors to exit codes: 0 success, 1 data or option err
 2 command-line usage error (unknown option, missing value), as raised by Typer itself.
 """
 
-DOWNLOAD_HINT = ("Download IMF.STA:GFS_COFOG as Excel from https://data.imf.org (README, Quickstart) "
-                 "and save it as data/gfs_raw_data.xlsx, or give its path with --source-file.")
+DOWNLOAD_HINT = ("Download IMF.STA:GFS_COFOG from https://data.imf.org (README, Quickstart) and save it as "
+                 "data/gfs_raw_data.csv (or .xlsx), or give its path with --source-file.")
 LOCKED_FILE_HINT = "Close the file if it is open in Excel, check that the directory is writable, and run the command again."
 
 

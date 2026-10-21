@@ -188,3 +188,33 @@ def test_unexpected_error_is_short_unless_debug(project, monkeypatch):
 
     result = runner.invoke(cli.app, ["--debug", "split", "--cofog", "05"])
     assert isinstance(result.exception, RuntimeError)
+
+
+# --- CSV download (the IMF portal's default format) ---
+
+def _as_csv(xlsx_path, csv_path):
+    """Write the extract as the IMF portal does: UTF-8 with BOM, every field quoted."""
+    frame = pd.read_excel(xlsx_path, dtype=str).fillna("")
+    frame.to_csv(csv_path, index=False, encoding="utf-8-sig", quoting=1)
+
+
+def test_csv_and_excel_downloads_give_the_same_panel(project):
+    _as_csv(project / "data" / "gfs_raw_data.xlsx", project / "extract.csv")
+    for name, source in (("xlsx", "data/gfs_raw_data.xlsx"), ("csv", "extract.csv")):
+        result = runner.invoke(cli.app, ["run", "--cofog", "05", "--source-file", source,
+                                         "--output-dir", f"out_{name}", "--split-dir", f"split_{name}"])
+        assert result.exit_code == 0, result.output
+    pd.testing.assert_frame_equal(_master(project / "out_xlsx" / "COFOG_MASTER_SCHEMA.xlsx"),
+                                  _master(project / "out_csv" / "COFOG_MASTER_SCHEMA.xlsx"))
+
+
+def test_csv_is_used_when_there_is_no_xlsx(project):
+    _as_csv(project / "data" / "gfs_raw_data.xlsx", project / "data" / "gfs_raw_data.csv")
+    (project / "data" / "gfs_raw_data.xlsx").unlink()
+    assert runner.invoke(cli.app, ["check-format"]).exit_code == 0
+    result = runner.invoke(cli.app, ["list-cofog"])
+    assert result.exit_code == 0 and "gfs_raw_data.csv" in result.output
+    assert ["07.3", "1", "Hospital", "services"] in [line.split() for line in result.output.splitlines()]
+    result = runner.invoke(cli.app, ["run", "--cofog", "Hospital services"])
+    assert result.exit_code == 0, result.output
+    assert _master(project / "output" / "COFOG_MASTER_SCHEMA.xlsx").at["ALB2015", "DATA_07_3"] == "1.1"
