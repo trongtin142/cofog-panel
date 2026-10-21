@@ -22,7 +22,7 @@ for _stream in (sys.stdout, sys.stderr):
         pass
 
 from cofog_panel import __version__  # noqa: E402
-from cofog_panel.aggregate import DEFAULT_DATA_COL, DEFAULT_TIER_COL, DIRECT_SECTORS, run_aggregation  # noqa: E402
+from cofog_panel.aggregate import DEFAULT_DATA_COL, DIRECT_SECTORS, run_aggregation  # noqa: E402
 from cofog_panel.checks import verify_cofog_format, verify_country_format  # noqa: E402
 from cofog_panel.etl import list_cofog, read_split_marker, split_data  # noqa: E402
 from cofog_panel.master_seed import (  # noqa: E402
@@ -77,7 +77,9 @@ Sector = Annotated[str, typer.Option(
 DataCol = Annotated[Optional[str], typer.Option(
     "--data-col", "--output-cols", help="Data column in the master. Default: DATA_<COFOG code>, "
                                         "e.g. DATA_05 or DATA_07_3.")]
-TierCol = Annotated[str, typer.Option("--tier-col", help="Column recording the tier used for each value.")]
+TierCol = Annotated[Optional[str], typer.Option(
+    "--tier-col", help="Column recording the tier of each value. Default: SOURCE_TIER_<suffix of --data-col> "
+                       "(SOURCE_TIER for DATA_NEW).")]
 SectorsCol = Annotated[Optional[str], typer.Option(
     "--sectors-col", help="Column recording the contributing sectors. Default: SOURCE_SECTORS_<suffix of --data-col> "
                           "(SOURCE_SECTORS for DATA_NEW).")]
@@ -244,7 +246,7 @@ def aggregate(
     data_col: Annotated[Optional[str], typer.Option(
         "--data-col", help="Data column in the master. Default: DATA_<COFOG code> of the split in --folder-path "
                            "(DATA_NEW if it is not recorded).")] = None,
-    tier_col: TierCol = DEFAULT_TIER_COL,
+    tier_col: TierCol = None,
     sectors_col: SectorsCol = None,
     complete_col: CompleteCol = None,
     sector: Sector = "General government",
@@ -274,7 +276,7 @@ def run(
     output_dir: Annotated[Path, typer.Option("--output-dir", help="Directory for Master XLSX.")] = DEFAULT_OUTPUT_DIR,
     split_dir: Annotated[Path, typer.Option("--split-dir", help="Directory to save intermediate country XLSX splits.")] = DEFAULT_SPLIT_DIR,
     data_col: DataCol = None,
-    tier_col: TierCol = DEFAULT_TIER_COL,
+    tier_col: TierCol = None,
     sectors_col: SectorsCol = None,
     complete_col: CompleteCol = None,
     sector: Annotated[str, typer.Option("--sector", help="Aggregation method used in the final step.")] = "General government",

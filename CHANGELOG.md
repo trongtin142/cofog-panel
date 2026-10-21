@@ -16,7 +16,7 @@ The core modules (`checks.py`, `cli.py`, `etl.py`, `master_seed.py`, `aggregate.
 
 Fixes:
 
-- Provenance per indicator. The sectors and completeness columns were shared by all indicators, so a second `aggregate` run overwrote the provenance of the first. They now take their names from `--data-col` (`DATA_ENV` gives `SOURCE_SECTORS_ENV` and `SOURCE_COMPLETE_ENV`) or from the new options `--sectors-col` and `--complete-col`. The default `DATA_NEW` keeps `SOURCE_SECTORS` and `SOURCE_COMPLETE`. A warning is printed when a run replaces a column already in the master.
+- Provenance per indicator. The tier, sectors and completeness columns were shared by all indicators, so a second `aggregate` run overwrote the provenance of the first. They now take their names from `--data-col` (`DATA_ENV` gives `SOURCE_TIER_ENV`, `SOURCE_SECTORS_ENV` and `SOURCE_COMPLETE_ENV`) or from `--tier-col` and the new options `--sectors-col` and `--complete-col`. A data column named `DATA_NEW` keeps `SOURCE_TIER`, `SOURCE_SECTORS` and `SOURCE_COMPLETE`. A warning is printed when a run replaces a column already in the master.
 - `cofog-panel run` no longer rebuilds an existing master, which deleted the indicator columns in it. The master is kept and the new columns are added. The new flag `--overwrite-master` rebuilds it, with a warning.
 - Options are checked before the extract is read. `--filter-type` ignores letter case and an unknown value is rejected at once with the three accepted values. `--cofog` must be a COFOG code (01 to 10, or a group such as 07.3) or a label present in the file; otherwise the closest codes or labels are suggested. `split` also checks its output directory before the scan.
 
@@ -27,6 +27,8 @@ Easier use (all earlier commands and options still work):
 - CSV input: the CSV download, which is the IMF portal's default, can be used directly as `--source-file` (same columns as the Excel download, same panel, read several times faster). Without `--source-file`, `data/gfs_raw_data.xlsx` is used, or `data/gfs_raw_data.csv` if there is no Excel file. The Quickstart follows the portal's download window step by step.
 - New commands: `list-cofog` (COFOG codes and labels in the extract, with the number of countries) and `list-sectors` (accepted `--sector` and `--filter-type` values).
 - Errors: one line on what went wrong and one `Hint:` line on how to fix it, without traceback unless `--debug` is given. Exit codes: 0 success, 1 data or option error, 2 command-line usage error. `aggregate` now fails on a missing master file or split directory instead of writing empty columns.
+
+Acknowledgements: the README credits Pham Thanh Tung for the early prototype of the pipeline.
 
 ## 1.0.2 (2026-10-21)
 

@@ -67,8 +67,8 @@ def test_run_with_defaults_only_needs_cofog(project):
     assert result.exit_code == 0, result.output
     out = _master(project / "output" / "COFOG_MASTER_SCHEMA.xlsx")
     # Bundled lookup: real countries; derived column names
-    assert {"DATA_05", "SOURCE_TIER", "SOURCE_SECTORS_05", "SOURCE_COMPLETE_05"} <= set(out.columns)
-    assert out.at["ARM2013", "SOURCE_TIER"] == "T1"
+    assert {"DATA_05", "SOURCE_TIER_05", "SOURCE_SECTORS_05", "SOURCE_COMPLETE_05"} <= set(out.columns)
+    assert out.at["ARM2013", "SOURCE_TIER_05"] == "T1"
     assert out.at["ARM2014", "SOURCE_SECTORS_05"] == "BCG"
     assert "DATA_NEW" not in out.columns
 
@@ -77,7 +77,7 @@ def test_explicit_data_new_keeps_legacy_names(project):
     result = runner.invoke(cli.app, ["run", "--cofog", "05", "--data-col", "DATA_NEW"])
     assert result.exit_code == 0, result.output
     out = _master(project / "output" / "COFOG_MASTER_SCHEMA.xlsx")
-    assert {"DATA_NEW", "SOURCE_SECTORS", "SOURCE_COMPLETE"} <= set(out.columns)
+    assert {"DATA_NEW", "SOURCE_TIER", "SOURCE_SECTORS", "SOURCE_COMPLETE"} <= set(out.columns)
 
 
 def test_group_code_gives_group_column(project):
@@ -218,3 +218,14 @@ def test_csv_is_used_when_there_is_no_xlsx(project):
     result = runner.invoke(cli.app, ["run", "--cofog", "Hospital services"])
     assert result.exit_code == 0, result.output
     assert _master(project / "output" / "COFOG_MASTER_SCHEMA.xlsx").at["ALB2015", "DATA_07_3"] == "1.1"
+
+
+def test_two_indicators_with_defaults_keep_separate_tiers(project):
+    assert runner.invoke(cli.app, ["run", "--cofog", "05"]).exit_code == 0
+    result = runner.invoke(cli.app, ["run", "--cofog", "07"])
+    assert result.exit_code == 0, result.output
+    assert "replaced" not in result.output
+    out = _master(project / "output" / "COFOG_MASTER_SCHEMA.xlsx")
+    assert {"SOURCE_TIER_05", "SOURCE_TIER_07"} <= set(out.columns)
+    assert out.at["ARM2014", "SOURCE_TIER_05"] == "T3"
+    assert out.at["ALB2015", "SOURCE_TIER_07"] == "T1"

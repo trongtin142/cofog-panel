@@ -35,7 +35,7 @@ cofog-panel run --cofog 05
 
 The panel is written to `output/COFOG_MASTER_SCHEMA.xlsx` (sheet `MasterData`). Five rows of the result:
 
-| SortKey | Country | Year | DATA_05 | SOURCE_TIER | SOURCE_SECTORS_05 | SOURCE_COMPLETE_05 |
+| SortKey | Country | Year | DATA_05 | SOURCE_TIER_05 | SOURCE_SECTORS_05 | SOURCE_COMPLETE_05 |
 | :--- | :--- | ---: | ---: | :--- | :--- | :--- |
 | ARG2002 | Argentina | 2002 | 0.018 | T2 | CGSS+SG | Y |
 | ARM2012 | Armenia | 2012 | 0.404 | T3 | BCG+LG | N |
@@ -78,11 +78,11 @@ T2 and T3 are unconsolidated sums: transfers between levels of government (and, 
 | :--- | :--- |
 | `SortKey`, `Country`, `Year` | Panel keys |
 | `--data-col` (default `DATA_<COFOG code>`, e.g. `DATA_05`, `DATA_07_3`) | Selected value, as a number |
-| `--tier-col` (default `SOURCE_TIER`) | T1, T2, T3, C1, C2 or D |
+| `--tier-col` (default `SOURCE_TIER_<suffix>`) | T1, T2, T3, C1, C2 or D |
 | `--sectors-col` (default `SOURCE_SECTORS_<suffix>`) | Sectors that entered the value, e.g. `CGSS+LG` or `BCG+SG` |
 | `--complete-col` (default `SOURCE_COMPLETE_<suffix>`) | `Y` or `N` (see below) |
 
-The data column is named after the COFOG code unless it is given: `--cofog 05` writes `DATA_05`, `--cofog 07.3` writes `DATA_07_3`, and a label is mapped to its code. The sectors and completeness columns take the suffix of the data column (`DATA_05` gives `SOURCE_SECTORS_05` and `SOURCE_COMPLETE_05`), so that several indicators in one master keep separate provenance. A data column given as `DATA_NEW` writes `SOURCE_SECTORS` and `SOURCE_COMPLETE`, as in earlier versions. Give each indicator its own `--tier-col` as well (e.g. `--tier-col TIER_05`). The tool warns when a run would replace a column that is already in the master.
+The data column is named after the COFOG code unless it is given: `--cofog 05` writes `DATA_05`, `--cofog 07.3` writes `DATA_07_3`, and a label is mapped to its code. The tier, sectors and completeness columns take the suffix of the data column (`DATA_05` gives `SOURCE_TIER_05`, `SOURCE_SECTORS_05` and `SOURCE_COMPLETE_05`), so that several indicators in one master keep separate provenance. A data column given as `DATA_NEW` writes `SOURCE_TIER`, `SOURCE_SECTORS` and `SOURCE_COMPLETE`, as in earlier versions. The tool warns when a run would replace a column that is already in the master.
 
 Completeness: a T2, T3 or C2 sum is `N` when it leaves out a level (state, local, social security funds, extrabudgetary central government) that the country reports in another year of the same series, or the central core. A T1 value is `N` when GG equals CGSS exactly while state or local government report positive spending in that year.
 
@@ -122,7 +122,7 @@ cofog-panel run --cofog 05 `
 
 Defaults: `--source-file` is `data/gfs_raw_data.xlsx`, or `data/gfs_raw_data.csv` if there is no Excel file (relative to the current directory), `--lookup-file` is the country lookup bundled with the package, `--filter-type` is `"Percent of GDP"`, `--sector` is `"General government"` and the data column is named after the COFOG code. Only `--cofog` is required.
 
-A second indicator is added to the same master by running the command again: `cofog-panel run --cofog 07 --tier-col TIER_07` adds `DATA_07`, `TIER_07`, `SOURCE_SECTORS_07` and `SOURCE_COMPLETE_07`. An existing master is kept and the new columns are added to it. `--overwrite-master` rebuilds the master from the lookup file instead, which deletes the indicator columns it holds; the tool prints a warning when it does so.
+A second indicator is added to the same master by running the command again: `cofog-panel run --cofog 07` adds `DATA_07`, `SOURCE_TIER_07`, `SOURCE_SECTORS_07` and `SOURCE_COMPLETE_07`. An existing master is kept and the new columns are added to it. `--overwrite-master` rebuilds the master from the lookup file instead, which deletes the indicator columns it holds; the tool prints a warning when it does so.
 
 Options:
 
@@ -139,8 +139,7 @@ cofog-panel check-format                              # data/gfs_raw_data.xlsx o
 cofog-panel check-country-format                      # the bundled lookup by default
 cofog-panel seed-master --output-dir output
 cofog-panel split --cofog "07" --output-dir intermediate_splits
-cofog-panel aggregate --master-file output/COFOG_MASTER_SCHEMA.xlsx --folder-path intermediate_splits \
-  --tier-col TIER_07
+cofog-panel aggregate --master-file output/COFOG_MASTER_SCHEMA.xlsx --folder-path intermediate_splits
 ```
 
 `seed-master` always writes a new master, replacing a file of the same name. `split` writes only into a new or empty directory, or into one it created earlier (marked by a `.cofog_panel_split` file that also records the COFOG function), where it replaces the country files of its previous run; it never deletes files elsewhere. `aggregate` names the data column after the function recorded by `split` (`DATA_07` here) unless `--data-col` is given.
@@ -192,3 +191,7 @@ The country lookup (`data/country_codes.xlsx`, also bundled in the package as `c
 ## 7. Citation
 
 See `CITATION.cff`. Please cite the DOI of the release you used.
+
+## 8. Acknowledgements
+
+Pham Thanh Tung contributed to an early prototype of the pipeline (March 2026), from which this repository grew. The current code was written by Trong Tin Nguyen.

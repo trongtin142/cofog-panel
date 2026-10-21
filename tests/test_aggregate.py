@@ -207,13 +207,13 @@ def test_pipeline_end_to_end(workspace):
     assert run_aggregation(master_path, split_dir, "DATA_ENV", "General government")
     out = pd.read_excel(master_path, sheet_name="MasterData", dtype=str).fillna("")
     out = out.set_index("SortKey")
-    assert list(out.columns) == ["Country", "Year", "DATA_ENV", "SOURCE_TIER", "SOURCE_SECTORS_ENV", "SOURCE_COMPLETE_ENV"]
+    assert list(out.columns) == ["Country", "Year", "DATA_ENV", "SOURCE_TIER_ENV", "SOURCE_SECTORS_ENV", "SOURCE_COMPLETE_ENV"]
     assert out.at["AAA2002", "SOURCE_COMPLETE_ENV"] == "Y"
     assert out.at["AAA2002", "SOURCE_SECTORS_ENV"] == "CGSS+LG"
     assert out.at["AAA2003", "SOURCE_SECTORS_ENV"] == "BCG+LG"
 
     def cell(key):
-        return float(out.at[key, "DATA_ENV"]), out.at[key, "SOURCE_TIER"]
+        return float(out.at[key, "DATA_ENV"]), out.at[key, "SOURCE_TIER_ENV"]
 
     assert cell("AAA2000") == (1.0, "T1")
     assert cell("AAA2001") == (0.0, "T1")
@@ -264,7 +264,7 @@ def test_second_indicator_keeps_first_and_values_are_numeric(workspace):
                            sectors_col_out="ENV_SECTORS", complete_col_out="ENV_COMPLETE")
     assert run_aggregation(master_path, split_dir, "DATA_ENV2")
     out = pd.read_excel(master_path, sheet_name="MasterData")
-    assert {"DATA_ENV", "ENV_TIER", "DATA_ENV2", "SOURCE_TIER"} <= set(out.columns)
+    assert {"DATA_ENV", "ENV_TIER", "DATA_ENV2", "SOURCE_TIER_ENV2"} <= set(out.columns)
     assert pd.api.types.is_numeric_dtype(out["DATA_ENV"])
     assert pd.api.types.is_numeric_dtype(out["DATA_ENV2"])
     assert pd.api.types.is_integer_dtype(out["Year"])

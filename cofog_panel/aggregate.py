@@ -257,16 +257,29 @@ def _select_for_country(
 
 # --- Writing the master ---
 
+def _suffix(data_col: str) -> Optional[str]:
+    """Suffix of a data column for the provenance names (None for DATA_NEW): DATA_05 -> 05, ENV -> ENV."""
+    if data_col == DEFAULT_DATA_COL:
+        return None
+    return data_col[5:] if data_col.upper().startswith("DATA_") and len(data_col) > 5 else data_col
+
+
 def provenance_columns(data_col: str) -> Tuple[str, str]:
     """
     Default names of the sectors and completeness columns for a data column:
     DATA_ENV -> (SOURCE_SECTORS_ENV, SOURCE_COMPLETE_ENV), ENV -> (SOURCE_SECTORS_ENV, ...).
-    The default data column DATA_NEW keeps the unsuffixed names SOURCE_SECTORS and SOURCE_COMPLETE.
+    The data column DATA_NEW keeps the unsuffixed names SOURCE_SECTORS and SOURCE_COMPLETE.
     """
-    if data_col == DEFAULT_DATA_COL:
+    suffix = _suffix(data_col)
+    if suffix is None:
         return DEFAULT_SECTORS_COL, DEFAULT_COMPLETE_COL
-    suffix = data_col[5:] if data_col.upper().startswith("DATA_") and len(data_col) > 5 else data_col
     return f"{DEFAULT_SECTORS_COL}_{suffix}", f"{DEFAULT_COMPLETE_COL}_{suffix}"
+
+
+def tier_column(data_col: str) -> str:
+    """Default tier column for a data column: DATA_05 -> SOURCE_TIER_05, DATA_NEW -> SOURCE_TIER."""
+    suffix = _suffix(data_col)
+    return DEFAULT_TIER_COL if suffix is None else f"{DEFAULT_TIER_COL}_{suffix}"
 
 
 def _restore_types(frame: pd.DataFrame, skip: List[str]) -> pd.DataFrame:
@@ -286,7 +299,7 @@ def run_aggregation(
     source_folder_path: Path,
     data_col_out: str,
     sector_override: Optional[str] = "General government",
-    tier_col_out: str = DEFAULT_TIER_COL,
+    tier_col_out: Optional[str] = None,
     zero_as_missing: bool = False,
     sectors_col_out: Optional[str] = None,
     complete_col_out: Optional[str] = None,
@@ -295,11 +308,13 @@ def run_aggregation(
     Fill data_col_out, tier_col_out and the provenance columns of the master from the country
     files in source_folder_path. Other columns of the master (earlier indicators) are kept.
 
-    sectors_col_out and complete_col_out default to names derived from data_col_out (see
-    provenance_columns), so that two indicators in one master keep separate provenance.
+    tier_col_out, sectors_col_out and complete_col_out default to names derived from data_col_out
+    (see tier_column and provenance_columns), so that two indicators in one master keep separate
+    provenance.
     Returns False if the master cannot be read or written, or if any country file fails.
     """
     default_sectors, default_complete = provenance_columns(data_col_out)
+    tier_col_out = tier_col_out or tier_column(data_col_out)
     sectors_col_out = sectors_col_out or default_sectors
     complete_col_out = complete_col_out or default_complete
     print(f"\n--- AGGREGATE STAGE: Processing files in {source_folder_path.name} ---")
