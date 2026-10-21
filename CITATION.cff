@@ -9,6 +9,7 @@ doi: 10.5281/zenodo.23512435
 authors:
   - family-names: Nguyen
     given-names: Trong Tin
+    orcid: "https://orcid.org/0009-0006-0017-6374"
     email: nttin@hcmiu.edu.vn
     affiliation: "International University, VNU-HCM, Ho Chi Minh City, Vietnam"
 keywords: [COFOG, IMF GFS, government expenditure, panel data, harmonisation]
