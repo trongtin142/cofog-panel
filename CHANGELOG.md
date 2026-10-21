@@ -4,6 +4,7 @@
 
 - Relabel the central-government estimator as 'CGSS alone' in the SJIAOS replication; add ORCID to CITATION.cff.
 - SJIAOS replication: limit the year axis of Figure 1 to 1990–2023. Tables are unchanged.
+- DOI: 10.5281/zenodo.23546439
 
 ## 1.0.1 (2026-10-20)
 

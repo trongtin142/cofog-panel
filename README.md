@@ -2,7 +2,7 @@
 # COFOG-Panel: Harmonizing IMF GFS COFOG Data into Reproducible Panel Datasets
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![tests](https://github.com/trongtin142/cofog-panel/actions/workflows/tests.yml/badge.svg)](https://github.com/trongtin142/cofog-panel/actions/workflows/tests.yml) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23512435.svg)](https://doi.org/10.5281/zenodo.23512435)
+[![tests](https://github.com/trongtin142/cofog-panel/actions/workflows/tests.yml/badge.svg)](https://github.com/trongtin142/cofog-panel/actions/workflows/tests.yml) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23546439.svg)](https://doi.org/10.5281/zenodo.23546439)
 
 COFOG-Panel turns a raw extract of the IMF Government Finance Statistics (GFS) dataset on expenditure by function of government (COFOG) into a country-year panel for any COFOG division or group. Countries report GFS COFOG data for different government subsectors; the tool selects one value per country-year with a documented three-tier rule and records, for every value, where it came from.
 
