@@ -15,7 +15,7 @@ Reproduces all tables and figures of the article on subsector harmonisation of t
 | `data_ext/wb_NY.GDP.PCAP.PP.KD.json` | World Bank WDI, GDP per capita PPP (API, downloaded 20 October 2026) |
 | `data_ext/wb_countries.json` | World Bank country metadata (ISO2 to ISO3 mapping) |
 
-The IMF extract is not distributed with the repository. The script checks the downloaded file against the SHA-256 of the extract used in the article (`91e3db1bdb838f322dcbe648b133f511f3efe1921e50c8bc0d7621f512668cfe`) and warns if it differs: the IMF revises the dataset, so a later download may give slightly different numbers. The exact extract is available from the author on request.
+The IMF extract is not distributed with the repository. The script checks the downloaded file against the SHA-256 of the extract used in the article (`91e3db1bdb838f322dcbe648b133f511f3efe1921e50c8bc0d7621f512668cfe`) and warns if it differs. The IMF republished the dataset on 21 October 2026 under the same version number (11.0.0) with revised values; the article uses the release published on 3 February 2026, identified by the `PUBLICATION_DATE` column of the file (2026-02-03) and by the checksum above. A current download therefore gives different numbers. The exact extract is available from the author on request.
 
 Licences and exact queries: `data_ext/SOURCES.md` and `../../DATA_LICENSE.md`.
 
