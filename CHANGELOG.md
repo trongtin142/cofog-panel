@@ -30,6 +30,8 @@ Easier use (all earlier commands and options still work):
 
 Acknowledgements: the README credits Pham Thanh Tung for the early prototype of the pipeline.
 
+- DOI: 10.5281/zenodo.23549086
+
 ## 1.0.2 (2026-10-21)
 
 - Relabel the central-government estimator as 'CGSS alone' in the SJIAOS replication; add ORCID to CITATION.cff.
