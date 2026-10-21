@@ -537,6 +537,7 @@ def fig_coverage(h: pd.DataFrame, path: Path):
                edgecolor="white", linewidth=0.8, label=lab)
         bottom += c[t].values
     _style(ax)
+    ax.set_xlim(1989.5, 2023.5)
     ax.set_ylabel("Countries with a value", color=INK2, fontsize=9)
     ax.legend(frameon=False, fontsize=8.5, loc="upper left")
     fig.tight_layout()
