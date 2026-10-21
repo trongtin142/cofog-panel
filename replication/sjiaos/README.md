@@ -1,6 +1,6 @@
 # Replication: subsector harmonisation of IMF GFS COFOG data
 
-Reproduces all tables and figures of the article "Harmonising government subsector coverage in IMF GFS COFOG data: a transparent tiered approach and its consequences for cross-country comparability".
+Reproduces all tables and figures of the article on subsector harmonisation of the IMF GFS COFOG data.
 
 ## Requirements
 
