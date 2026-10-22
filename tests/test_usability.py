@@ -229,3 +229,27 @@ def test_two_indicators_with_defaults_keep_separate_tiers(project):
     assert {"SOURCE_TIER_05", "SOURCE_TIER_07"} <= set(out.columns)
     assert out.at["ARM2014", "SOURCE_TIER_05"] == "T3"
     assert out.at["ALB2015", "SOURCE_TIER_07"] == "T1"
+
+
+def test_missing_source_prints_exactly_two_lines(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    result = runner.invoke(cli.app, ["run", "--cofog", "05", "--source-file", "nope.xlsx"])
+    assert result.exit_code == 1
+    lines = [line for line in result.output.splitlines() if line.strip()]
+    assert len(lines) == 2, result.output
+    assert lines[0].startswith("❌ Error: Source file not found: nope.xlsx")
+    assert lines[1].lstrip().startswith("Hint:")
+    assert "Unexpected" not in result.output
+
+
+@pytest.mark.parametrize("command", [
+    ["split", "--cofog", "05", "--filter-type", "bad"],
+    ["run", "--cofog", "5"],
+    ["run", "--cofog", "05", "--sector", "bad"],
+    ["list-cofog", "--source-file", "nope.csv"],
+])
+def test_option_errors_are_not_reported_as_unexpected(project, command):
+    result = runner.invoke(cli.app, command)
+    assert result.exit_code == 1
+    assert "Unexpected" not in result.output
+    assert len([line for line in result.output.splitlines() if line.strip()]) == 2, result.output

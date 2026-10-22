@@ -11,7 +11,6 @@ import sys
 from pathlib import Path
 from typing import Annotated, Optional
 
-import click
 import typer
 
 # Status lines use symbols that a legacy Windows console encoding cannot print
@@ -58,6 +57,12 @@ SECTOR_METHODS = {
 }
 
 _state = {"debug": False}
+
+# Exceptions that carry Typer's own control flow (exit codes, usage errors) and must pass through
+# _guarded unchanged. Older Typer versions raise click's classes; Typer 0.27 and later bundle their own
+# copy of click (base class TyperException). Both are found from the class hierarchy of typer.BadParameter.
+_TYPER_EXCEPTIONS = (typer.Exit, typer.Abort) + tuple(
+    cls for cls in typer.BadParameter.__mro__ if cls.__name__ in ("ClickException", "TyperException"))
 
 # --- Shared option types ---
 SourceFile = Annotated[Optional[Path], typer.Option(
@@ -121,7 +126,7 @@ def _guarded(command):
     def wrapper(*args, **kwargs):
         try:
             return command(*args, **kwargs)
-        except (click.exceptions.Exit, click.exceptions.Abort, click.ClickException):
+        except _TYPER_EXCEPTIONS:
             raise
         except OptionError as exc:
             _stop(exc.what, exc.hint)
