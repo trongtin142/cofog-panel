@@ -5,7 +5,7 @@ version: 1.0.4
 date-released: 2026-10-22
 license: MIT
 repository-code: "https://github.com/trongtin142/cofog-panel"
-doi: 10.5281/zenodo.23549086
+doi: 10.5281/zenodo.23557750
 authors:
   - family-names: Nguyen
     given-names: Trong Tin

@@ -21,6 +21,8 @@ Fixes for a fresh installation. Results are unchanged: the SJIAOS replication gi
 - `DATA_LICENSE.md`: current names of the provenance columns, CSV download, note on the IMF release of 21 October 2026.
 - `output/COFOG_MASTER_SCHEMA.xlsx` is no longer tracked (it is created by `cofog-panel run` or `seed-master`); `output/` is ignored.
 
+- DOI: 10.5281/zenodo.23557750
+
 ## 1.0.3 (2026-10-22)
 
 The core modules (`checks.py`, `cli.py`, `etl.py`, `master_seed.py`, `aggregate.py`, `__init__.py`) were rewritten, and packaging moved from `setup.py` to `pyproject.toml`. The selection rule and the completeness flags are unchanged: the SJIAOS replication gives the same tables as 1.0.2.
