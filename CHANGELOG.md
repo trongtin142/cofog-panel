@@ -10,6 +10,14 @@
 - High-level Python API `build_panel(...)` returning a DataFrame.
 - "Open in Colab" badge for `cofog.ipynb`.
 
+## 1.0.5 (2026-10-22)
+
+Replication: robustness of the SJIAOS results to the IMF release. Results for the article extract are unchanged.
+
+- `replication/sjiaos/evaluate_harmonisation.py` takes `--source FILE` (Excel or CSV download) and `--out DIR`. Without options it runs as before.
+- New `replication/sjiaos/compare_vintages.py`: evaluates a second IMF extract and writes `supp_vintage.csv` (Supplementary Table S13), which compares the main statistics of the article on the releases of 3 February and 21 October 2026.
+- `.gitignore`: dated IMF downloads (`data/gfs_raw_data*.csv`, `.xlsx`) and `replication/*/output_vintage/`.
+
 ## 1.0.4 (2026-10-22)
 
 Fixes for a fresh installation. Results are unchanged: the SJIAOS replication gives the same tables as 1.0.3.

@@ -3,6 +3,7 @@ Empirical evaluation of the tiered harmonisation rule for IMF GFS COFOG data (Pa
 
 Replication script for the SJIAOS article on subsector harmonisation. Run from the repository root:
     python replication/sjiaos/evaluate_harmonisation.py
+Another IMF release (Excel or CSV) is evaluated with --source FILE --out DIR (see compare_vintages.py).
 
 Inputs : data/gfs_raw_data.xlsx (IMF GFS_COFOG 11.0.0, published 2026-02-03)
          data/country_codes.xlsx
@@ -11,6 +12,7 @@ Inputs : data/gfs_raw_data.xlsx (IMF GFS_COFOG 11.0.0, published 2026-02-03)
 Outputs: replication/sjiaos/output/table*.csv (manuscript tables), supp_*.csv (supplementary tables),
          fig*.png, harmonised_all_divisions.csv, results.json
 """
+import argparse
 import hashlib
 import json
 import sys
@@ -74,7 +76,7 @@ def load_long() -> pd.DataFrame:
     cache = OUT / f"_gfs_long_pcgdp_{YEARS.start}_{YEARS.stop - 1}.pkl"
     if cache.exists() and cache.stat().st_mtime > RAW.stat().st_mtime:
         return pd.read_pickle(cache)
-    raw = pd.read_excel(RAW)
+    raw = pd.read_csv(RAW, encoding="utf-8-sig", low_memory=False) if RAW.suffix.lower() == ".csv" else pd.read_excel(RAW)
     raw = raw[raw["TYPE_OF_TRANSFORMATION"] == "Percent of GDP"].copy()
     parts = raw["SERIES_CODE"].str.split(".", expand=True)
     raw["ISO"] = parts[0].str.upper().replace(IMF_TO_ISO)
@@ -628,6 +630,13 @@ def fig_eurostat(m: pd.DataFrame, path: Path):
 # ----------------------------------------------------------------------------
 
 def main():
+    global RAW, OUT
+    ap = argparse.ArgumentParser(description=__doc__.split("\n\n", 1)[0].strip())
+    ap.add_argument("--source", type=Path, default=RAW, help="IMF GFS COFOG extract, Excel or CSV (default: %(default)s)")
+    ap.add_argument("--out", type=Path, default=OUT, help="output folder (default: %(default)s)")
+    args = ap.parse_args()
+    RAW, OUT = args.source.resolve(), args.out.resolve()
+    OUT.mkdir(parents=True, exist_ok=True)
     long = load_long()
     h = harmonise(to_wide(long))
     h.to_csv(OUT / "harmonised_all_divisions.csv", index=False)
