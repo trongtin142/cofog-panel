@@ -18,6 +18,8 @@ Replication: robustness of the SJIAOS results to the IMF release. Results for th
 - New `replication/sjiaos/compare_vintages.py`: evaluates a second IMF extract and writes `supp_vintage.csv` (Supplementary Table S13), which compares the main statistics of the article on the releases of 3 February and 21 October 2026.
 - `.gitignore`: dated IMF downloads (`data/gfs_raw_data*.csv`, `.xlsx`) and `replication/*/output_vintage/`.
 
+- DOI: 10.5281/zenodo.23558078
+
 ## 1.0.4 (2026-10-22)
 
 Fixes for a fresh installation. Results are unchanged: the SJIAOS replication gives the same tables as 1.0.3.
