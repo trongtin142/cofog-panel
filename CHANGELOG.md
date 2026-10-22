@@ -18,6 +18,7 @@ Fixes for a fresh installation. Results are unchanged: the SJIAOS replication gi
 - Minimum Typer version raised to 0.18.0 (`typer>=0.18.0`): Typer 0.16 and 0.17.0 to 0.17.4 install with the current click (8.5) but do not enforce required options or eager flags with it.
 - A missing source file printed a third line, "Error: Unexpected Exit:", with recent Typer versions. Every error now prints exactly two lines (error and hint) and exits with code 1. Tests cover this case.
 - CI: a new job tests the oldest supported Typer (0.18.0) and the newest one on Python 3.10 and 3.13, each installed in a fresh virtual environment.
+- `DATA_LICENSE.md`: current names of the provenance columns, CSV download, note on the IMF release of 21 October 2026.
 - `output/COFOG_MASTER_SCHEMA.xlsx` is no longer tracked (it is created by `cofog-panel run` or `seed-master`); `output/` is ignored.
 
 ## 1.0.3 (2026-10-22)
