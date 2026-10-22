@@ -188,10 +188,14 @@ The country lookup (`data/country_codes.xlsx`, also bundled in the package as `c
 
 `replication/` holds the scripts that reproduce the published analyses that use COFOG-Panel, each with its own README. They need the `[replication]` extra.
 
-## 7. Citation
+## 7. Feedback and testing
+
+Reports from users help improve the tool. After a run, please open a short [test report](https://github.com/trongtin142/cofog-panel/issues/new?template=test_report.yml) (version, operating system, command, outcome and what was unclear). Problems go in a [bug report](https://github.com/trongtin142/cofog-panel/issues/new?template=bug_report.yml), and questions or ideas in [Discussions](https://github.com/trongtin142/cofog-panel/discussions).
+
+## 8. Citation
 
 See `CITATION.cff`. Please cite the DOI of the release you used.
 
-## 8. Acknowledgements
+## 9. Acknowledgements
 
 Pham Thanh Tung contributed to an early prototype of the pipeline (March 2026), from which this repository grew. The current code was written by Trong Tin Nguyen.

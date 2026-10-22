@@ -1,0 +1,77 @@
+name: Feedback / test report
+description: Tell us how COFOG-Panel worked for you (installation, a run on your data, documentation).
+title: "[Test report] "
+labels: ["feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for testing COFOG-Panel. A short report helps improve the tool, and every report stays public so it can be cited as evidence of use.
+  - type: input
+    id: version
+    attributes:
+      label: COFOG-Panel version
+      description: Output of `cofog-panel --version`
+      placeholder: "cofog-panel 1.0.5"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      placeholder: "3.12"
+  - type: dropdown
+    id: data
+    attributes:
+      label: IMF data file used
+      options:
+        - CSV download from the IMF portal
+        - Excel download from the IMF portal
+        - Other (please describe below)
+  - type: input
+    id: command
+    attributes:
+      label: Command you ran
+      placeholder: "cofog-panel run --cofog 05"
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: Outcome
+      options:
+        - Worked as expected
+        - Worked, with some confusion
+        - Produced an error
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: What worked well and what was unclear
+      description: Installation, the Quickstart, the output columns (tier, sectors, completeness), error messages, speed.
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: Error message (if any)
+      render: text
+  - type: input
+    id: use
+    attributes:
+      label: How you plan to use it (optional)
+      description: For example research project, statistical office, teaching. This helps document the use of the software.
+  - type: input
+    id: affiliation
+    attributes:
+      label: Affiliation (optional)
