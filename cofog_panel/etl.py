@@ -91,10 +91,18 @@ def _directory_usable(path: Path) -> bool:
     return not any(path.iterdir())
 
 
-def _scan(source: Path, transformation: str, selectors: set) -> Tuple[List[str], Dict[str, List[List[str]]], int]:
+def _date_text(cell: Any) -> str:
+    """A PUBLICATION_DATE cell as text: dates from Excel as YYYY-MM-DD, anything else as it is."""
+    return cell.date().isoformat() if hasattr(cell, "date") else str(cell).strip()
+
+
+def _scan(
+    source: Path, transformation: str, selectors: set,
+) -> Tuple[List[str], Dict[str, List[List[str]]], int, List[str]]:
     """
     Stream the extract once and keep the rows of the requested transformation and function.
-    Returns (header, rows by country, number of rows read). Cells are kept as text.
+    Returns (header, rows by country, number of rows read, PUBLICATION_DATE values of the kept rows).
+    Cells are kept as text.
     """
     with open_rows(source) as rows:
         header = header_row(rows)
@@ -102,6 +110,8 @@ def _scan(source: Path, transformation: str, selectors: set) -> Tuple[List[str],
         if missing:
             raise KeyError(missing)
         at_series, at_type, at_cofog = (header.index(c) for c in _FILTER_COLUMNS)
+        at_published = header.index("PUBLICATION_DATE") if "PUBLICATION_DATE" in header else None
+        published: set = set()
 
         kept: Dict[str, List[List[str]]] = {}
         skipped: set = set()
@@ -128,12 +138,14 @@ def _scan(source: Path, transformation: str, selectors: set) -> Tuple[List[str],
                 continue
             kept.setdefault(country, []).append(["" if cell is None else str(cell) for cell in row])
             n_kept += 1
+            if at_published is not None and row[at_published] is not None and str(row[at_published]).strip():
+                published.add(_date_text(row[at_published]))
     if n_no_function:
         print(f"⚠️ {n_no_function} rows of this transformation have no COFOG function in their series code and were not "
               f"written (series that do not follow the 'country.sector.unit.function' pattern).")
     if skipped:
         print(f"⚠️ Series with a code that is not three letters were not written: {sorted(map(str, skipped))}")
-    return header, kept, n_read
+    return header, kept, n_read, sorted(published)
 
 
 def split_data(
@@ -171,7 +183,7 @@ def split_data(
 
     print(f"Filtering data by Transformation: {transformation} and COFOGs: {selectors}...")
     try:
-        header, by_country, n_read = _scan(source_file_path, transformation, selectors)
+        header, by_country, n_read, published = _scan(source_file_path, transformation, selectors)
     except KeyError as exc:
         print_error(f"Missing essential column for filtering: {exc.args[0]}.",
                     "Use the Excel download of IMF.STA:GFS_COFOG without changes; 'cofog-panel check-format' checks it.")
@@ -188,6 +200,9 @@ def split_data(
                     "Run 'cofog-panel list-cofog' to see the COFOG codes and labels in the file.")
         return output_dir, False
 
+    if len(published) > 1:
+        print(f"⚠️ The selected series carry {len(published)} different PUBLICATION_DATE values ({', '.join(published)}): "
+              f"the extract mixes IMF releases. Download it again in one go if the values must be consistent.")
     missing = _missing_from_lookup(by_country, header, lookup_file) if lookup_file is not None else []
     if missing:
         print(f"⚠️ {len(missing)} countries in the extract have no row in the lookup file and will not reach the master "
@@ -195,6 +210,11 @@ def split_data(
 
     output_dir.mkdir(parents=True, exist_ok=True)
     notes = f"cofog={','.join(sorted(selectors))}\ntransformation={transformation}\n"
+    if published:
+        notes += f"publication_date={','.join(published)}\n"
+    years = sorted(int(h) for h in header if len(h) == 4 and h.isdigit())
+    if years:
+        notes += f"years={years[0]}-{years[-1]}\n"
     (output_dir / SPLIT_MARKER).write_text(_MARKER_TEXT + notes)
     previous = [f for f in output_dir.iterdir() if COUNTRY_FILE_PATTERN.match(f.name)]
     if previous:

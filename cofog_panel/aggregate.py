@@ -6,13 +6,14 @@ For each country-year the rule picks one value from the reported sectors (resolv
 records the tier, the contributing sectors and whether the value covers every level of
 government that the country reports in its series (is_complete).
 """
+import re
 from decimal import Decimal, InvalidOperation, localcontext
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 
-from .etl import COUNTRY_FILE_ENCODING, IMF_TO_ISO, country_files
+from .etl import COUNTRY_FILE_ENCODING, IMF_TO_ISO, country_files, read_split_marker
 from .messages import hint_for_write_error, print_error
 
 # --- Sector names, normalised to lower case as they appear in IMF GFS COFOG ---
@@ -334,6 +335,23 @@ def _restore_types(frame: pd.DataFrame, skip: List[str]) -> pd.DataFrame:
     return frame
 
 
+def _report_split_source(marker: Dict[str, str], keys: pd.Series) -> None:
+    """Print the PUBLICATION_DATE the split recorded, and warn when master years and extract years differ."""
+    if marker.get("publication_date"):
+        print(f"ℹ️ Source PUBLICATION_DATE: {marker['publication_date']} (report it when you cite the data).")
+    span = re.fullmatch(r"(\d{4})-(\d{4})", marker.get("years", ""))
+    master_years = sorted({int(k[3:]) for k in keys if k[3:].isdigit()})
+    if not span or not master_years:
+        return
+    first, last = int(span.group(1)), int(span.group(2))
+    if master_years[0] < first or master_years[-1] > last:
+        print(f"⚠️ The master covers {master_years[0]}-{master_years[-1]} but the extract has years {first}-{last}: "
+              f"master rows outside {first}-{last} stay empty.")
+    if first < master_years[0] or last > master_years[-1]:
+        print(f"⚠️ The extract has years {first}-{last} but the master covers {master_years[0]}-{master_years[-1]}: "
+              f"values outside the master's years are not written.")
+
+
 def run_aggregation(
     master_file_path: Path,
     source_folder_path: Path,
@@ -393,6 +411,7 @@ def run_aggregation(
     files = country_files(source_folder_path)
     print(f"📂 Found {len(files)} intermediate country files in {source_folder_path}.")
 
+    _report_split_source(read_split_marker(source_folder_path), keys_in_master)
     master_isos = set(master["SortKey"].astype(str).str[:3])
     selected: Dict[str, Tuple[str, str, str, str]] = {}
     unmatched: List[str] = []

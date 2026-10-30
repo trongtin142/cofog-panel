@@ -7,7 +7,7 @@ from cofog_panel.aggregate import (
     _as_decimal, resolve_value, run_aggregation, is_complete,
     GG, CGSS, CGXSS, BCG, EBCG, SSF, SG, LG,
 )
-from cofog_panel.etl import _cofog_code_from_series, _country_of, country_files, list_cofog, split_data
+from cofog_panel.etl import _cofog_code_from_series, _country_of, country_files, list_cofog, read_split_marker, split_data
 from cofog_panel.master_seed import seed_master
 from cofog_panel.checks import verify_cofog_format, verify_country_format, FIXED_HEADERS_SAMPLE
 
@@ -613,3 +613,68 @@ def test_split_is_silent_when_every_row_has_a_function(workspace, tmp_path, caps
     _, raw_path, _ = workspace
     split_data(raw_path, "Percent of GDP", {"05"}, tmp_path / "s")
     assert "no COFOG function" not in capsys.readouterr().out
+
+
+def _with_publication_dates(raw_path, dates):
+    frame = pd.read_excel(raw_path, dtype=str, keep_default_na=False)
+    frame.loc[frame["COFOG"] == "Environmental protection", "PUBLICATION_DATE"] = (
+        [dates[i % len(dates)] for i in range(int((frame["COFOG"] == "Environmental protection").sum()))])
+    frame.to_excel(raw_path, index=False)
+
+
+def test_split_records_one_publication_date_and_the_year_span(workspace, tmp_path, capsys):
+    _, raw_path, _ = workspace
+    _with_publication_dates(raw_path, ["2026-10-21"])
+    split_dir, ok = split_data(raw_path, "Percent of GDP", {"05"}, tmp_path / "s")
+    marker = read_split_marker(split_dir)
+    assert ok and marker["publication_date"] == "2026-10-21" and marker["years"] == "1972-2024"
+    assert "PUBLICATION_DATE values" not in capsys.readouterr().out
+
+
+def test_split_warns_when_publication_dates_differ(workspace, tmp_path, capsys):
+    _, raw_path, _ = workspace
+    _with_publication_dates(raw_path, ["2026-10-21", "2025-04-01"])
+    split_dir, ok = split_data(raw_path, "Percent of GDP", {"05"}, tmp_path / "s")
+    assert ok and "2 different PUBLICATION_DATE values (2025-04-01, 2026-10-21)" in capsys.readouterr().out
+    assert read_split_marker(split_dir)["publication_date"] == "2025-04-01,2026-10-21"
+
+
+def test_publication_dates_of_other_functions_are_ignored(workspace, tmp_path):
+    _, raw_path, _ = workspace
+    _with_publication_dates(raw_path, ["2026-10-21"])
+    frame = pd.read_excel(raw_path, dtype=str, keep_default_na=False)
+    frame.loc[frame["COFOG"] == "Defence", "PUBLICATION_DATE"] = "1999-01-01"
+    frame.to_excel(raw_path, index=False)
+    split_dir, _ = split_data(raw_path, "Percent of GDP", {"05"}, tmp_path / "s")
+    assert read_split_marker(split_dir)["publication_date"] == "2026-10-21"
+
+
+def test_aggregate_reports_the_publication_date(workspace, tmp_path, capsys):
+    tmp, raw_path, lookup_path = workspace
+    _with_publication_dates(raw_path, ["2026-10-21"])
+    master_path, _ = seed_master(lookup_path, tmp, start_year=1972, end_year=2024)
+    split_dir, _ = split_data(raw_path, "Percent of GDP", {"05"}, tmp / "s")
+    assert run_aggregation(master_path, split_dir, "DATA_ENV")
+    out = capsys.readouterr().out
+    assert "Source PUBLICATION_DATE: 2026-10-21" in out and "master covers" not in out and "extract has years" not in out
+
+
+@pytest.mark.parametrize("start, end, message", [
+    (1972, 2030, "The master covers 1972-2030 but the extract has years 1972-2024: master rows outside 1972-2024 stay empty."),
+    (1990, 2024, "The extract has years 1972-2024 but the master covers 1990-2024: values outside the master's years are not written."),
+])
+def test_aggregate_compares_master_years_with_the_extract(workspace, tmp_path, capsys, start, end, message):
+    tmp, raw_path, lookup_path = workspace
+    master_path, _ = seed_master(lookup_path, tmp, start_year=start, end_year=end)
+    split_dir, _ = split_data(raw_path, "Percent of GDP", {"05"}, tmp / "s")
+    assert run_aggregation(master_path, split_dir, "DATA_ENV")
+    assert message in capsys.readouterr().out
+
+
+def test_aggregate_without_marker_skips_the_year_comparison(workspace, tmp_path, capsys):
+    tmp, raw_path, lookup_path = workspace
+    master_path, _ = seed_master(lookup_path, tmp, start_year=1990, end_year=2030)
+    split_dir, _ = split_data(raw_path, "Percent of GDP", {"05"}, tmp / "s")
+    (split_dir / ".cofog_panel_split").unlink()
+    assert run_aggregation(master_path, split_dir, "DATA_ENV")
+    assert "extract has years" not in capsys.readouterr().out

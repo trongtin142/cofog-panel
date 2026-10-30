@@ -142,7 +142,7 @@ cofog-panel split --cofog "07" --output-dir intermediate_splits
 cofog-panel aggregate --master-file output/COFOG_MASTER_SCHEMA.xlsx --folder-path intermediate_splits
 ```
 
-`seed-master` always writes a new master, replacing a file of the same name. `split` writes only into a new or empty directory, or into one it created earlier (marked by a `.cofog_panel_split` file that also records the COFOG function), where it replaces the country files of its previous run; it never deletes files elsewhere. `aggregate` names the data column after the function recorded by `split` (`DATA_07` here) unless `--data-col` is given; a `--data-col` of the form `DATA_<code>` for another function than the recorded one gives a warning.
+`seed-master` always writes a new master, replacing a file of the same name. `split` writes only into a new or empty directory, or into one it created earlier (marked by a `.cofog_panel_split` file that also records the COFOG function, the `PUBLICATION_DATE` of the selected series and the extract's year span), where it replaces the country files of its previous run; it never deletes files elsewhere. `aggregate` names the data column after the function recorded by `split` (`DATA_07` here) unless `--data-col` is given; a `--data-col` of the form `DATA_<code>` for another function than the recorded one gives a warning.
 
 ### Errors and exit codes
 
@@ -180,7 +180,7 @@ pytest
 
 ## 5. Data
 
-The source file can be the CSV or the Excel download of IMF.STA:GFS_COFOG; both have the same columns and give the same panel. The IMF revises the dataset in place: a download made on 21 October 2026 still carries the version number 11.0.0 but has a new `PUBLICATION_DATE` and revised values. Keep the downloaded file with your results and report its `PUBLICATION_DATE` (a column of the file) when you cite the data.
+The source file can be the CSV or the Excel download of IMF.STA:GFS_COFOG; both have the same columns and give the same panel. The IMF revises the dataset in place: a download made on 21 October 2026 still carries the version number 11.0.0 but has a new `PUBLICATION_DATE` and revised values. Keep the downloaded file with your results and report its `PUBLICATION_DATE` (a column of the file) when you cite the data. `split` warns if the selected series carry several dates, and `aggregate` prints the date it recorded.
 
 The country lookup (`data/country_codes.xlsx`, also bundled in the package as `cofog_panel/data/country_codes.xlsx`) is an ISO 3166 lookup with Kosovo (XKX) added. The IMF GFS data are not covered by the MIT License: `DATA_LICENSE.md` gives the IMF terms, the required attribution and the notice on transformed data.
 
