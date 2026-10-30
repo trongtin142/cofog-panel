@@ -87,6 +87,8 @@ CompleteCol = Annotated[Optional[str], typer.Option(
 ZeroAsMissing = Annotated[bool, typer.Option(
     "--zero-as-missing", help="Treat reported zeros as not reported, in every sector "
                               "(zeros often mean 'not separately identified').")]
+CheckRanges = Annotated[bool, typer.Option(
+    "--check-ranges", help="List selected values that are negative, or above 100 for percentages (values are kept).")]
 StartYear = Annotated[int, typer.Option("--start-year", help="First year of the panel.")]
 EndYear = Annotated[int, typer.Option("--end-year", help="Last year of the panel.")]
 
@@ -259,6 +261,7 @@ def aggregate(
     complete_col: CompleteCol = None,
     sector: Sector = "General government",
     zero_as_missing: ZeroAsMissing = False,
+    check_ranges: CheckRanges = False,
 ) -> None:
     """Applies the tiered selection rule and writes values and provenance to the Master file."""
     _valid_sector(sector)
@@ -268,7 +271,7 @@ def aggregate(
     else:
         _warn_if_other_function(data_col, read_split_marker(folder_path).get("cofog", ""))
     if not run_aggregation(master_file, folder_path, data_col, sector, tier_col, zero_as_missing,
-                           sectors_col, complete_col):
+                           sectors_col, complete_col, check_ranges):
         raise typer.Exit(code=1)
     typer.echo("::AGGREGATE_SUCCESS::COMPLETED")
 
@@ -291,6 +294,7 @@ def run(
     complete_col: CompleteCol = None,
     sector: Annotated[str, typer.Option("--sector", help="Aggregation method used in the final step.")] = "General government",
     zero_as_missing: ZeroAsMissing = False,
+    check_ranges: CheckRanges = False,
     start_year: StartYear = DEFAULT_START_YEAR,
     end_year: EndYear = DEFAULT_END_YEAR,
     overwrite_master: Annotated[bool, typer.Option(
@@ -328,7 +332,7 @@ def run(
 
     typer.echo("\n[Stage 5/5] Running Tiered Aggregation...")
     if not run_aggregation(master_path, folder, data_col, sector, tier_col, zero_as_missing,
-                           sectors_col, complete_col):
+                           sectors_col, complete_col, check_ranges):
         raise typer.Exit(code=1)
     typer.echo("\n🎉 FULL PIPELINE COMPLETED SUCCESSFULLY! 🎉")
     typer.echo(f"Final Master XLSX available at: {master_path}")

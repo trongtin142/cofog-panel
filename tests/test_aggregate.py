@@ -678,3 +678,69 @@ def test_aggregate_without_marker_skips_the_year_comparison(workspace, tmp_path,
     (split_dir / ".cofog_panel_split").unlink()
     assert run_aggregation(master_path, split_dir, "DATA_ENV")
     assert "extract has years" not in capsys.readouterr().out
+
+
+def test_split_warns_when_a_label_covers_several_functions(tmp_path, capsys):
+    rows = (_raw_rows("AAA", "Alpha", {"General government": {2000: 1.0}}, cofog_label="Shared", cofog_code="05")
+            + _raw_rows("AAA", "Alpha", {"General government": {2000: 2.0}}, cofog_label="Shared", cofog_code="051"))
+    path = tmp_path / "labels.xlsx"
+    pd.DataFrame(rows, columns=FIXED_HEADERS_SAMPLE + YEARS).to_excel(path, index=False)
+    _, ok = split_data(path, "Percent of GDP", {"Shared"}, tmp_path / "s")
+    assert ok and "The label 'Shared' covers several COFOG functions (05, 05.1)" in capsys.readouterr().out
+    split_data(path, "Percent of GDP", {"05"}, tmp_path / "t")
+    assert "covers several" not in capsys.readouterr().out
+
+
+def test_split_is_silent_for_a_label_with_one_function(workspace, tmp_path, capsys):
+    _, raw_path, _ = workspace
+    split_data(raw_path, "Percent of GDP", {"Environmental protection"}, tmp_path / "s")
+    assert "covers several" not in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("values, warned", [(["Annual", "Annual"], False), (["Annual", "Quarterly"], True)])
+def test_split_warns_about_mixed_frequencies(workspace, tmp_path, capsys, values, warned):
+    _, raw_path, _ = workspace
+    frame = pd.read_excel(raw_path, dtype=str, keep_default_na=False)
+    chosen = frame["COFOG"] == "Environmental protection"
+    frame.loc[chosen, "FREQUENCY"] = [values[i % 2] for i in range(int(chosen.sum()))]
+    frame.loc[frame["COFOG"] == "Defence", "FREQUENCY"] = "Monthly"  # other function: ignored
+    frame.to_excel(raw_path, index=False)
+    split_data(raw_path, "Percent of GDP", {"05"}, tmp_path / "s")
+    out = capsys.readouterr().out
+    assert ("different FREQUENCY values (Annual, Quarterly)" in out) is warned
+    assert "Monthly" not in out
+
+
+def _selected(value, transformation):
+    return {"AAA2000": (value, "T1", "GG", "Y")}, transformation
+
+
+@pytest.mark.parametrize("value, transformation, message", [
+    ("-0.5", "Percent of GDP", "1 selected values are negative, e.g. ['AAA2000=-0.5']"),
+    ("120", "Percent of GDP", "above 100 (Percent of GDP)"),
+    ("120", "Percent of total outlays", "above 100 (Percent of total outlays)"),
+    ("-5", "Domestic currency", "negative"),
+    ("120", "Domestic currency", "no negative values"),
+    ("100", "Percent of GDP", "no negative values"),
+    ("3", "Percent of GDP", "no negative values"),
+])
+def test_range_report(capsys, value, transformation, message):
+    from cofog_panel.aggregate import _report_ranges
+    _report_ranges(*_selected(value, transformation))
+    assert message in capsys.readouterr().out
+
+
+def test_aggregate_range_check_is_opt_in(workspace, tmp_path, capsys):
+    tmp, raw_path, lookup_path = workspace
+    frame = pd.read_excel(raw_path)
+    frame.loc[(frame["SECTOR"] == "General government") & (frame["COFOG"] == "Environmental protection"), "2000"] = -1.0
+    frame.to_excel(raw_path, index=False)
+    master_path, _ = seed_master(lookup_path, tmp, start_year=2000, end_year=2001)
+    split_dir, _ = split_data(raw_path, "Percent of GDP", {"05"}, tmp / "s")
+    assert run_aggregation(master_path, split_dir, "DATA_ENV")
+    quiet = capsys.readouterr().out
+    assert "Range check" not in quiet and "negative" not in quiet
+    assert run_aggregation(master_path, split_dir, "DATA_ENV", check_ranges=True)
+    out = capsys.readouterr().out
+    assert "selected values are negative, e.g. ['AAA2000=-1" in out
+    assert pd.read_excel(master_path)["DATA_ENV"].min() == -1.0

@@ -48,6 +48,7 @@ SUMMABLE_TRANSFORMATIONS = {"Percent of GDP", "Domestic currency"}
 SECTOR_ABBR = {GG: "GG", CGSS: "CGSS", CGXSS: "CGXSS", BCG: "BCG", EBCG: "EBCG", SSF: "SSF", SG: "SG", LG: "LG"}
 
 DEFAULT_DATA_COL = "DATA_NEW"
+PERCENT_TRANSFORMATIONS = ("Percent of GDP", "Percent of total outlays")
 DEFAULT_TIER_COL = "SOURCE_TIER"
 DEFAULT_SECTORS_COL = "SOURCE_SECTORS"
 DEFAULT_COMPLETE_COL = "SOURCE_COMPLETE"
@@ -352,6 +353,24 @@ def _report_split_source(marker: Dict[str, str], keys: pd.Series) -> None:
               f"values outside the master's years are not written.")
 
 
+def _report_ranges(selected: Dict[str, Tuple[str, str, str, str]], transformation: str) -> None:
+    """Warn about selected values that look wrong: negative, or above 100 for the two percentage transformations."""
+    negative, above = [], []
+    for key, (value, *_rest) in sorted(selected.items()):
+        number = _as_decimal(value)
+        if number is None:
+            continue
+        if number < 0:
+            negative.append(f"{key}={value}")
+        elif number > 100 and transformation in PERCENT_TRANSFORMATIONS:
+            above.append(f"{key}={value}")
+    for found, what in ((negative, "negative"), (above, f"above 100 ({transformation})")):
+        if found:
+            print(f"⚠️ {len(found)} selected values are {what}, e.g. {found[:5]}. They are kept; check them in the source.")
+    if not negative and not above:
+        print("✅ Range check: no negative values, none above 100 for percentages.")
+
+
 def run_aggregation(
     master_file_path: Path,
     source_folder_path: Path,
@@ -361,6 +380,7 @@ def run_aggregation(
     zero_as_missing: bool = False,
     sectors_col_out: Optional[str] = None,
     complete_col_out: Optional[str] = None,
+    check_ranges: bool = False,
 ) -> bool:
     """
     Fill data_col_out, tier_col_out and the provenance columns of the master from the country
@@ -369,6 +389,7 @@ def run_aggregation(
     tier_col_out, sectors_col_out and complete_col_out default to names derived from data_col_out
     (see tier_column and provenance_columns), so that two indicators in one master keep separate
     provenance.
+    With check_ranges, negative values and percentages above 100 are listed (nothing is changed).
     Returns False if the master cannot be read or written, or if any country file fails.
     """
     default_sectors, default_complete = provenance_columns(data_col_out)
@@ -411,7 +432,8 @@ def run_aggregation(
     files = country_files(source_folder_path)
     print(f"📂 Found {len(files)} intermediate country files in {source_folder_path}.")
 
-    _report_split_source(read_split_marker(source_folder_path), keys_in_master)
+    marker = read_split_marker(source_folder_path)
+    _report_split_source(marker, keys_in_master)
     master_isos = set(master["SortKey"].astype(str).str[:3])
     selected: Dict[str, Tuple[str, str, str, str]] = {}
     unmatched: List[str] = []
@@ -440,6 +462,8 @@ def run_aggregation(
         if conflicting:
             print(f"   ⚠️ {iso}: several series with different values for {conflicting}; the first one is used.")
 
+    if check_ranges:
+        _report_ranges(selected, marker.get("transformation", ""))
     print("\n💾 Mapping results back to Master DataFrame and writing XLSX...")
     if unmatched:
         print(f"⚠️ Country files without a row in the Master file (check the lookup file): {unmatched}")

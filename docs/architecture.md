@@ -70,6 +70,7 @@ Any single sector                  -> D
 
 - `summable=False` (any transformation other than Percent of GDP / Domestic currency, or Domestic currency with differing `SCALE`/`UNIT`/`CURRENCY` between the series of a country) allows T1, C1, D only. Shares of total outlays are never summed.
 - `zero_as_missing` drops zeros in every sector before the rule runs.
+- `check_ranges` (opt-in) only reports negative values and percentages above 100 after selection; it never changes a value.
 - `is_complete(tier, used, levels_reported, values)` gives the `Y/N` flag: a fallback sum is complete when it includes every level (EBCG, SSF, SG, LG) the country reports in at least one year. T1 is flagged `N` when GG equals CGSS exactly while SG or LG spend more than zero.
 - Sums use `Decimal` at precision 50; a directly reported value is written with its original text.
 

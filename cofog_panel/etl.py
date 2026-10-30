@@ -112,6 +112,9 @@ def _scan(
         at_series, at_type, at_cofog = (header.index(c) for c in _FILTER_COLUMNS)
         at_published = header.index("PUBLICATION_DATE") if "PUBLICATION_DATE" in header else None
         published: set = set()
+        at_frequency = header.index("FREQUENCY") if "FREQUENCY" in header else None
+        frequencies: set = set()
+        codes_of_label: Dict[str, set] = {}
 
         kept: Dict[str, List[List[str]]] = {}
         skipped: set = set()
@@ -138,6 +141,10 @@ def _scan(
                 continue
             kept.setdefault(country, []).append(["" if cell is None else str(cell) for cell in row])
             n_kept += 1
+            if label is not None and str(label).strip() in selectors:
+                codes_of_label.setdefault(str(label).strip(), set()).add(code)
+            if at_frequency is not None and row[at_frequency] is not None and str(row[at_frequency]).strip():
+                frequencies.add(str(row[at_frequency]).strip())
             if at_published is not None and row[at_published] is not None and str(row[at_published]).strip():
                 published.add(_date_text(row[at_published]))
     if n_no_function:
@@ -145,6 +152,13 @@ def _scan(
               f"written (series that do not follow the 'country.sector.unit.function' pattern).")
     if skipped:
         print(f"⚠️ Series with a code that is not three letters were not written: {sorted(map(str, skipped))}")
+    for label, codes in sorted(codes_of_label.items()):
+        if len(codes) > 1:
+            print(f"⚠️ The label '{label}' covers several COFOG functions ({', '.join(sorted(map(str, codes)))}); "
+                  f"their series are mixed in the output. Select one code (e.g. --cofog 05) to avoid this.")
+    if len(frequencies) > 1:
+        print(f"⚠️ The selected series have different FREQUENCY values ({', '.join(sorted(frequencies))}); "
+              f"the panel is yearly, so check that the extract holds annual data only.")
     return header, kept, n_read, sorted(published)
 
 

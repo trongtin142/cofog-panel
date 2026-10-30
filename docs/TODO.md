@@ -33,11 +33,11 @@ Working list, easy to hard. Status: `[x]` done, `[ ]` open. Numbers in published
 - [x] V8 `--cofog` codes outside the built-in list (e.g. `07.99`) checked against the extract before the scan (xlsx with shared strings, CSV).
 - [x] V9 Warn when `--data-col` is `DATA_<code>` of another function than the one recorded in the split marker (custom names are not warned about).
 - [x] V10 `split` reads `PUBLICATION_DATE` (selected series only), warns on mixed dates, records it in the marker; `aggregate` prints it. Not written to the master: H2 (provenance file) is the place for it.
-- [ ] V11 Range sanity flags (negative, Percent of GDP > 100), opt-in.
+- [x] V11 `--check-ranges` (`aggregate`, `run`): lists negative values and percentages above 100; values are kept.
 - [x] V12 `split` counts rows of the transformation skipped because the series code has no COFOG function.
 - [x] V13 Marker records the extract's year span; `aggregate` warns when it differs from the master's years.
 - [ ] V14 Move `IMF_TO_ISO` to a data file.
-- [ ] V15 Check label selectors that match several COFOG codes; check `FREQUENCY` (needs real data).
+- [x] V15 `split` warns when a label selector covers several COFOG codes, and when the selected series mix `FREQUENCY` values. Which value means annual is not assumed (needs real data).
 
 ## Hard
 

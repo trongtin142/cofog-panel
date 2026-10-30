@@ -299,3 +299,26 @@ def test_aggregate_warns_when_data_col_names_another_function(extract, data_col,
                                  "--data-col", data_col])
     assert result.exit_code == 0, result.output
     assert ("does not match the COFOG function of the split (07" in result.output) is warned
+
+
+@pytest.mark.parametrize("command", ["aggregate", "run"])
+def test_check_ranges_option_is_accepted(command):
+    result = runner.invoke(app, [command, "--help"])
+    assert "--check-ranges" in result.output
+
+
+def test_aggregate_command_passes_check_ranges(extract):
+    tmp, raw_path, lookup_path = extract
+    master_path, _ = seed_master(lookup_path, tmp, start_year=2000, end_year=2001)
+    split_data(raw_path, "Percent of GDP", {"07"}, tmp / "s")
+    args = ["aggregate", "--master-file", str(master_path), "--folder-path", str(tmp / "s")]
+    assert "Range check" not in runner.invoke(app, args).output
+    result = runner.invoke(app, args + ["--check-ranges"])
+    assert result.exit_code == 0 and "Range check: no negative values" in result.output
+
+
+def test_run_passes_check_ranges_to_aggregate(extract):
+    tmp, raw_path, lookup_path = extract
+    assert "Range check" not in _run(tmp, raw_path, lookup_path, "07", "DATA_H").output
+    result = _run(tmp, raw_path, lookup_path, "07", "DATA_H2", "--check-ranges")
+    assert result.exit_code == 0 and "Range check: no negative values" in result.output

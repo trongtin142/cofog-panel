@@ -86,7 +86,7 @@ The data column is named after the COFOG code unless it is given: `--cofog 05` w
 
 Completeness: a T2, T3 or C2 sum is `N` when it leaves out a level (state, local, social security funds, extrabudgetary central government) that the country reports in another year of the same series, or the central core. A T1 value is `N` when GG equals CGSS exactly while state or local government report positive spending in that year.
 
-Further rules: reported zeros are kept unless `--zero-as-missing` is given; shares of total outlays are never summed, so they only give T1 values; the IMF codes KOS and WBG are mapped to the ISO codes XKX and PSE. Values in domestic currency are added only when the series of a country agree in `SCALE`, `UNIT` and `CURRENCY` (letter case ignored); otherwise the country gets reported values only (T1, C1, D) and `aggregate` prints a warning.
+Further rules: reported zeros are kept unless `--zero-as-missing` is given; `--check-ranges` (`aggregate`, `run`) lists selected values that are negative, or above 100 for percentage transformations, and keeps them; shares of total outlays are never summed, so they only give T1 values; the IMF codes KOS and WBG are mapped to the ISO codes XKX and PSE. Values in domestic currency are added only when the series of a country agree in `SCALE`, `UNIT` and `CURRENCY` (letter case ignored); otherwise the country gets reported values only (T1, C1, D) and `aggregate` prints a warning.
 
 ## 2. Installation
 
