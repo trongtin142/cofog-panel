@@ -103,4 +103,4 @@ Per country: `_read_country_file` (first series per sector, warns when later ser
 
 ## Outside the package
 
-`replication/sjiaos/`, `replication/eeps/`: scripts reproducing published analyses, each with its own README. Selection-rule changes alter their numbers; rerun and state whether outputs changed. `cofog.ipynb`: notebook demo. IMF data is not MIT-licensed (`DATA_LICENSE.md`).
+`replication/sjiaos/`, `replication/eeps/`: scripts reproducing published analyses, each with its own README. Selection-rule changes alter their numbers; rerun and state whether outputs changed. `cofog.ipynb`: notebook demo. `gui.py`: optional Streamlit page (extra `gui`) that calls the same stage functions as `cli.run` for one built-in function; launched by `run_gui.sh` / `run_gui.bat`. IMF data is not MIT-licensed (`DATA_LICENSE.md`).

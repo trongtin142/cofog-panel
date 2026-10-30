@@ -384,3 +384,17 @@ def test_one_bad_cofog_value_stops_the_run_before_any_file_is_written(extract):
     result = _run_several(tmp, raw_path, lookup_path, "--cofog", "05", "--cofog", "xx")
     assert result.exit_code == 1 and "Invalid --cofog 'xx'" in result.output
     assert not (tmp / "out").exists() and not (tmp / "splits").exists()
+
+
+def test_gui_only_imports_names_that_exist():
+    """gui.py needs Streamlit, which is optional; check its cofog_panel imports without running it."""
+    import ast
+    import importlib
+    from pathlib import Path
+    tree = ast.parse((Path(__file__).parent.parent / "gui.py").read_text(encoding="utf-8"))
+    imports = [node for node in ast.walk(tree) if isinstance(node, ast.ImportFrom) and node.module.startswith("cofog_panel")]
+    assert imports
+    for node in imports:
+        module = importlib.import_module(node.module)
+        for alias in node.names:
+            assert hasattr(module, alias.name), f"{node.module}.{alias.name}"

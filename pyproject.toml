@@ -26,6 +26,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0"]
+gui = ["streamlit>=1.30.0"]
 replication = ["statsmodels>=0.14", "matplotlib>=3.9"]
 
 [project.scripts]
