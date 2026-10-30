@@ -42,7 +42,7 @@ Stage numbers follow the `[Stage n/5]` log lines and module docstrings. `AGENTS.
 | `source.py` | `open_rows`: one row iterator over CSV or XLSX; `header_row`; `default_source` (xlsx preferred) | openpyxl |
 | `checks.py` | Header and lookup validation; `IMF_METADATA_COLUMNS` | `source`, `messages` |
 | `master_seed.py` | Build the panel (ISO3 x years); keep or rebuild an existing master | `checks.read_lookup` |
-| `etl.py` | Filter by transformation + COFOG; write per-country files; split marker; list countries missing from the lookup; `IMF_TO_ISO` | `source`, `options`, `checks` |
+| `etl.py` | Filter by transformation + COFOG; write per-country files; split marker; list countries missing from the lookup; `IMF_TO_ISO` (from `data/imf_country_codes.csv`) | `source`, `options`, `checks` |
 | `aggregate.py` | Selection rule, completeness flag, write master | `etl` (`COUNTRY_FILE_PATTERN`), `messages` |
 | `messages.py` | `print_error` two-line format, shared hints | none |
 
@@ -94,6 +94,8 @@ Per country: `_read_country_file` (first series per sector, warns when later ser
 | `aggregate` | same-named columns replaced (warning), others kept |
 
 `--start-year`/`--end-year` apply only when a master is created.
+
+`run` with several `--cofog` values runs stages 1-3 once and stages 4-5 per function, splitting into `<split-dir>/<code>`; the master is shared, so the result equals one `run` per function.
 
 ## Tests
 

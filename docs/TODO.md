@@ -17,7 +17,7 @@ Working list, easy to hard. Status: `[x]` done, `[ ]` open. Numbers in published
 - [x] M2 `checks.verify_cofog_format`: unknown extra columns are a warning, not a failure. Missing columns and bad year range still fail.
 - [x] M3 Tests: `is_complete` edge cases (EBCG reported but only BCG used); `resolve_value` never returns sectors outside its input.
 - [ ] M4 Linter and type checker (ruff, mypy): needs a new dev dependency, ask first.
-- [ ] M5 Several `--cofog` values in one run (v1.1.0): needs a design for the master and the split marker.
+- [x] M5 `run --cofog 05 --cofog 07`: stages 4-5 per function, one split subdirectory each (so the marker format is unchanged), same master as separate runs. The source is read once per function; a single scan for all functions is open.
 - [x] M6 Faster split to aggregate hand-off: one CSV per country instead of xlsx (stdlib, no new dependency). Older `.xlsx` splits are still read.
 - [ ] M7 CSV/Parquet master next to the xlsx (v1.1.0).
 
@@ -36,7 +36,7 @@ Working list, easy to hard. Status: `[x]` done, `[ ]` open. Numbers in published
 - [x] V11 `--check-ranges` (`aggregate`, `run`): lists negative values and percentages above 100; values are kept.
 - [x] V12 `split` counts rows of the transformation skipped because the series code has no COFOG function.
 - [x] V13 Marker records the extract's year span; `aggregate` warns when it differs from the master's years.
-- [ ] V14 Move `IMF_TO_ISO` to a data file.
+- [x] V14 `IMF_TO_ISO` read from `cofog_panel/data/imf_country_codes.csv` (listed in package data).
 - [x] V15 `split` warns when a label selector covers several COFOG codes, and when the selected series mix `FREQUENCY` values. Which value means annual is not assumed (needs real data).
 
 ## Hard

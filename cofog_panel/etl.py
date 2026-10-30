@@ -19,8 +19,16 @@ COUNTRY_FILE_ENCODING = "utf-8-sig"  # with a BOM, so that Excel opens non-ASCII
 SPLIT_MARKER = ".cofog_panel_split"
 _MARKER_TEXT = "Created by cofog-panel split. Country files here are replaced on each run.\n"
 
-# IMF country codes that differ from ISO 3166 alpha-3
-IMF_TO_ISO = {"KOS": "XKX", "WBG": "PSE"}
+# IMF country codes that differ from ISO 3166 alpha-3, read from data/imf_country_codes.csv (columns imf, iso)
+IMF_CODES_FILE = Path(__file__).parent / "data" / "imf_country_codes.csv"
+
+
+def _read_imf_codes(path: Path) -> Dict[str, str]:
+    with open(path, encoding="utf-8-sig", newline="") as handle:
+        return {row["imf"].strip().upper(): row["iso"].strip().upper() for row in csv.DictReader(handle)}
+
+
+IMF_TO_ISO = _read_imf_codes(IMF_CODES_FILE)
 
 _FILTER_COLUMNS = ("SERIES_CODE", "TYPE_OF_TRANSFORMATION", "COFOG")
 _FUNCTION_FIELD = re.compile(r"GF(\d{2})(\d*)(?:_.*)?")

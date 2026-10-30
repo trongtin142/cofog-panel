@@ -10,7 +10,7 @@ import functools
 import re
 import sys
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated, List, Optional
 
 import typer
 
@@ -281,8 +281,9 @@ def aggregate(
 @app.command("run")
 @_guarded
 def run(
-    cofog: Annotated[str, typer.Option("--cofog", help="COFOG code (e.g. '05') or exact COFOG label "
-                                                       "('cofog-panel list-cofog' lists them).")],
+    cofog: Annotated[List[str], typer.Option("--cofog", help="COFOG code (e.g. '05') or exact COFOG label "
+                                                             "('cofog-panel list-cofog' lists them). Repeat the option "
+                                                             "for several functions in one master.")],
     source_file: SourceFile = None,
     lookup_file: LookupFile = PACKAGED_LOOKUP,
     filter_type: FilterType = DEFAULT_TRANSFORMATION,
@@ -305,12 +306,20 @@ def run(
     source_file = source_file or default_source()
     _valid_sector(sector)
     transformation = normalise_transformation(filter_type)
-    selector = check_cofog(cofog, source_file)
-    data_col = data_col or data_column_for(selector)
+    selectors = [check_cofog(value, source_file) for value in cofog]
+    several = len(selectors) > 1
+    if several and any((data_col, tier_col, sectors_col, complete_col)):
+        raise OptionError("--data-col, --tier-col, --sectors-col and --complete-col cannot be used with several --cofog values.",
+                          "Each function gets DATA_<code> and its own provenance columns; run once per function to name them yourself.")
+    data_cols = [data_col or data_column_for(selector) for selector in selectors]
+    for column in set(data_cols):
+        if data_cols.count(column) > 1:
+            raise OptionError(f"Several --cofog values give the same data column {column}.", "Give each COFOG function once.")
     _require_source(source_file)
 
     typer.echo("--- Starting FULL LOCAL COFOG Pipeline Orchestration ---")
-    typer.echo(f"COFOG {selector}, {transformation}, method '{sector}', data column {data_col}")
+    for selector, column in zip(selectors, data_cols):
+        typer.echo(f"COFOG {selector}, {transformation}, method '{sector}', data column {column}")
     typer.echo("\n[Stage 1/5] Checking COFOG Format...")
     if not verify_cofog_format(source_file)[0]:
         raise typer.Exit(code=1)
@@ -325,15 +334,19 @@ def run(
         raise typer.Exit(code=1)
     typer.echo(f"Master Path Established: {master_path}")
 
-    typer.echo("\n[Stage 4/5] Splitting Data per Country (to Local CSV)...")
-    folder, ok = split_data(source_file, transformation, {selector}, split_dir, lookup_file)
-    if not ok:
-        raise typer.Exit(code=1)
+    for selector, column in zip(selectors, data_cols):
+        # one split directory per function, so that each aggregation reads only its own country files
+        target = split_dir / column.removeprefix("DATA_") if several else split_dir
+        label = f" (COFOG {selector})" if several else ""
+        typer.echo(f"\n[Stage 4/5] Splitting Data per Country (to Local CSV){label}...")
+        folder, ok = split_data(source_file, transformation, {selector}, target, lookup_file)
+        if not ok:
+            raise typer.Exit(code=1)
 
-    typer.echo("\n[Stage 5/5] Running Tiered Aggregation...")
-    if not run_aggregation(master_path, folder, data_col, sector, tier_col, zero_as_missing,
-                           sectors_col, complete_col, check_ranges):
-        raise typer.Exit(code=1)
+        typer.echo(f"\n[Stage 5/5] Running Tiered Aggregation{label}...")
+        if not run_aggregation(master_path, folder, column, sector, tier_col, zero_as_missing,
+                               sectors_col, complete_col, check_ranges):
+            raise typer.Exit(code=1)
     typer.echo("\n🎉 FULL PIPELINE COMPLETED SUCCESSFULLY! 🎉")
     typer.echo(f"Final Master XLSX available at: {master_path}")
 

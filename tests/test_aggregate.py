@@ -744,3 +744,11 @@ def test_aggregate_range_check_is_opt_in(workspace, tmp_path, capsys):
     out = capsys.readouterr().out
     assert "selected values are negative, e.g. ['AAA2000=-1" in out
     assert pd.read_excel(master_path)["DATA_ENV"].min() == -1.0
+
+
+def test_imf_country_codes_come_from_the_data_file(tmp_path):
+    from cofog_panel.etl import IMF_CODES_FILE, IMF_TO_ISO, _read_imf_codes
+    assert IMF_CODES_FILE.exists() and IMF_TO_ISO == {"KOS": "XKX", "WBG": "PSE"}
+    path = tmp_path / "codes.csv"
+    path.write_text("imf,iso\n kos ,xkx\nAAA,BBB\n", encoding="utf-8")
+    assert _read_imf_codes(path) == {"KOS": "XKX", "AAA": "BBB"}

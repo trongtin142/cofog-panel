@@ -1,4 +1,5 @@
 """Command-line behaviour: separate provenance per indicator, master reuse, early option checks."""
+import shutil
 import pandas as pd
 import pytest
 from typer.testing import CliRunner
@@ -322,3 +323,64 @@ def test_run_passes_check_ranges_to_aggregate(extract):
     assert "Range check" not in _run(tmp, raw_path, lookup_path, "07", "DATA_H").output
     result = _run(tmp, raw_path, lookup_path, "07", "DATA_H2", "--check-ranges")
     assert result.exit_code == 0 and "Range check: no negative values" in result.output
+
+
+def _run_several(tmp, raw_path, lookup_path, *args):
+    return runner.invoke(app, ["run", "--source-file", str(raw_path), "--lookup-file", str(lookup_path),
+                               "--output-dir", str(tmp / "out"), "--split-dir", str(tmp / "splits"), *args])
+
+
+def test_run_with_several_cofog_values_fills_one_master(extract):
+    tmp, raw_path, lookup_path = extract
+    result = _run_several(tmp, raw_path, lookup_path, "--cofog", "05", "--cofog", "07")
+    assert result.exit_code == 0, result.output
+    master = pd.read_excel(tmp / "out" / "COFOG_MASTER_SCHEMA.xlsx")
+    for suffix in ("05", "07"):
+        assert {f"DATA_{suffix}", f"SOURCE_TIER_{suffix}", f"SOURCE_SECTORS_{suffix}", f"SOURCE_COMPLETE_{suffix}"} <= set(master.columns)
+    row = master[master["SortKey"] == "AAA2000"].iloc[0]
+    assert row["DATA_07"] == 5.0 and row["SOURCE_TIER_07"] == "T1" and row["SOURCE_TIER_05"] == "T3"
+    assert (tmp / "splits" / "05" / ".cofog_panel_split").exists() and (tmp / "splits" / "07" / "AAA.csv").exists()
+
+
+def test_several_cofog_values_give_the_same_master_as_separate_runs(extract):
+    tmp, raw_path, lookup_path = extract
+    assert _run_several(tmp, raw_path, lookup_path, "--cofog", "05", "--cofog", "07").exit_code == 0
+    together = pd.read_excel(tmp / "out" / "COFOG_MASTER_SCHEMA.xlsx")
+    for name in ("out", "splits"):
+        shutil.rmtree(tmp / name)
+    for code in ("05", "07"):
+        assert _run_several(tmp, raw_path, lookup_path, "--cofog", code).exit_code == 0
+    pd.testing.assert_frame_equal(together, pd.read_excel(tmp / "out" / "COFOG_MASTER_SCHEMA.xlsx"))
+
+
+def test_a_single_cofog_value_still_splits_into_the_split_dir_itself(extract):
+    tmp, raw_path, lookup_path = extract
+    assert _run_several(tmp, raw_path, lookup_path, "--cofog", "07").exit_code == 0
+    assert (tmp / "splits" / "AAA.csv").exists() and not (tmp / "splits" / "07").exists()
+
+
+@pytest.mark.parametrize("extra, message", [
+    (["--data-col", "DATA_X"], "cannot be used with several --cofog values"),
+    (["--tier-col", "T"], "cannot be used with several --cofog values"),
+    (["--sectors-col", "S"], "cannot be used with several --cofog values"),
+    (["--complete-col", "C"], "cannot be used with several --cofog values"),
+])
+def test_several_cofog_values_refuse_column_names(extract, extra, message):
+    tmp, raw_path, lookup_path = extract
+    result = _run_several(tmp, raw_path, lookup_path, "--cofog", "05", "--cofog", "07", *extra)
+    assert result.exit_code == 1 and message in result.output
+    assert not (tmp / "out").exists() and not (tmp / "splits").exists()
+
+
+def test_several_cofog_values_naming_one_function_are_refused(extract):
+    tmp, raw_path, lookup_path = extract
+    result = _run_several(tmp, raw_path, lookup_path, "--cofog", "05", "--cofog", "Environmental protection")
+    assert result.exit_code == 1 and "give the same data column DATA_05" in result.output
+    assert not (tmp / "out").exists()
+
+
+def test_one_bad_cofog_value_stops_the_run_before_any_file_is_written(extract):
+    tmp, raw_path, lookup_path = extract
+    result = _run_several(tmp, raw_path, lookup_path, "--cofog", "05", "--cofog", "xx")
+    assert result.exit_code == 1 and "Invalid --cofog 'xx'" in result.output
+    assert not (tmp / "out").exists() and not (tmp / "splits").exists()
