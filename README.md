@@ -14,7 +14,7 @@ For users who prefer a graphical interface (a browser page, no command line opti
 
 1. Install Python 3.10 or later from [python.org](https://www.python.org/) (on Windows, tick "Add Python to PATH").
 2. Start the application: on macOS or Linux run `bash run_gui.sh`, on Windows double-click `run_gui.bat`. The script creates a `.venv` folder, installs the package with the `gui` extra (`pip install -e ".[gui]"`, which adds Streamlit) and opens the page.
-3. In the page, upload the IMF file, choose the COFOG function, method and transformation in the sidebar, and click **Run Pipeline**. Download the master when it finishes.
+3. In the page, upload the IMF file, choose the COFOG function, method and transformation in the sidebar, and click **Run Pipeline**. Download the master when it finishes. The page shows the reports and warnings of the stages (the same text the command line prints) in a run log, and the reason when a stage fails.
 
 The GUI runs the same five stages as `cofog-panel run` for one COFOG function from the built-in list, with the default column names. It does not offer `--zero-as-missing`, `--check-ranges`, several functions or `--split-dir`; use the command line for those. Uploaded files and the result live in a temporary folder and are deleted when the run ends, so download the master from the page.
 

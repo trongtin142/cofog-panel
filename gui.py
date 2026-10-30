@@ -1,26 +1,17 @@
 import streamlit as st
 import pandas as pd
-import os
-import shutil
+import io
 import tempfile
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from cofog_panel.options import COFOG_LABELS, TRANSFORMATIONS, data_column_for, normalise_transformation
 from cofog_panel.checks import verify_cofog_format, verify_country_format
 from cofog_panel.master_seed import prepare_master, PACKAGED_LOOKUP, DEFAULT_FILE_NAME
 from cofog_panel.etl import split_data
-from cofog_panel.aggregate import run_aggregation
+from cofog_panel.aggregate import DIRECT_SECTORS, run_aggregation
 
 # --- Constants & Options ---
-VALID_SECTORS = [
-    "General government",
-    "Central government including social security",
-    "Budgetary central government",
-    "Central government excluding social security",
-    "Extrabudgetary central government",
-    "Local Government",
-    "Social security funds",
-    "State Government",
-]
+VALID_SECTORS = ["General government", "Central government including social security", *DIRECT_SECTORS]
 
 COFOG_OPTIONS = [f"{code} - {label}" for code, label in COFOG_LABELS.items()]
 
@@ -99,14 +90,14 @@ if st.sidebar.button("🚀 Run Pipeline", type="primary", use_container_width=Tr
                 split_dir.mkdir()
 
                 # Save uploaded IMF source
-                source_path = input_dir / uploaded_source.name
+                source_path = input_dir / Path(uploaded_source.name).name
                 with open(source_path, "wb") as f:
                     f.write(uploaded_source.getbuffer())
 
                 # Handle Lookup file
                 lookup_path = PACKAGED_LOOKUP
                 if uploaded_lookup:
-                    lookup_path = input_dir / uploaded_lookup.name
+                    lookup_path = input_dir / Path(uploaded_lookup.name).name
                     with open(lookup_path, "wb") as f:
                         f.write(uploaded_lookup.getbuffer())
 
@@ -114,22 +105,28 @@ if st.sidebar.button("🚀 Run Pipeline", type="primary", use_container_width=Tr
                 transformation = normalise_transformation(selected_transformation)
                 data_col = data_column_for(selected_cofog_code)
 
+                # The stages print their reports, warnings and two-line errors; show them on the page
+                log = io.StringIO()
+
+                def fail(status, stage, what):
+                    st.error(what)
+                    st.code(log.getvalue() or "(no details)", language=None)
+                    status.update(label=f"❌ Pipeline Failed at Stage {stage}", state="error")
+                    st.stop()
+
                 # --- Pipeline Execution ---
-                with st.status("⏳ Running COFOG Pipeline...", expanded=True) as status:
+                with st.status("⏳ Running COFOG Pipeline...", expanded=True) as status, \
+                        redirect_stdout(log), redirect_stderr(log):
                     
                     st.write("🔍 [Stage 1/5] Checking COFOG Format...")
-                    ok, msg = verify_cofog_format(source_path)
+                    ok, _details = verify_cofog_format(source_path)
                     if not ok:
-                        st.error(f"Format Check Failed: {msg}")
-                        status.update(label="❌ Pipeline Failed at Stage 1", state="error")
-                        st.stop()
+                        fail(status, 1, "Format check failed. Use the unchanged IMF download (details below).")
 
                     st.write("🌍 [Stage 2/5] Checking Country Code Format...")
-                    ok, msg = verify_country_format(lookup_path)
+                    ok, _details = verify_country_format(lookup_path)
                     if not ok:
-                        st.error(f"Country Lookup Check Failed: {msg}")
-                        status.update(label="❌ Pipeline Failed at Stage 2", state="error")
-                        st.stop()
+                        fail(status, 2, "Country lookup check failed (details below).")
 
                     st.write("🏗️ [Stage 3/5] Preparing Master XLSX...")
                     master_path, ok = prepare_master(
@@ -137,26 +134,22 @@ if st.sidebar.button("🚀 Run Pipeline", type="primary", use_container_width=Tr
                         start_year, end_year, overwrite=overwrite_master
                     )
                     if not ok:
-                        st.error("Failed to prepare Master file.")
-                        status.update(label="❌ Pipeline Failed at Stage 3", state="error")
-                        st.stop()
+                        fail(status, 3, "Failed to prepare the master file (details below).")
 
                     st.write("🔪 [Stage 4/5] Splitting Data per Country...")
-                    folder, ok = split_data(source_path, transformation, {selected_cofog_code}, split_dir)
+                    folder, ok = split_data(source_path, transformation, {selected_cofog_code}, split_dir, lookup_path)
                     if not ok:
-                        st.error("Failed to split data.")
-                        status.update(label="❌ Pipeline Failed at Stage 4", state="error")
-                        st.stop()
+                        fail(status, 4, "Failed to split the data (details below).")
 
                     st.write("📊 [Stage 5/5] Running Tiered Aggregation...")
                     if not run_aggregation(master_path, folder, data_col, selected_sector, None, False, None, None):
-                        st.error("Aggregation failed.")
-                        status.update(label="❌ Pipeline Failed at Stage 5", state="error")
-                        st.stop()
+                        fail(status, 5, "Aggregation failed (details below).")
 
                     status.update(label="🎉 Pipeline Completed Successfully!", state="complete")
 
                 # --- Result Display & Download ---
+                with st.expander("Run log (warnings and checks)"):
+                    st.code(log.getvalue(), language=None)
                 st.success(f"✅ Processing complete! COFOG {selected_cofog_code} harmonised using '{selected_sector}' method.")
                 
                 with open(master_path, "rb") as f:
@@ -171,9 +164,9 @@ if st.sidebar.button("🚀 Run Pipeline", type="primary", use_container_width=Tr
                 # Preview (Optional)
                 try:
                     df_preview = pd.read_excel(master_path, sheet_name="MasterData")
-                    st.subheader("👀 Preview (First 10 rows)")
-                    st.dataframe(df_preview.head(10), use_container_width=True)
-                except:
+                    st.subheader("👀 Preview (first 10 rows with a value)")
+                    st.dataframe(df_preview[df_preview[data_col].notna()].head(10), use_container_width=True)
+                except Exception:
                     st.warning("Could not generate preview, but the file is ready for download.")
 
         except Exception as e:
