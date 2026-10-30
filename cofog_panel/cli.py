@@ -220,9 +220,9 @@ def split(
     cofog: Cofog,
     source_file: SourceFile = None,
     filter_type: FilterType = DEFAULT_TRANSFORMATION,
-    output_dir: Annotated[Path, typer.Option("--output-dir", help="Directory to save intermediate country XLSX files.")] = DEFAULT_SPLIT_DIR,
+    output_dir: Annotated[Path, typer.Option("--output-dir", help="Directory to save intermediate country CSV files.")] = DEFAULT_SPLIT_DIR,
 ) -> None:
-    """Filters raw data and saves one XLSX file per country."""
+    """Filters raw data and saves one CSV file per country."""
     source_file = source_file or default_source()
     transformation = normalise_transformation(filter_type)
     selector = check_cofog(cofog, source_file)
@@ -239,7 +239,7 @@ def split(
 @_guarded
 def aggregate(
     master_file: Annotated[Path, typer.Option("--master-file", help="Path to the Master XLSX file to update.")],
-    folder_path: Annotated[Path, typer.Option("--folder-path", help="Local path where intermediate country XLSX files are stored.")],
+    folder_path: Annotated[Path, typer.Option("--folder-path", help="Local path where intermediate country files are stored.")],
     data_col: Annotated[Optional[str], typer.Option(
         "--data-col", help="Data column in the master. Default: DATA_<COFOG code> of the split in --folder-path "
                            "(DATA_NEW if it is not recorded).")] = None,
@@ -271,7 +271,7 @@ def run(
     lookup_file: LookupFile = PACKAGED_LOOKUP,
     filter_type: FilterType = DEFAULT_TRANSFORMATION,
     output_dir: Annotated[Path, typer.Option("--output-dir", help="Directory for Master XLSX.")] = DEFAULT_OUTPUT_DIR,
-    split_dir: Annotated[Path, typer.Option("--split-dir", help="Directory to save intermediate country XLSX splits.")] = DEFAULT_SPLIT_DIR,
+    split_dir: Annotated[Path, typer.Option("--split-dir", help="Directory to save intermediate country CSV splits.")] = DEFAULT_SPLIT_DIR,
     data_col: DataCol = None,
     tier_col: TierCol = None,
     sectors_col: SectorsCol = None,
@@ -308,7 +308,7 @@ def run(
         raise typer.Exit(code=1)
     typer.echo(f"Master Path Established: {master_path}")
 
-    typer.echo("\n[Stage 4/5] Splitting Data per Country (to Local XLSX)...")
+    typer.echo("\n[Stage 4/5] Splitting Data per Country (to Local CSV)...")
     folder, ok = split_data(source_file, transformation, {selector}, split_dir)
     if not ok:
         raise typer.Exit(code=1)

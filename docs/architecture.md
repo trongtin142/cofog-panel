@@ -15,7 +15,7 @@ flowchart LR
     S2["2 check-country-format<br/>checks.py"] --> S3
     S3["3 seed-master<br/>master_seed.py"] --> MASTER[(COFOG_MASTER_SCHEMA.xlsx<br/>sheet MasterData)]
     SRC --> S4["4 split<br/>etl.py"]
-    S4 --> SPLIT[("intermediate_splits/<br/>AAA.xlsx + .cofog_panel_split")]
+    S4 --> SPLIT[("intermediate_splits/<br/>AAA.csv + .cofog_panel_split")]
     SPLIT --> S5["5 aggregate<br/>aggregate.py"]
     MASTER --> S5
     S5 --> MASTER
@@ -26,7 +26,7 @@ flowchart LR
 | 1 | `check-format` | `checks.verify_cofog_format` | header row of the extract (extra columns warn, missing ones fail) | report only |
 | 2 | `check-country-format` | `checks.verify_country_format` | lookup file | report only |
 | 3 | `seed-master` | `master_seed.seed_master` / `prepare_master` | lookup | `output/COFOG_MASTER_SCHEMA.xlsx` (SortKey, Country, Year) |
-| 4 | `split` | `etl.split_data` | extract (one streaming pass) | one `AAA.xlsx` per country + marker file |
+| 4 | `split` | `etl.split_data` | extract (one streaming pass) | one `AAA.csv` per country + marker file |
 | 5 | `aggregate` | `aggregate.run_aggregation` | master + split dir | 4 new columns in the master |
 
 Look-up commands `list-cofog` (`etl.list_cofog`) and `list-sectors` read nothing, or the extract once.
@@ -50,7 +50,7 @@ Stage numbers follow the `[Stage n/5]` log lines and module docstrings. `AGENTS.
 
 - **Extract**: ~372k rows, one per series. Used columns: `SERIES_CODE` (country = first 3 chars, COFOG = 4th dot field, e.g. `GF0510_T` -> `05.1`), `TYPE_OF_TRANSFORMATION`, `COFOG` (label), `SECTOR`, year columns 1972+.
 - **Master**: sheet `MasterData`, key `SortKey = ISO3 + year` (`ARM2019`). Default years 1972-2025. IMF codes `KOS`, `WBG` map to `XKX`, `PSE` (`IMF_TO_ISO`).
-- **Split directory**: `AAA.xlsx` per country, plus `.cofog_panel_split` recording `cofog=` and `transformation=`. `etl` deletes country files only in a directory that has the marker (or is empty). `aggregate` reads the marker to name the data column.
+- **Split directory**: `AAA.csv` per country (UTF-8 with BOM; `etl.country_files` also finds `AAA.xlsx` from splits made up to 1.0.5, CSV preferred), plus `.cofog_panel_split` recording `cofog=` and `transformation=`. `etl` deletes country files only in a directory that has the marker (or is empty). `aggregate` reads the marker to name the data column.
 - **Output columns** per indicator, suffix from the COFOG code (`DATA_05`, `DATA_07_3`): data, `SOURCE_TIER_<s>`, `SOURCE_SECTORS_<s>`, `SOURCE_COMPLETE_<s>`. `DATA_NEW` keeps unsuffixed names. Naming lives in `aggregate._suffix`, `tier_column`, `provenance_columns`, and `options.data_column_for`.
 
 ## Selection rule (`aggregate.py`)

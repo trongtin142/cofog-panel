@@ -6,6 +6,7 @@ Results are unchanged (selection rule untouched).
 
 - `check-format` (and stage 1 of `run`): unknown extra columns in the extract give a warning instead of failing. Missing columns and a broken year range still fail.
 - `aggregate` warns when a country file has several series for one sector with different values (the first series was already used, silently).
+- Faster `split` and `aggregate`: `split` writes one CSV file per country (`AAA.csv`, UTF-8 with BOM) instead of an Excel workbook, and `aggregate` reads them. On a synthetic 200-country extract `run` took 7.4 s instead of 15.7 s; the master is identical. `aggregate` still reads `AAA.xlsx` files from a split made by an earlier version (CSV preferred if both exist), and a new `split` removes both kinds of old country file in its own directory.
 - Internal: one `source.header_row` helper, `cli.VALID_SECTORS` built from `aggregate.DIRECT_SECTORS`, no lazy import of `COUNTRY_FILE_PATTERN`. New tests for these and for completeness/selection edge cases. `docs/` with `architecture.md` and `TODO.md`.
 
 ## Planned (v1.1.0)

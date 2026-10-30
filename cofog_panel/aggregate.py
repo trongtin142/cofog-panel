@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 
-from .etl import COUNTRY_FILE_PATTERN
+from .etl import COUNTRY_FILE_ENCODING, country_files
 from .messages import hint_for_write_error, print_error
 
 # --- Sector names, normalised to lower case as they appear in IMF GFS COFOG ---
@@ -210,7 +210,10 @@ def _read_country_file(path: Path) -> Tuple[pd.DataFrame, bool, List[str]]:
     per sector), whether its transformation allows sums across sectors, and the sectors
     whose later series differ from the first one (those series are ignored).
     """
-    frame = pd.read_excel(path, dtype=str)
+    if path.suffix.lower() == ".csv":
+        frame = pd.read_csv(path, dtype=str, keep_default_na=False, encoding=COUNTRY_FILE_ENCODING)
+    else:  # country file of a split made by versions up to 1.0.5
+        frame = pd.read_excel(path, dtype=str)
     sector_column = "SECTOR" if "SECTOR" in frame.columns else frame.columns[4]
     frame.index = frame[sector_column].astype(str).str.strip().str.lower()
     year_columns = [c for c in frame.columns if str(c).isdigit()]
@@ -350,8 +353,8 @@ def run_aggregation(
         print(f"⚠️ Columns already in the master are replaced by this indicator: {replaced}. "
               f"Use other --data-col/--tier-col/--sectors-col/--complete-col names to keep them.")
 
-    files = sorted(f for f in source_folder_path.glob("*.xlsx") if COUNTRY_FILE_PATTERN.match(f.name))
-    print(f"📂 Found {len(files)} intermediate country XLSX files in {source_folder_path}.")
+    files = country_files(source_folder_path)
+    print(f"📂 Found {len(files)} intermediate country files in {source_folder_path}.")
 
     master_isos = set(master["SortKey"].astype(str).str[:3])
     selected: Dict[str, Tuple[str, str, str, str]] = {}

@@ -7,7 +7,7 @@ from cofog_panel.aggregate import (
     resolve_value, run_aggregation, is_complete,
     GG, CGSS, CGXSS, BCG, EBCG, SSF, SG, LG,
 )
-from cofog_panel.etl import _cofog_code_from_series, split_data
+from cofog_panel.etl import _cofog_code_from_series, country_files, split_data
 from cofog_panel.master_seed import seed_master
 from cofog_panel.checks import verify_cofog_format, FIXED_HEADERS_SAMPLE
 
@@ -202,7 +202,7 @@ def test_pipeline_end_to_end(workspace):
     assert ok
     split_dir, ok = split_data(raw_path, "Percent of GDP", {"05"}, tmp / "splits")
     assert ok
-    assert sorted(f.name for f in split_dir.glob("*.xlsx")) == ["AAA.xlsx"]
+    assert sorted(f.name for f in split_dir.glob("*.csv")) == ["AAA.csv"]
 
     assert run_aggregation(master_path, split_dir, "DATA_ENV", "General government")
     out = pd.read_excel(master_path, sheet_name="MasterData", dtype=str).fillna("")
@@ -227,8 +227,8 @@ def test_split_by_label_matches_split_by_code(workspace):
     tmp, raw_path, _ = workspace
     d1, _ = split_data(raw_path, "Percent of GDP", {"05"}, tmp / "by_code")
     d2, _ = split_data(raw_path, "Percent of GDP", {"Environmental protection"}, tmp / "by_label")
-    a = pd.read_excel(d1 / "AAA.xlsx")
-    b = pd.read_excel(d2 / "AAA.xlsx")
+    a = pd.read_csv(d1 / "AAA.csv", dtype=str)
+    b = pd.read_csv(d2 / "AAA.csv", dtype=str)
     pd.testing.assert_frame_equal(a, b)
 
 
@@ -253,7 +253,7 @@ def test_split_reruns_in_its_own_directory(workspace):
     d, ok = split_data(raw_path, "Percent of GDP", {"05"}, tmp / "s")
     assert ok
     d, ok = split_data(raw_path, "Percent of GDP", {"05"}, tmp / "s")
-    assert ok and sorted(f.name for f in d.glob("*.xlsx")) == ["AAA.xlsx"]
+    assert ok and sorted(f.name for f in d.glob("*.csv")) == ["AAA.csv"]
 
 
 def test_second_indicator_keeps_first_and_values_are_numeric(workspace):
@@ -274,7 +274,7 @@ def test_corrupt_country_file_fails_the_stage(workspace):
     tmp, raw_path, lookup_path = workspace
     master_path, _ = seed_master(lookup_path, tmp)
     split_dir, _ = split_data(raw_path, "Percent of GDP", {"05"}, tmp / "splits")
-    (split_dir / "BBB.xlsx").write_text("corrupt")
+    (split_dir / "BBB.csv").write_text("corrupt")
     assert not run_aggregation(master_path, split_dir, "DATA_ENV")
 
 
@@ -358,3 +358,47 @@ def test_selected_sectors_are_always_reported_ones():
             assert (value is None) == (tier == "") == (used == [])
             if value is not None:
                 assert value == len(used)   # every reported value is 1
+
+
+# --- Country files: CSV, with older .xlsx splits still readable ---
+
+def _master_after_aggregate(workspace, split_dir, master_name):
+    tmp, _, lookup_path = workspace
+    master_path, _ = seed_master(lookup_path, tmp, master_name)
+    assert run_aggregation(master_path, split_dir, "DATA_ENV")
+    return pd.read_excel(master_path, sheet_name="MasterData", dtype=str).fillna("")
+
+
+def test_older_xlsx_split_gives_the_same_master(workspace):
+    tmp, raw_path, _ = workspace
+    split_dir, _ = split_data(raw_path, "Percent of GDP", {"05"}, tmp / "splits")
+    from_csv = _master_after_aggregate(workspace, split_dir, "csv.xlsx")
+    for path in split_dir.glob("*.csv"):
+        pd.read_csv(path, dtype=str, keep_default_na=False, encoding="utf-8-sig").to_excel(
+            path.with_suffix(".xlsx"), index=False)
+        path.unlink()
+    assert [f.suffix for f in country_files(split_dir)] == [".xlsx"]
+    from_xlsx = _master_after_aggregate(workspace, split_dir, "xlsx.xlsx")
+    pd.testing.assert_frame_equal(from_csv, from_xlsx)
+
+
+def test_csv_is_preferred_and_resplit_removes_older_xlsx(workspace):
+    tmp, raw_path, _ = workspace
+    split_dir, _ = split_data(raw_path, "Percent of GDP", {"05"}, tmp / "splits")
+    (split_dir / "AAA.xlsx").write_text("older split")
+    assert [f.name for f in country_files(split_dir)] == ["AAA.csv"]
+    split_data(raw_path, "Percent of GDP", {"05"}, split_dir)
+    assert sorted(f.name for f in split_dir.glob("[A-Z]*")) == ["AAA.csv"]
+
+
+def test_country_file_keeps_text_exactly(workspace):
+    tmp, raw_path, _ = workspace
+    rows = _raw_rows("AAA", "Alpha", {"General government": {2000: 0.1}})
+    rows[0]["FULL_DESCRIPTION"] = 'Ünïcode, "quoted"\nsecond line'
+    path = tmp / "special.xlsx"
+    pd.DataFrame(rows, columns=FIXED_HEADERS_SAMPLE + YEARS).to_excel(path, index=False)
+    split_dir, ok = split_data(path, "Percent of GDP", {"05"}, tmp / "special_split")
+    assert ok
+    back = pd.read_csv(split_dir / "AAA.csv", dtype=str, keep_default_na=False, encoding="utf-8-sig")
+    assert back.at[0, "FULL_DESCRIPTION"] == 'Ünïcode, "quoted"\nsecond line'
+    assert back.at[0, "2000"] == "0.1" and back.at[0, "2001"] == ""

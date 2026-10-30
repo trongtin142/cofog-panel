@@ -143,7 +143,7 @@ def test_filter_type_ignores_letter_case(extract):
     result = runner.invoke(app, ["split", "--source-file", str(raw_path), "--cofog", "05",
                                  "--filter-type", "PERCENT OF GDP", "--output-dir", str(tmp / "s")])
     assert result.exit_code == 0, result.output
-    assert (tmp / "s" / "AAA.xlsx").exists()
+    assert (tmp / "s" / "AAA.csv").exists()
 
 
 def test_invalid_filter_type_fails_before_reading(tmp_path):

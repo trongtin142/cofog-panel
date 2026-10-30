@@ -1,18 +1,19 @@
 """
 Stage 4: filter the GFS extract on one transformation and one COFOG function, and write the
-matching series to one workbook per country (AAA.xlsx) in a directory owned by this stage.
+matching series to one CSV file per country (AAA.csv) in a directory owned by this stage.
 """
+import csv
 import re
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
-
-import pandas as pd
 
 from .messages import DOWNLOAD_HINT, hint_for_write_error, print_error
 from .options import OptionError, normalise_transformation
 from .source import header_row, open_rows
 
-COUNTRY_FILE_PATTERN = re.compile(r"^[A-Z]{3}\.xlsx$")
+# Country files are CSV; .xlsx is what splits made by versions up to 1.0.5 contain
+COUNTRY_FILE_PATTERN = re.compile(r"^[A-Z]{3}\.(csv|xlsx)$")
+COUNTRY_FILE_ENCODING = "utf-8-sig"  # with a BOM, so that Excel opens non-ASCII text correctly
 # Marker file: country files are only ever deleted from directories that carry it
 SPLIT_MARKER = ".cofog_panel_split"
 _MARKER_TEXT = "Created by cofog-panel split. Country files here are replaced on each run.\n"
@@ -45,6 +46,15 @@ def _country_of(series_code: Any) -> Optional[str]:
     if isinstance(series_code, str) and len(series_code) >= 3:
         return series_code[:3].upper()
     return None
+
+
+def country_files(directory: Path) -> List[Path]:
+    """Country files (AAA.csv, or AAA.xlsx from an older split) of a directory, one per country, CSV first."""
+    found: Dict[str, Path] = {}
+    for path in sorted(Path(directory).iterdir(), key=lambda p: p.suffix != ".csv"):
+        if COUNTRY_FILE_PATTERN.match(path.name):
+            found.setdefault(path.stem, path)
+    return sorted(found.values())
 
 
 def _directory_usable(path: Path) -> bool:
@@ -96,7 +106,7 @@ def split_data(
 ) -> Tuple[Path, bool]:
     """
     Write the series of one transformation (e.g. 'Percent of GDP', any letter case) and one
-    COFOG function (code such as '05' or '07.3', or the exact label) to output_dir/AAA.xlsx.
+    COFOG function (code such as '05' or '07.3', or the exact label) to output_dir/AAA.csv.
 
     Country files from a previous split in the same directory are replaced. Returns (output_dir, success).
     """
@@ -140,7 +150,7 @@ def split_data(
     output_dir.mkdir(parents=True, exist_ok=True)
     notes = f"cofog={','.join(sorted(selectors))}\ntransformation={transformation}\n"
     (output_dir / SPLIT_MARKER).write_text(_MARKER_TEXT + notes)
-    previous = [f for f in output_dir.glob("*.xlsx") if COUNTRY_FILE_PATTERN.match(f.name)]
+    previous = [f for f in output_dir.iterdir() if COUNTRY_FILE_PATTERN.match(f.name)]
     if previous:
         print(f"🧹 Removing {len(previous)} country files from a previous split in {output_dir}.")
         for old_file in previous:
@@ -149,10 +159,13 @@ def split_data(
     ok = True
     for country, rows in by_country.items():
         try:
-            pd.DataFrame(rows, columns=header).to_excel(output_dir / f"{country}.xlsx", index=False, sheet_name=country)
+            with open(output_dir / f"{country}.csv", "w", encoding=COUNTRY_FILE_ENCODING, newline="") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(header)
+                writer.writerows(rows)
             print(f"Wrote {len(rows)} rows for {country}.")
         except Exception as exc:
-            print_error(f"Cannot write {country}.xlsx ({exc}).", hint_for_write_error(exc))
+            print_error(f"Cannot write {country}.csv ({exc}).", hint_for_write_error(exc))
             ok = False
 
     print("\n=== SPLIT STAGE COMPLETED ===")

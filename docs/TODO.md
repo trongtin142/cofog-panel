@@ -18,7 +18,7 @@ Working list, easy to hard. Status: `[x]` done, `[ ]` open. Numbers in published
 - [x] M3 Tests: `is_complete` edge cases (EBCG reported but only BCG used); `resolve_value` never returns sectors outside its input.
 - [ ] M4 Linter and type checker (ruff, mypy): needs a new dev dependency, ask first.
 - [ ] M5 Several `--cofog` values in one run (v1.1.0): needs a design for the master and the split marker.
-- [ ] M6 Faster split to aggregate hand-off (Parquet/CSV per country instead of xlsx): changes the on-disk contract, decide first.
+- [x] M6 Faster split to aggregate hand-off: one CSV per country instead of xlsx (stdlib, no new dependency). Older `.xlsx` splits are still read.
 - [ ] M7 CSV/Parquet master next to the xlsx (v1.1.0).
 
 ## Hard

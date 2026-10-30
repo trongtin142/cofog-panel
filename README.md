@@ -59,7 +59,7 @@ The pipeline runs on local Excel files in five stages. Each stage is a sub-comma
 | 1 | `check-format` | `checks.py` | Checks the IMF metadata columns and the year columns (no gaps, from 1972) of the extract; unknown extra columns give a warning, not an error |
 | 2 | `check-country-format` | `checks.py` | Checks the country lookup (`name`, `alpha-2`, `alpha-3`, `country-code`, no repeated alpha-3) |
 | 3 | `seed-master` | `master_seed.py` | Writes the master panel: one row per country and year, `SortKey` = ISO3 + year, 1972–2025 by default |
-| 4 | `split` | `etl.py` | Keeps one transformation and one COFOG function and writes one file per country |
+| 4 | `split` | `etl.py` | Keeps one transformation and one COFOG function and writes one CSV file per country (`AAA.csv`; splits with `.xlsx` country files from versions up to 1.0.5 are still read by `aggregate`) |
 | 5 | `aggregate` | `aggregate.py` | Applies the selection rule and adds the values and their provenance to the master |
 
 ### Selection rule (`--sector "General government"`, the default)
