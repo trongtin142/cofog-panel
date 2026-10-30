@@ -597,3 +597,19 @@ def test_percent_of_gdp_is_added_whatever_the_scale_column_says(tmp_path):
     assert run_aggregation(master_path, split_dir, "DATA_ENV")
     out = pd.read_excel(master_path, sheet_name="MasterData").set_index("SortKey")
     assert (out.at["AAA2000", "DATA_ENV"], out.at["AAA2000", "SOURCE_TIER_ENV"]) == (1.5, "T2")
+
+
+def test_split_counts_rows_without_a_cofog_function(workspace, tmp_path, capsys):
+    _, raw_path, _ = workspace
+    frame = pd.read_excel(raw_path)
+    odd = frame.iloc[[0]].copy()
+    odd["SERIES_CODE"] = "AAA.S13.G2MF"
+    pd.concat([frame, odd]).to_excel(raw_path, index=False)
+    _, ok = split_data(raw_path, "Percent of GDP", {"05"}, tmp_path / "s")
+    assert ok and "1 rows of this transformation have no COFOG function" in capsys.readouterr().out
+
+
+def test_split_is_silent_when_every_row_has_a_function(workspace, tmp_path, capsys):
+    _, raw_path, _ = workspace
+    split_data(raw_path, "Percent of GDP", {"05"}, tmp_path / "s")
+    assert "no COFOG function" not in capsys.readouterr().out

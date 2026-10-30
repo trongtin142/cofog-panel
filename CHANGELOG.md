@@ -6,6 +6,7 @@ Results are unchanged (selection rule untouched).
 
 - `check-format` (and stage 1 of `run`): unknown extra columns in the extract give a warning instead of failing. Missing columns and a broken year range still fail.
 - `aggregate` warns when a country file has several series for one sector with different values (the first series was already used, silently).
+- `aggregate` warns when `--data-col` is `DATA_<code>` for a COFOG function other than the one recorded by `split` in `--folder-path`. `split` reports how many rows of the chosen transformation were skipped because their series code has no COFOG function.
 - Faster `split` and `aggregate`: `split` writes one CSV file per country (`AAA.csv`, UTF-8 with BOM) instead of an Excel workbook, and `aggregate` reads them. On a synthetic 200-country extract `run` took 7.4 s instead of 15.7 s; the master is identical. `aggregate` still reads `AAA.xlsx` files from a split made by an earlier version (CSV preferred if both exist), and a new `split` removes both kinds of old country file in its own directory.
 - Input validation (selected values are unchanged for valid input):
   - Cells that are not finite numbers (`Infinity`, `1,5`, `..`, `5%`) are read as missing, as before for text, and `aggregate` now lists them per country. `Infinity` used to be accepted as a value.

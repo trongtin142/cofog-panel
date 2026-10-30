@@ -7,6 +7,7 @@ and one line on how to fix it; tracebacks are shown only with `cofog-panel --deb
 Exit codes: 0 success, 1 data or option error, 2 command-line usage error.
 """
 import functools
+import re
 import sys
 from pathlib import Path
 from typing import Annotated, Optional
@@ -236,6 +237,15 @@ def split(
 
 # --- Stage 5 ---
 
+def _warn_if_other_function(data_col: str, recorded: str) -> None:
+    """Warn when a DATA_<code> column name names another COFOG function than the split recorded."""
+    if not recorded or "," in recorded or not re.fullmatch(r"DATA_\d{2}(_\d+)?", data_col.upper()):
+        return
+    expected = data_column_for(recorded)
+    if data_col.upper() != expected:
+        print(f"⚠️ --data-col {data_col} does not match the COFOG function of the split ({recorded}, "
+              f"which would be {expected}). Check that --folder-path and --data-col belong together.")
+
 @app.command("aggregate")
 @_guarded
 def aggregate(
@@ -255,6 +265,8 @@ def aggregate(
     if data_col is None:
         recorded = read_split_marker(folder_path).get("cofog", "")
         data_col = data_column_for(recorded) if recorded and "," not in recorded else DEFAULT_DATA_COL
+    else:
+        _warn_if_other_function(data_col, read_split_marker(folder_path).get("cofog", ""))
     if not run_aggregation(master_file, folder_path, data_col, sector, tier_col, zero_as_missing,
                            sectors_col, complete_col):
         raise typer.Exit(code=1)

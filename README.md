@@ -142,7 +142,7 @@ cofog-panel split --cofog "07" --output-dir intermediate_splits
 cofog-panel aggregate --master-file output/COFOG_MASTER_SCHEMA.xlsx --folder-path intermediate_splits
 ```
 
-`seed-master` always writes a new master, replacing a file of the same name. `split` writes only into a new or empty directory, or into one it created earlier (marked by a `.cofog_panel_split` file that also records the COFOG function), where it replaces the country files of its previous run; it never deletes files elsewhere. `aggregate` names the data column after the function recorded by `split` (`DATA_07` here) unless `--data-col` is given.
+`seed-master` always writes a new master, replacing a file of the same name. `split` writes only into a new or empty directory, or into one it created earlier (marked by a `.cofog_panel_split` file that also records the COFOG function), where it replaces the country files of its previous run; it never deletes files elsewhere. `aggregate` names the data column after the function recorded by `split` (`DATA_07` here) unless `--data-col` is given; a `--data-col` of the form `DATA_<code>` for another function than the recorded one gives a warning.
 
 ### Errors and exit codes
 

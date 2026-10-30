@@ -31,10 +31,10 @@ Working list, easy to hard. Status: `[x]` done, `[ ]` open. Numbers in published
 - [x] V6 Scale/currency/unit uniform within a country before summing (Domestic currency); otherwise no sums, warning.
 - [x] V7 `split` lists countries of the extract without a lookup row (warning).
 - [x] V8 `--cofog` codes outside the built-in list (e.g. `07.99`) checked against the extract before the scan (xlsx with shared strings, CSV).
-- [ ] V9 Warn when `--data-col` does not match the COFOG recorded in the split marker.
+- [x] V9 Warn when `--data-col` is `DATA_<code>` of another function than the one recorded in the split marker (custom names are not warned about).
 - [ ] V10 Read `PUBLICATION_DATE`; warn on mixed dates; record in marker and master.
 - [ ] V11 Range sanity flags (negative, Percent of GDP > 100), opt-in.
-- [ ] V12 Count rows skipped by `split` (no COFOG code in series).
+- [x] V12 `split` counts rows of the transformation skipped because the series code has no COFOG function.
 - [ ] V13 Master year range vs extract year span.
 - [ ] V14 Move `IMF_TO_ISO` to a data file.
 - [ ] V15 Check label selectors that match several COFOG codes; check `FREQUENCY` (needs real data).

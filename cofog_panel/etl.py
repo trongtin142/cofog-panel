@@ -105,6 +105,7 @@ def _scan(source: Path, transformation: str, selectors: set) -> Tuple[List[str],
 
         kept: Dict[str, List[List[str]]] = {}
         skipped: set = set()
+        n_no_function = 0
         n_kept = 0
         n_read = 1
         for n_read, row in enumerate(rows, start=2):
@@ -113,10 +114,13 @@ def _scan(source: Path, transformation: str, selectors: set) -> Tuple[List[str],
             if row[at_type] != transformation:
                 continue
             label = row[at_cofog]
-            keys = {_cofog_code_from_series(row[at_series])}
+            code = _cofog_code_from_series(row[at_series])
+            keys = {code}
             if label is not None:
                 keys.add(str(label).strip())
             if not keys & selectors:
+                if code is None:
+                    n_no_function += 1
                 continue
             country = _country_of(row[at_series])
             if not _is_country_code(country):
@@ -124,6 +128,9 @@ def _scan(source: Path, transformation: str, selectors: set) -> Tuple[List[str],
                 continue
             kept.setdefault(country, []).append(["" if cell is None else str(cell) for cell in row])
             n_kept += 1
+    if n_no_function:
+        print(f"⚠️ {n_no_function} rows of this transformation have no COFOG function in their series code and were not "
+              f"written (series that do not follow the 'country.sector.unit.function' pattern).")
     if skipped:
         print(f"⚠️ Series with a code that is not three letters were not written: {sorted(map(str, skipped))}")
     return header, kept, n_read

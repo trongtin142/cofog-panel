@@ -286,3 +286,16 @@ def test_run_passes_its_lookup_file_to_split(extract):
     assert result.exit_code == 0, result.output
     assert "1 countries in the extract have no row in the lookup file" in result.output
     assert "CCC (Gamma)" in result.output and "AAA (Alpha)" not in result.output
+
+
+@pytest.mark.parametrize("data_col, warned", [
+    ("DATA_05", True), ("data_05", True), ("DATA_07", False), ("DATA_ENV", False), ("DATA_05_1", True),
+])
+def test_aggregate_warns_when_data_col_names_another_function(extract, data_col, warned):
+    tmp, raw_path, lookup_path = extract
+    master_path, _ = seed_master(lookup_path, tmp, start_year=2000, end_year=2001)
+    split_data(raw_path, "Percent of GDP", {"07"}, tmp / "s")
+    result = runner.invoke(app, ["aggregate", "--master-file", str(master_path), "--folder-path", str(tmp / "s"),
+                                 "--data-col", data_col])
+    assert result.exit_code == 0, result.output
+    assert ("does not match the COFOG function of the split (07" in result.output) is warned
