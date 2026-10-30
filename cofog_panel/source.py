@@ -28,6 +28,11 @@ def default_source() -> Path:
     return DEFAULT_SOURCES[0]
 
 
+def header_row(rows: Iterator[Sequence[Optional[Any]]]) -> list:
+    """First row of `rows` as stripped strings (empty cells as '')."""
+    return ["" if cell is None else str(cell).strip() for cell in next(rows, ())]
+
+
 @contextmanager
 def open_rows(path: Path) -> Iterator[Iterator[Sequence[Optional[Any]]]]:
     """

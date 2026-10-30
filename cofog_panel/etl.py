@@ -10,7 +10,7 @@ import pandas as pd
 
 from .messages import DOWNLOAD_HINT, hint_for_write_error, print_error
 from .options import OptionError, normalise_transformation
-from .source import open_rows
+from .source import header_row, open_rows
 
 COUNTRY_FILE_PATTERN = re.compile(r"^[A-Z]{3}\.xlsx$")
 # Marker file: country files are only ever deleted from directories that carry it
@@ -60,7 +60,7 @@ def _scan(source: Path, transformation: str, selectors: set) -> Tuple[List[str],
     Returns (header, rows by country, number of rows read). Cells are kept as text.
     """
     with open_rows(source) as rows:
-        header = ["" if cell is None else str(cell).strip() for cell in next(rows, ())]
+        header = header_row(rows)
         missing = [c for c in _FILTER_COLUMNS if c not in header]
         if missing:
             raise KeyError(missing)
@@ -174,7 +174,7 @@ def list_cofog(source_file_path: Path) -> List[Tuple[str, str, int]]:
     Reads the whole file once (seconds for the CSV download, about a minute for the Excel one).
     """
     with open_rows(source_file_path) as rows:
-        header = ["" if cell is None else str(cell).strip() for cell in next(rows, ())]
+        header = header_row(rows)
         missing = [c for c in ("SERIES_CODE", "COFOG") if c not in header]
         if missing:
             raise KeyError(missing)

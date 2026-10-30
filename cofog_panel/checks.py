@@ -27,6 +27,7 @@ IMF_METADATA_COLUMNS = (
 )
 FIXED_HEADERS_SAMPLE = list(IMF_METADATA_COLUMNS)  # earlier name, kept for scripts that import it
 
+# Update with each IMF release: END_YEAR here, COFOG_LABELS in options.py, DEFAULT_END_YEAR in master_seed.py.
 # Year columns start in 1972. Later releases append years, so only a minimum last year is required.
 START_YEAR = 1972
 END_YEAR = 2024
@@ -65,21 +66,21 @@ def _print_format_report(name: str, details: Dict[str, Any]) -> None:
         print("🎉 SUCCESS: File header structure matches the required template.")
     else:
         print("❌ WARNING: Header structure mismatch detected.")
-        missing, extra = details["Missing_Headers"], details["Extra_Headers"]
+        missing = details["Missing_Headers"]
         if missing:
             print(f"   -> MISSING Fixed Headers ({len(missing)}): {missing}")
-        if extra:
-            print(f"   -> UNKNOWN Extra Headers ({len(extra)}): {extra}")
         if details["Year_Mismatch"]:
             print(f"   -> Year columns must run contiguously from {START_YEAR} to at least {END_YEAR}.")
         print("   Hint: download IMF.STA:GFS_COFOG again (CSV or Excel) and use the file without changing its columns.")
+    if details["Extra_Headers"]:
+        print(f"⚠️ Unknown extra columns, ignored by the pipeline ({len(details['Extra_Headers'])}): {details['Extra_Headers']}")
     print(_RULE)
 
 
 def verify_cofog_format(file_path: Path) -> Tuple[bool, Dict[str, Any]]:
     """
-    Check the header row of a GFS COFOG extract: every IMF metadata column, year columns
-    running without gaps from 1972 to at least 2024, and no other columns.
+    Check the header row of a GFS COFOG extract: every IMF metadata column and year columns
+    running without gaps from 1972 to at least 2024. Other columns are reported but do not fail the check.
 
     Only the first row is read, so the check is fast on the full extract.
     """
@@ -103,7 +104,7 @@ def verify_cofog_format(file_path: Path) -> Tuple[bool, Dict[str, Any]]:
     details["Missing_Headers"] = [c for c in IMF_METADATA_COLUMNS if c not in headers]
     details["Extra_Headers"] = [h for h in headers if h not in known]
     details["Year_Mismatch"] = not _years_are_valid(years)
-    details["Match"] = not (details["Missing_Headers"] or details["Extra_Headers"] or details["Year_Mismatch"])
+    details["Match"] = not (details["Missing_Headers"] or details["Year_Mismatch"])
 
     _print_format_report(file_path.name, details)
     return details["Match"], details

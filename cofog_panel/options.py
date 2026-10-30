@@ -151,10 +151,10 @@ def labels_in_file(path: Path) -> Set[str]:
     strings = workbook_strings(path)
     if strings is not None:
         return strings
-    from .source import open_rows
+    from .source import header_row, open_rows
     try:
         with open_rows(path) as rows:
-            header = ["" if cell is None else str(cell).strip() for cell in next(rows, ())]
+            header = header_row(rows)
             if "COFOG" not in header:
                 return set()
             at = header.index("COFOG")

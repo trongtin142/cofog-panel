@@ -284,3 +284,77 @@ def test_seed_master_year_range(workspace):
     out = pd.read_excel(master_path, sheet_name="MasterData")
     assert ok and sorted(out["Year"].unique()) == [2000, 2001, 2002]
     assert list(out.columns) == ["SortKey", "Country", "Year"]
+
+
+# --- Several series for one sector ---
+
+def _duplicate_workspace(tmp_path, second_value):
+    rows = _raw_rows("AAA", "Alpha", {"General government": {2000: 1.0}})
+    rows += _raw_rows("AAA", "Alpha", {"General government": {2000: second_value}})
+    raw_path = tmp_path / "dup.xlsx"
+    pd.DataFrame(rows, columns=FIXED_HEADERS_SAMPLE + YEARS).to_excel(raw_path, index=False)
+    lookup_path = tmp_path / "countries.xlsx"
+    pd.DataFrame({"name": ["Alpha"], "alpha-2": ["AA"], "alpha-3": ["AAA"], "country-code": [1]}).to_excel(
+        lookup_path, index=False)
+    master_path, _ = seed_master(lookup_path, tmp_path)
+    split_dir, _ = split_data(raw_path, "Percent of GDP", {"05"}, tmp_path / "splits")
+    return master_path, split_dir
+
+
+def test_conflicting_series_for_one_sector_warn_and_use_the_first(tmp_path, capsys):
+    master_path, split_dir = _duplicate_workspace(tmp_path, 2.0)
+    assert run_aggregation(master_path, split_dir, "DATA_ENV")
+    assert "several series with different values for ['general government']" in capsys.readouterr().out
+    out = pd.read_excel(master_path, sheet_name="MasterData").set_index("SortKey")
+    assert out.at["AAA2000", "DATA_ENV"] == 1.0
+
+
+def test_identical_repeated_series_do_not_warn(tmp_path, capsys):
+    master_path, split_dir = _duplicate_workspace(tmp_path, 1.0)
+    assert run_aggregation(master_path, split_dir, "DATA_ENV")
+    assert "several series" not in capsys.readouterr().out
+
+
+# --- Header check: extra columns warn, missing columns fail ---
+
+def _extract_with_columns(path, extra=(), drop=()):
+    columns = [c for c in FIXED_HEADERS_SAMPLE if c not in drop] + list(extra) + YEARS
+    pd.DataFrame([dict.fromkeys(columns, "")], columns=columns).to_excel(path, index=False)
+    return path
+
+
+def test_format_check_warns_about_extra_columns_but_passes(tmp_path, capsys):
+    ok, details = verify_cofog_format(_extract_with_columns(tmp_path / "x.xlsx", extra=["NEW_IMF_FIELD"]))
+    out = capsys.readouterr().out
+    assert ok and details["Extra_Headers"] == ["NEW_IMF_FIELD"]
+    assert "SUCCESS" in out and "Unknown extra columns" in out
+
+
+def test_format_check_still_fails_on_missing_column(tmp_path):
+    path = _extract_with_columns(tmp_path / "x.xlsx", extra=["NEW_IMF_FIELD"], drop=["SECTOR"])
+    ok, details = verify_cofog_format(path)
+    assert not ok and details["Missing_Headers"] == ["SECTOR"]
+
+
+# --- Completeness and selection: edge cases ---
+
+def test_completeness_central_core_needs_budgetary_when_extrabudgetary_is_reported():
+    assert is_complete("T3", [EBCG, LG], [EBCG, LG]) is False      # BCG missing
+    assert is_complete("T3", [BCG, EBCG, LG], [EBCG, LG]) is True
+    assert is_complete("T3", [BCG, LG], [LG]) is True               # EBCG never reported
+
+
+def test_selected_sectors_are_always_reported_ones():
+    """Exhaustive over which sectors are reported: sectors used are reported, and tier matches the rule."""
+    import itertools
+    sectors = [GG, CGSS, CGXSS, BCG, EBCG, SSF, SG, LG]
+    for present in itertools.product([False, True], repeat=len(sectors)):
+        values = {s: (D(1) if p else None) for s, p in zip(sectors, present)}
+        reported = {s for s, p in zip(sectors, present) if p}
+        for method in ("General government", "Central government including social security",
+                       "Budgetary central government"):
+            value, tier, used = resolve_value(values, method)
+            assert set(used) <= reported
+            assert (value is None) == (tier == "") == (used == [])
+            if value is not None:
+                assert value == len(used)   # every reported value is 1

@@ -41,16 +41,8 @@ DEFAULT_OUTPUT_DIR = Path("./output")
 DEFAULT_SPLIT_DIR = Path("./intermediate_splits")
 DEFAULT_TRANSFORMATION = "Percent of GDP"
 
-VALID_SECTORS = [
-    "Budgetary central government",
-    "Central government excluding social security",
-    "Central government including social security",
-    "Extrabudgetary central government",
-    "General government",  # three-tier rule (T1/T2/T3)
-    "Local Government",
-    "Social security funds",
-    "State Government",
-]
+# Single sectors, plus the two aggregation methods ("General government" is the three-tier rule T1/T2/T3)
+VALID_SECTORS = sorted([*DIRECT_SECTORS, "General government", "Central government including social security"])
 SECTOR_METHODS = {
     "General government": "three-tier rule: T1 GG, T2 CGSS + state + local, T3 central components + SSF + state + local",
     "Central government including social security": "C1 CGSS, C2 central core + social security funds",

@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 
+from .etl import COUNTRY_FILE_PATTERN
 from .messages import hint_for_write_error, print_error
 
 # --- Sector names, normalised to lower case as they appear in IMF GFS COFOG ---
@@ -203,21 +204,26 @@ def _plain(value: Decimal) -> str:
     return "0" if text in ("", "-0") else text
 
 
-def _read_country_file(path: Path) -> Tuple[pd.DataFrame, bool]:
+def _read_country_file(path: Path) -> Tuple[pd.DataFrame, bool, List[str]]:
     """
     Year columns of a split country file, indexed by lower-case sector name (first series
-    per sector), and whether its transformation allows sums across sectors.
+    per sector), whether its transformation allows sums across sectors, and the sectors
+    whose later series differ from the first one (those series are ignored).
     """
     frame = pd.read_excel(path, dtype=str)
     sector_column = "SECTOR" if "SECTOR" in frame.columns else frame.columns[4]
     frame.index = frame[sector_column].astype(str).str.strip().str.lower()
-    frame = frame[~frame.index.duplicated(keep="first")]
+    year_columns = [c for c in frame.columns if str(c).isdigit()]
+    repeated = frame.index.duplicated(keep="first")
+    first = frame[~repeated][year_columns].fillna("")
+    conflicting = sorted({sector for sector, row in frame[repeated][year_columns].fillna("").iterrows()
+                          if not row.equals(first.loc[sector])})
+    frame = frame[~repeated]
     summable = True
     if "TYPE_OF_TRANSFORMATION" in frame.columns:
         kinds = set(frame["TYPE_OF_TRANSFORMATION"].dropna().astype(str).str.strip())
         summable = kinds <= SUMMABLE_TRANSFORMATIONS
-    year_columns = [c for c in frame.columns if str(c).isdigit()]
-    return frame[year_columns], summable
+    return frame[year_columns], summable, conflicting
 
 
 def _levels_reported(cells: pd.DataFrame, zero_as_missing: bool) -> List[str]:
@@ -344,7 +350,6 @@ def run_aggregation(
         print(f"⚠️ Columns already in the master are replaced by this indicator: {replaced}. "
               f"Use other --data-col/--tier-col/--sectors-col/--complete-col names to keep them.")
 
-    from .etl import COUNTRY_FILE_PATTERN
     files = sorted(f for f in source_folder_path.glob("*.xlsx") if COUNTRY_FILE_PATTERN.match(f.name))
     print(f"📂 Found {len(files)} intermediate country XLSX files in {source_folder_path}.")
 
@@ -358,7 +363,7 @@ def run_aggregation(
             unmatched.append(iso)
         print(f"[{position}/{len(files)}] Processing {iso}", end=" ")
         try:
-            cells, summable = _read_country_file(path)
+            cells, summable, conflicting = _read_country_file(path)
             found = _select_for_country(iso, cells, summable, sector_override, zero_as_missing)
         except Exception as exc:
             print(f"❌ Processing Error: {exc}")
@@ -366,6 +371,8 @@ def run_aggregation(
             continue
         selected.update(found)
         print(f"-> OK ({len(found)} updates)")
+        if conflicting:
+            print(f"   ⚠️ {iso}: several series with different values for {conflicting}; the first one is used.")
 
     print("\n💾 Mapping results back to Master DataFrame and writing XLSX...")
     if unmatched:

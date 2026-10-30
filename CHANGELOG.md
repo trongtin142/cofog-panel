@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+Results are unchanged (selection rule untouched).
+
+- `check-format` (and stage 1 of `run`): unknown extra columns in the extract give a warning instead of failing. Missing columns and a broken year range still fail.
+- `aggregate` warns when a country file has several series for one sector with different values (the first series was already used, silently).
+- Internal: one `source.header_row` helper, `cli.VALID_SECTORS` built from `aggregate.DIRECT_SECTORS`, no lazy import of `COUNTRY_FILE_PATTERN`. New tests for these and for completeness/selection edge cases. `docs/` with `architecture.md` and `TODO.md`.
+
 ## Planned (v1.1.0)
 
 - Cache: read the source Excel file once and keep a Parquet copy keyed by its SHA-256, with a `--no-cache` flag.
