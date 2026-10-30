@@ -28,9 +28,9 @@ Working list, easy to hard. Status: `[x]` done, `[ ]` open. Numbers in published
 - [x] V3 Lookup alpha-3 checked (three letters, unique) by `seed-master` and `check-country-format`.
 - [x] V4 `seed-master` rejects `--start-year` > `--end-year`.
 - [x] V5 `aggregate` refuses a master with repeated `SortKey` and never writes values it could not convert.
-- [ ] V6 Scale/currency/unit uniform within a country before summing (Domestic currency).
-- [ ] V7 Compare countries in the extract with the lookup at the start of `split`.
-- [ ] V8 Check `--cofog` group codes (e.g. `07.99`) against the extract before the scan.
+- [x] V6 Scale/currency/unit uniform within a country before summing (Domestic currency); otherwise no sums, warning.
+- [x] V7 `split` lists countries of the extract without a lookup row (warning).
+- [x] V8 `--cofog` codes outside the built-in list (e.g. `07.99`) checked against the extract before the scan (xlsx with shared strings, CSV).
 - [ ] V9 Warn when `--data-col` does not match the COFOG recorded in the split marker.
 - [ ] V10 Read `PUBLICATION_DATE`; warn on mixed dates; record in marker and master.
 - [ ] V11 Range sanity flags (negative, Percent of GDP > 100), opt-in.

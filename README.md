@@ -59,7 +59,7 @@ The pipeline runs on local Excel files in five stages. Each stage is a sub-comma
 | 1 | `check-format` | `checks.py` | Checks the IMF metadata columns and the year columns (no gaps, from 1972) of the extract; unknown extra columns give a warning, not an error |
 | 2 | `check-country-format` | `checks.py` | Checks the country lookup (`name`, `alpha-2`, `alpha-3`, `country-code`; every alpha-3 is three letters, none repeated; `seed-master` applies the same check) |
 | 3 | `seed-master` | `master_seed.py` | Writes the master panel: one row per country and year, `SortKey` = ISO3 + year, 1972–2025 by default; `--start-year` must not be after `--end-year` |
-| 4 | `split` | `etl.py` | Keeps one transformation and one COFOG function and writes one CSV file per country (`AAA.csv`; splits with `.xlsx` country files from versions up to 1.0.5 are still read by `aggregate`) |
+| 4 | `split` | `etl.py` | Lists the countries of the extract that have no row in the lookup (`--lookup-file`, default the bundled one; a warning, the files are still written). Keeps one transformation and one COFOG function and writes one CSV file per country (`AAA.csv`; splits with `.xlsx` country files from versions up to 1.0.5 are still read by `aggregate`) |
 | 5 | `aggregate` | `aggregate.py` | Applies the selection rule and adds the values and their provenance to the master |
 
 ### Selection rule (`--sector "General government"`, the default)
@@ -86,7 +86,7 @@ The data column is named after the COFOG code unless it is given: `--cofog 05` w
 
 Completeness: a T2, T3 or C2 sum is `N` when it leaves out a level (state, local, social security funds, extrabudgetary central government) that the country reports in another year of the same series, or the central core. A T1 value is `N` when GG equals CGSS exactly while state or local government report positive spending in that year.
 
-Further rules: reported zeros are kept unless `--zero-as-missing` is given; shares of total outlays are never summed, so they only give T1 values; the IMF codes KOS and WBG are mapped to the ISO codes XKX and PSE.
+Further rules: reported zeros are kept unless `--zero-as-missing` is given; shares of total outlays are never summed, so they only give T1 values; the IMF codes KOS and WBG are mapped to the ISO codes XKX and PSE. Values in domestic currency are added only when the series of a country agree in `SCALE`, `UNIT` and `CURRENCY` (letter case ignored); otherwise the country gets reported values only (T1, C1, D) and `aggregate` prints a warning.
 
 ## 2. Installation
 
@@ -126,7 +126,7 @@ A second indicator is added to the same master by running the command again: `co
 
 Options:
 
-* `--cofog` takes a division or group code (`05`, `07.3`) or the exact label used in the file (`"Environmental protection"`). A value that is neither is rejected at once, with the closest codes or labels. `cofog-panel list-cofog` lists the codes and labels in the file with the number of countries (it reads the whole file: seconds for the CSV download, about a minute for the Excel one).
+* `--cofog` takes a division or group code (`05`, `07.3`) or the exact label used in the file (`"Environmental protection"`). A value that is neither is rejected at once, with the closest codes or labels. `cofog-panel list-cofog` lists the codes and labels in the file with the number of countries (it reads the whole file: seconds for the CSV download, about a minute for the Excel one). A well-formed code that is not in the built-in list (for example `07.99`) is also looked up in the file before the scan and rejected, with the nearest codes, if the file has no series for it; for an Excel download this takes under a second, for a CSV download a few seconds.
 * `--filter-type` is one of `"Percent of GDP"`, `"Domestic currency"` and `"Percent of total outlays"`, in any letter case. Any other value is rejected at once.
 * `--sector` selects the method described in Section 1; `cofog-panel list-sectors` lists the accepted values.
 

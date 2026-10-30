@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 
-from .etl import COUNTRY_FILE_ENCODING, country_files
+from .etl import COUNTRY_FILE_ENCODING, IMF_TO_ISO, country_files
 from .messages import hint_for_write_error, print_error
 
 # --- Sector names, normalised to lower case as they appear in IMF GFS COFOG ---
@@ -45,9 +45,6 @@ SUMMABLE_TRANSFORMATIONS = {"Percent of GDP", "Domestic currency"}
 
 # Short labels written to the sectors column
 SECTOR_ABBR = {GG: "GG", CGSS: "CGSS", CGXSS: "CGXSS", BCG: "BCG", EBCG: "EBCG", SSF: "SSF", SG: "SG", LG: "LG"}
-
-# IMF country codes that differ from ISO 3166 alpha-3
-IMF_TO_ISO = {"KOS": "XKX", "WBG": "PSE"}
 
 DEFAULT_DATA_COL = "DATA_NEW"
 DEFAULT_TIER_COL = "SOURCE_TIER"
@@ -218,11 +215,27 @@ def _plain(value: Decimal) -> str:
     return "0" if text in ("", "-0") else text
 
 
-def _read_country_file(path: Path) -> Tuple[pd.DataFrame, bool, List[str]]:
+# Columns that must agree between the series of a country before values in domestic currency are added
+UNIT_COLUMNS = ("SCALE", "UNIT", "CURRENCY")
+
+
+def _mixed_units(frame: pd.DataFrame) -> List[str]:
+    """'COLUMN: value, value' for each of UNIT_COLUMNS in which the series of a file differ (letter case ignored)."""
+    mixed = []
+    for column in UNIT_COLUMNS:
+        if column in frame.columns:
+            texts = frame[column].fillna("").astype(str).str.strip()
+            if texts.str.casefold().nunique() > 1:
+                mixed.append(f"{column}: {', '.join(repr(t) for t in sorted(set(texts)))}")
+    return mixed
+
+
+def _read_country_file(path: Path) -> Tuple[pd.DataFrame, bool, List[str], List[str]]:
     """
     Year columns of a split country file, indexed by lower-case sector name (first series
-    per sector), whether its transformation allows sums across sectors, and the sectors
-    whose later series differ from the first one (those series are ignored).
+    per sector), whether its transformation allows sums across sectors, the sectors whose
+    later series differ from the first one (those series are ignored), and the unit columns
+    that differ between series. Values in domestic currency are not summed when units differ.
     """
     if path.suffix.lower() == ".csv":
         frame = pd.read_csv(path, dtype=str, keep_default_na=False, encoding=COUNTRY_FILE_ENCODING)
@@ -237,10 +250,14 @@ def _read_country_file(path: Path) -> Tuple[pd.DataFrame, bool, List[str]]:
                           if not row.equals(first.loc[sector])})
     frame = frame[~repeated]
     summable = True
+    mixed_units: List[str] = []
     if "TYPE_OF_TRANSFORMATION" in frame.columns:
         kinds = set(frame["TYPE_OF_TRANSFORMATION"].dropna().astype(str).str.strip())
         summable = kinds <= SUMMABLE_TRANSFORMATIONS
-    return frame[year_columns], summable, conflicting
+        if summable and "Domestic currency" in kinds:
+            mixed_units = _mixed_units(frame)
+            summable = not mixed_units
+    return frame[year_columns], summable, conflicting, mixed_units
 
 
 def _levels_reported(cells: pd.DataFrame, zero_as_missing: bool) -> List[str]:
@@ -386,7 +403,7 @@ def run_aggregation(
             unmatched.append(iso)
         print(f"[{position}/{len(files)}] Processing {iso}", end=" ")
         try:
-            cells, summable, conflicting = _read_country_file(path)
+            cells, summable, conflicting, mixed_units = _read_country_file(path)
             unreadable = _unreadable_cells(cells)
             found = _select_for_country(iso, cells, summable, sector_override, zero_as_missing)
         except Exception as exc:
@@ -395,6 +412,9 @@ def run_aggregation(
             continue
         selected.update(found)
         print(f"-> OK ({len(found)} updates)")
+        if mixed_units:
+            print(f"   ⚠️ {iso}: series in domestic currency differ in {'; '.join(mixed_units)}; "
+                  f"they are not added, so only reported values (T1, C1, D) are used.")
         if unreadable:
             print(f"   ⚠️ {iso}: {len(unreadable)} distinct cell texts are not numbers and were read as missing, "
                   f"e.g. {unreadable[:5]}")

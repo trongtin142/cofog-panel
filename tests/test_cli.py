@@ -195,3 +195,94 @@ def test_invalid_cofog_on_command_line(extract):
     assert result.exit_code == 1
     assert "Did you mean" in result.output and "'05'" in result.output
     assert not (tmp / "out").exists()
+
+
+# --- --cofog codes outside the built-in list must be in the file ---
+
+def _as_csv(extract_files):
+    """The extract of the fixture as the CSV download (read by row), and as a workbook with a shared-strings part."""
+    _, raw_path, _ = extract_files
+    csv_path = raw_path.with_suffix(".csv")
+    pd.read_excel(raw_path, dtype=str).to_csv(csv_path, index=False)
+    return csv_path
+
+
+def _workbook_with_shared_strings(path, series_codes):
+    """Just enough of an Excel download for the check: pandas and openpyxl write strings inline, Excel and the IMF do not."""
+    import zipfile
+    items = "".join(f"<si><t>{code}</t></si>" for code in series_codes)
+    with zipfile.ZipFile(path, "w") as book:
+        book.writestr("xl/sharedStrings.xml",
+                      f'<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">{items}</sst>')
+    return path
+
+
+def test_cofog_group_missing_from_file_is_rejected_with_nearby_codes(extract):
+    csv_path = _as_csv(extract)
+    with pytest.raises(OptionError) as error:
+        check_cofog("07.99", csv_path)
+    assert "'07' (Health)" in error.value.hint and "no series for COFOG 07.99" in error.value.hint
+    assert check_cofog("07", csv_path) == "07"
+
+
+def test_cofog_code_outside_the_list_is_looked_up_in_workbook_shared_strings(tmp_path):
+    book = _workbook_with_shared_strings(tmp_path / "imf.xlsx", [
+        "ARM.S13.G2MF.GF0799_T.POGDP_PT.A", "ARM.S13.G2MF.GF0710_T.POGDP_PT.A", "Percent of GDP"])
+    assert check_cofog("07.99", book) == "07.99"
+    assert check_cofog("07.1", book) == "07.1"
+    with pytest.raises(OptionError) as error:
+        check_cofog("07.98", book)
+    assert "'07.99'" in error.value.hint
+
+
+def test_cofog_code_outside_the_list_is_accepted_when_the_csv_has_it(tmp_path):
+    rows = [_series("AAA", "Alpha", "General government", "0799", "Odd group", {2000: 1.0})]
+    path_csv = tmp_path / "odd.csv"
+    pd.DataFrame(rows, columns=FIXED_HEADERS_SAMPLE + YEARS).to_csv(path_csv, index=False)
+    assert check_cofog("07.99", path_csv) == "07.99"
+    with pytest.raises(OptionError):
+        check_cofog("07.98", path_csv)
+
+
+def test_cofog_code_check_is_skipped_for_a_workbook_without_shared_strings(extract, tmp_path):
+    _, raw_path, _ = extract            # written by pandas: strings are inline
+    assert check_cofog("07.99", raw_path) == "07.99"   # reading every row would take minutes on the real extract
+
+
+def test_cofog_code_of_the_list_is_accepted_without_reading_the_file(extract):
+    csv_path = _as_csv(extract)
+    assert check_cofog("06.1", csv_path) == "06.1"      # in the built-in list, not in this file
+    assert check_cofog("06.1", csv_path.parent / "absent.csv") == "06.1"
+    assert check_cofog("07.99", csv_path.parent / "absent.csv") == "07.99"   # no file, no check
+
+
+def test_cofog_group_missing_from_file_fails_the_command_in_two_lines(extract):
+    tmp, _, lookup_path = extract
+    csv_path = _as_csv(extract)
+    for args in (["split", "--output-dir", str(tmp / "s")],
+                 ["run", "--output-dir", str(tmp / "o"), "--split-dir", str(tmp / "s")]):
+        result = runner.invoke(app, [args[0], "--source-file", str(csv_path), "--cofog", "07.99", *args[1:]])
+        lines = result.output.strip().splitlines()
+        assert result.exit_code == 1 and len(lines) == 2, result.output
+        assert lines[0].startswith("❌ Error: Invalid --cofog '07.99'.")
+    assert not (tmp / "s").exists()
+
+
+# --- split lists countries missing from the lookup ---
+
+def test_split_command_checks_the_bundled_lookup_by_default(extract):
+    tmp, raw_path, _ = extract
+    result = runner.invoke(app, ["split", "--source-file", str(raw_path), "--cofog", "07", "--output-dir", str(tmp / "s")])
+    assert result.exit_code == 0, result.output
+    assert "2 countries in the extract have no row in the lookup file" in result.output
+    assert "AAA (Alpha)" in result.output and "CCC (Gamma)" in result.output
+
+
+def test_run_passes_its_lookup_file_to_split(extract):
+    tmp, raw_path, lookup_path = extract
+    pd.DataFrame({"name": ["Alpha"], "alpha-2": ["AA"], "alpha-3": ["AAA"], "country-code": [1]}).to_excel(
+        lookup_path, index=False)
+    result = _run(tmp, raw_path, lookup_path, "07", "DATA_H")
+    assert result.exit_code == 0, result.output
+    assert "1 countries in the extract have no row in the lookup file" in result.output
+    assert "CCC (Gamma)" in result.output and "AAA (Alpha)" not in result.output

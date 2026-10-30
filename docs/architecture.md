@@ -38,11 +38,11 @@ Stage numbers follow the `[Stage n/5]` log lines and module docstrings. `AGENTS.
 | Module | Role | Depends on |
 |--------|------|------------|
 | `cli.py` | Typer commands, shared option types, `_guarded` error wrapper, exit codes | all others |
-| `options.py` | Validate `--cofog`, `--filter-type` before any file is read; `COFOG_LABELS`; `data_column_for` | `source` (lazily) |
+| `options.py` | Validate `--cofog` (codes outside the built-in list also against the extract's series codes), `--filter-type` before the scan; `COFOG_LABELS`; `data_column_for` | `source` (lazily) |
 | `source.py` | `open_rows`: one row iterator over CSV or XLSX; `header_row`; `default_source` (xlsx preferred) | openpyxl |
 | `checks.py` | Header and lookup validation; `IMF_METADATA_COLUMNS` | `source`, `messages` |
 | `master_seed.py` | Build the panel (ISO3 x years); keep or rebuild an existing master | `checks.read_lookup` |
-| `etl.py` | Filter by transformation + COFOG; write per-country files; split marker | `source`, `options` |
+| `etl.py` | Filter by transformation + COFOG; write per-country files; split marker; list countries missing from the lookup; `IMF_TO_ISO` | `source`, `options`, `checks` |
 | `aggregate.py` | Selection rule, completeness flag, write master | `etl` (`COUNTRY_FILE_PATTERN`), `messages` |
 | `messages.py` | `print_error` two-line format, shared hints | none |
 
@@ -68,7 +68,7 @@ Central government incl. social security
 Any single sector                  -> D
 ```
 
-- `summable=False` (any transformation other than Percent of GDP / Domestic currency) allows T1, C1, D only. Shares of total outlays are never summed.
+- `summable=False` (any transformation other than Percent of GDP / Domestic currency, or Domestic currency with differing `SCALE`/`UNIT`/`CURRENCY` between the series of a country) allows T1, C1, D only. Shares of total outlays are never summed.
 - `zero_as_missing` drops zeros in every sector before the rule runs.
 - `is_complete(tier, used, levels_reported, values)` gives the `Y/N` flag: a fallback sum is complete when it includes every level (EBCG, SSF, SG, LG) the country reports in at least one year. T1 is flagged `N` when GG equals CGSS exactly while SG or LG spend more than zero.
 - Sums use `Decimal` at precision 50; a directly reported value is written with its original text.

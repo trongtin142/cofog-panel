@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
+from .checks import read_lookup
 from .messages import DOWNLOAD_HINT, hint_for_write_error, print_error
 from .options import OptionError, normalise_transformation
 from .source import header_row, open_rows
@@ -17,6 +18,9 @@ COUNTRY_FILE_ENCODING = "utf-8-sig"  # with a BOM, so that Excel opens non-ASCII
 # Marker file: country files are only ever deleted from directories that carry it
 SPLIT_MARKER = ".cofog_panel_split"
 _MARKER_TEXT = "Created by cofog-panel split. Country files here are replaced on each run.\n"
+
+# IMF country codes that differ from ISO 3166 alpha-3
+IMF_TO_ISO = {"KOS": "XKX", "WBG": "PSE"}
 
 _FILTER_COLUMNS = ("SERIES_CODE", "TYPE_OF_TRANSFORMATION", "COFOG")
 _FUNCTION_FIELD = re.compile(r"GF(\d{2})(\d*)(?:_.*)?")
@@ -60,6 +64,24 @@ def country_files(directory: Path) -> List[Path]:
         if COUNTRY_FILE_PATTERN.match(path.name):
             found.setdefault(path.stem, path)
     return sorted(found.values())
+
+
+def _missing_from_lookup(
+    by_country: Dict[str, List[List[str]]], header: List[str], lookup_file: Path,
+) -> List[str]:
+    """'AAA (Name)' for the countries of a split that have no alpha-3 row in the lookup; [] if the lookup is unreadable."""
+    try:
+        table = read_lookup(lookup_file)
+        known = set(table["alpha-3"].astype(str).str.strip().str.upper())
+    except Exception:  # the lookup checks (check-country-format, seed-master) report this
+        return []
+    at_name = header.index("COUNTRY") if "COUNTRY" in header else None
+    missing = []
+    for code, rows in sorted(by_country.items()):
+        if IMF_TO_ISO.get(code, code) not in known:
+            name = rows[0][at_name].strip() if at_name is not None and rows[0][at_name].strip() else ""
+            missing.append(f"{code} ({name})" if name else code)
+    return missing
 
 
 def _directory_usable(path: Path) -> bool:
@@ -112,12 +134,15 @@ def split_data(
     filter_type: str,
     cofog_filter_set: Iterable[str],
     output_dir: Path,
+    lookup_file: Optional[Path] = None,
 ) -> Tuple[Path, bool]:
     """
     Write the series of one transformation (e.g. 'Percent of GDP', any letter case) and one
     COFOG function (code such as '05' or '07.3', or the exact label) to output_dir/AAA.csv.
 
-    Country files from a previous split in the same directory are replaced. Returns (output_dir, success).
+    Country files from a previous split in the same directory are replaced. With a lookup_file,
+    countries of the extract that have no row in it are listed (they would not reach the master).
+    Returns (output_dir, success).
     """
     selectors = {cofog_filter_set} if isinstance(cofog_filter_set, str) else set(cofog_filter_set)
     selectors = {str(s).strip() for s in selectors}
@@ -155,6 +180,11 @@ def split_data(
         print_error(f"No rows matched COFOG {sorted(selectors)} with transformation '{transformation}'.",
                     "Run 'cofog-panel list-cofog' to see the COFOG codes and labels in the file.")
         return output_dir, False
+
+    missing = _missing_from_lookup(by_country, header, lookup_file) if lookup_file is not None else []
+    if missing:
+        print(f"⚠️ {len(missing)} countries in the extract have no row in the lookup file and will not reach the master "
+              f"(add them to the lookup, or check the codes): {', '.join(missing)}")
 
     output_dir.mkdir(parents=True, exist_ok=True)
     notes = f"cofog={','.join(sorted(selectors))}\ntransformation={transformation}\n"

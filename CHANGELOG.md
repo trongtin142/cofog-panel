@@ -13,6 +13,10 @@ Results are unchanged (selection rule untouched).
   - `seed-master` (and `run`, when it creates the master) rejects a lookup with alpha-3 codes that are not three letters or are repeated (compared in upper case); `check-country-format` reports the same. Codes are written in upper case.
   - `seed-master` rejects `--start-year` after `--end-year` (it used to write an empty master).
   - `aggregate` stops before writing when the master has repeated `SortKey` values, or when a selected value could not be written as a number; the master file is left unchanged.
+- Further input checks (selected values are unchanged for valid input):
+  - `split` takes `--lookup-file` (default: the bundled lookup; `run` passes its own) and lists the countries of the extract that have no row in it, with their names, as a warning. `KOS` and `WBG` are compared as `XKX` and `PSE`. `IMF_TO_ISO` moved from `aggregate.py` to `etl.py`.
+  - `--cofog` with a well-formed code that is not in the built-in list (`07.99`) is looked up among the series codes of the extract and rejected with the nearest codes before the scan. Codes of the list are accepted without reading the file. The lookup is skipped for a workbook without a shared-strings part (written by pandas or openpyxl), because reading every row would take minutes.
+  - Values in domestic currency are not added when the series of a country differ in `SCALE`, `UNIT` or `CURRENCY`; the country gets reported values only (T1, C1, D) and a warning names the differing columns. Percent of GDP is unaffected.
 - Internal: one `source.header_row` helper, `cli.VALID_SECTORS` built from `aggregate.DIRECT_SECTORS`, no lazy import of `COUNTRY_FILE_PATTERN`. New tests for these and for completeness/selection edge cases. `docs/` with `architecture.md` and `TODO.md`.
 
 ## Planned (v1.1.0)

@@ -219,6 +219,7 @@ def seed(
 def split(
     cofog: Cofog,
     source_file: SourceFile = None,
+    lookup_file: LookupFile = PACKAGED_LOOKUP,
     filter_type: FilterType = DEFAULT_TRANSFORMATION,
     output_dir: Annotated[Path, typer.Option("--output-dir", help="Directory to save intermediate country CSV files.")] = DEFAULT_SPLIT_DIR,
 ) -> None:
@@ -227,7 +228,7 @@ def split(
     transformation = normalise_transformation(filter_type)
     selector = check_cofog(cofog, source_file)
     _require_source(source_file)
-    path, ok = split_data(source_file, transformation, {selector}, output_dir)
+    path, ok = split_data(source_file, transformation, {selector}, output_dir, lookup_file)
     if not ok:
         raise typer.Exit(code=1)
     typer.echo(f"::SPLIT_PATH::{path}")
@@ -309,7 +310,7 @@ def run(
     typer.echo(f"Master Path Established: {master_path}")
 
     typer.echo("\n[Stage 4/5] Splitting Data per Country (to Local CSV)...")
-    folder, ok = split_data(source_file, transformation, {selector}, split_dir)
+    folder, ok = split_data(source_file, transformation, {selector}, split_dir, lookup_file)
     if not ok:
         raise typer.Exit(code=1)
 

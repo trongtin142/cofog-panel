@@ -502,3 +502,98 @@ def test_aggregate_leaves_the_master_unchanged_when_a_value_cannot_be_written(wo
     assert not run_aggregation(master_path, split_dir, "DATA_ENV")
     assert "could not be written as numbers" in capsys.readouterr().out
     assert master_path.read_bytes() == before
+
+
+# --- Countries without a lookup row are listed by split ---
+
+def _split_with_lookup(tmp_path, series_rows, lookup_codes, name="s"):
+    raw = tmp_path / f"{name}.xlsx"
+    pd.DataFrame(series_rows, columns=FIXED_HEADERS_SAMPLE + YEARS).to_excel(raw, index=False)
+    return split_data(raw, "Percent of GDP", {"05"}, tmp_path / f"{name}_out", _lookup(tmp_path, lookup_codes))
+
+
+def test_split_lists_countries_missing_from_the_lookup(tmp_path, capsys):
+    rows = (_raw_rows("AAA", "Alpha", {"General government": {2000: 1.0}})
+            + _raw_rows("ZZZ", "Zeta", {"General government": {2000: 2.0}}))
+    split_dir, ok = _split_with_lookup(tmp_path, rows, ["AAA"])
+    out = capsys.readouterr().out
+    assert ok and "1 countries in the extract have no row in the lookup file" in out and "ZZZ (Zeta)" in out
+    assert "AAA (" not in out
+    assert [f.name for f in country_files(split_dir)] == ["AAA.csv", "ZZZ.csv"]   # the files are still written
+
+
+def test_split_maps_imf_codes_before_comparing_with_the_lookup(tmp_path, capsys):
+    rows = (_raw_rows("KOS", "Kosovo", {"General government": {2000: 1.0}})
+            + _raw_rows("WBG", "West Bank and Gaza", {"General government": {2000: 1.0}}))
+    _, ok = _split_with_lookup(tmp_path, rows, ["XKX", "PSE"])
+    assert ok and "no row in the lookup file" not in capsys.readouterr().out
+
+
+def test_split_without_a_usable_lookup_does_not_warn(tmp_path, capsys):
+    rows = _raw_rows("ZZZ", "Zeta", {"General government": {2000: 2.0}})
+    raw = tmp_path / "raw.xlsx"
+    pd.DataFrame(rows, columns=FIXED_HEADERS_SAMPLE + YEARS).to_excel(raw, index=False)
+    (tmp_path / "broken.xlsx").write_text("not a workbook")
+    for lookup in (None, tmp_path / "broken.xlsx", tmp_path / "absent.xlsx"):
+        _, ok = split_data(raw, "Percent of GDP", {"05"}, tmp_path / "out", lookup)
+        assert ok
+    assert "no row in the lookup file" not in capsys.readouterr().out
+
+
+# --- Values in domestic currency are not added when the series have different units ---
+
+def _currency_rows(scale_central="Millions", scale_local="Millions", currency_local="Euro"):
+    rows = _raw_rows("AAA", "Alpha", {"Central government including social security": {2000: 10.0},
+                                      "Local Government": {2000: 5.0}}, transformation="Domestic currency")
+    rows[0].update({"SCALE": scale_central, "CURRENCY": "Euro"})
+    rows[1].update({"SCALE": scale_local, "CURRENCY": currency_local})
+    return rows
+
+
+def _aggregate_currency(tmp_path, rows):
+    raw = tmp_path / "currency.xlsx"
+    pd.DataFrame(rows, columns=FIXED_HEADERS_SAMPLE + YEARS).to_excel(raw, index=False)
+    master_path, _ = seed_master(_lookup(tmp_path, ["AAA"]), tmp_path / "m", start_year=2000, end_year=2000)
+    split_dir, _ = split_data(raw, "Domestic currency", {"05"}, tmp_path / "currency_split")
+    assert run_aggregation(master_path, split_dir, "DATA_ENV")
+    return pd.read_excel(master_path, sheet_name="MasterData", dtype=str).fillna("").set_index("SortKey")
+
+
+def test_domestic_currency_with_one_unit_is_added(tmp_path, capsys):
+    out = _aggregate_currency(tmp_path, _currency_rows())
+    assert (out.at["AAA2000", "DATA_ENV"], out.at["AAA2000", "SOURCE_TIER_ENV"]) == ("15", "T2")
+    assert "differ in" not in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("kwargs, column", [
+    ({"scale_local": "Billions"}, "SCALE: 'Billions', 'Millions'"),
+    ({"currency_local": "Dollar"}, "CURRENCY: 'Dollar', 'Euro'"),
+])
+def test_domestic_currency_with_different_units_is_not_added(tmp_path, capsys, kwargs, column):
+    out = _aggregate_currency(tmp_path, _currency_rows(**kwargs))
+    assert out.at["AAA2000", "DATA_ENV"] == "" and out.at["AAA2000", "SOURCE_TIER_ENV"] == ""
+    assert f"AAA: series in domestic currency differ in {column}" in capsys.readouterr().out
+
+
+def test_domestic_currency_unit_check_ignores_letter_case_and_still_returns_reported_values(tmp_path):
+    out = _aggregate_currency(tmp_path, _currency_rows(scale_local="millions"))
+    assert out.at["AAA2000", "SOURCE_TIER_ENV"] == "T2"
+    rows = _currency_rows(scale_local="Billions")
+    rows += _raw_rows("AAA", "Alpha", {"General government": {2000: 99.0}}, transformation="Domestic currency")
+    rows[-1].update({"SCALE": "Millions", "CURRENCY": "Euro"})
+    (tmp_path / "t1").mkdir()
+    out = _aggregate_currency(tmp_path / "t1", rows)
+    assert (out.at["AAA2000", "DATA_ENV"], out.at["AAA2000", "SOURCE_TIER_ENV"]) == ("99", "T1")
+
+
+def test_percent_of_gdp_is_added_whatever_the_scale_column_says(tmp_path):
+    rows = _raw_rows("AAA", "Alpha", {"Central government including social security": {2000: 1.0},
+                                      "Local Government": {2000: 0.5}})
+    rows[0]["SCALE"], rows[1]["SCALE"] = "Units", "Millions"
+    raw = tmp_path / "gdp.xlsx"
+    pd.DataFrame(rows, columns=FIXED_HEADERS_SAMPLE + YEARS).to_excel(raw, index=False)
+    master_path, _ = seed_master(_lookup(tmp_path, ["AAA"]), tmp_path / "m", start_year=2000, end_year=2000)
+    split_dir, _ = split_data(raw, "Percent of GDP", {"05"}, tmp_path / "gdp_split")
+    assert run_aggregation(master_path, split_dir, "DATA_ENV")
+    out = pd.read_excel(master_path, sheet_name="MasterData").set_index("SortKey")
+    assert (out.at["AAA2000", "DATA_ENV"], out.at["AAA2000", "SOURCE_TIER_ENV"]) == (1.5, "T2")

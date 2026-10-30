@@ -163,6 +163,30 @@ def labels_in_file(path: Path) -> Set[str]:
         return set()
 
 
+def codes_in_file(path: Path) -> Set[str]:
+    """
+    COFOG codes of the series in an extract, read from the series codes among the shared strings of an
+    IMF workbook (under a second) or from the SERIES_CODE column of a CSV file (seconds). Empty if unreadable,
+    and for a workbook without shared strings, which would take minutes to read.
+    """
+    from .etl import _cofog_code_from_series
+    strings = workbook_strings(path)
+    if strings is None:
+        from .source import header_row, is_csv, open_rows
+        if not is_csv(path):
+            return set()
+        try:
+            with open_rows(path) as rows:
+                header = header_row(rows)
+                if "SERIES_CODE" not in header:
+                    return set()
+                at = header.index("SERIES_CODE")
+                strings = {row[at] for row in rows if len(row) > at}
+        except Exception:
+            return set()
+    return {code for code in map(_cofog_code_from_series, strings) if code is not None}
+
+
 def _describe(code: str) -> str:
     return f"'{code}' ({COFOG_LABELS[code]})" if code in COFOG_LABELS else f"'{code}'"
 
@@ -204,11 +228,23 @@ def check_cofog(value: str, source_file: Optional[Path] = None) -> str:
     """
     Accept a COFOG code (01 to 10, optionally with a group such as 07.3) or an exact label.
 
+    A code that is not in the built-in list (e.g. 07.99) is also looked for among the series of the
+    source file when there is one; a code of the list is accepted without reading the file.
+
     Labels are looked up in the built-in list of the February 2026 release and, when a source
     file is given, among the text values of that workbook (later releases may add labels).
     """
     text = value.strip()
-    if CODE_PATTERN.fullmatch(text) or text in COFOG_LABELS.values():
+    if text in COFOG_LABELS.values():
+        return text
+    if CODE_PATTERN.fullmatch(text):
+        # Codes of the built-in list are accepted without reading the file; others (07.99) must be in it
+        file_codes = codes_in_file(source_file) if text not in COFOG_LABELS and source_file is not None else set()
+        if file_codes and text not in file_codes:
+            near = difflib.get_close_matches(text, sorted(file_codes), n=3, cutoff=0.5)
+            hint = ("Codes in the file near it: " + ", ".join(_describe(c) for c in near) + ". ") if near else ""
+            raise OptionError(f"Invalid --cofog '{value}'.",
+                              f"{hint}The file has no series for COFOG {text}; 'cofog-panel list-cofog' lists the codes in it.")
         return text
     file_labels = labels_in_file(source_file) if source_file is not None and source_file.exists() else set()
     if text in file_labels:
