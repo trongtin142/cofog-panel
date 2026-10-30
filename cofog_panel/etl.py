@@ -42,10 +42,15 @@ def _cofog_code_from_series(series_code: Any) -> Optional[str]:
 
 
 def _country_of(series_code: Any) -> Optional[str]:
-    """IMF country code: the first three characters of the series code."""
-    if isinstance(series_code, str) and len(series_code) >= 3:
-        return series_code[:3].upper()
+    """IMF code of the first field of the series code (upper case): 'ARM.S13...' -> 'ARM', 'EU.S13...' -> 'EU'."""
+    if isinstance(series_code, str) and series_code.split(".")[0].strip():
+        return series_code.split(".")[0].strip().upper()
     return None
+
+
+def _is_country_code(code: Optional[str]) -> bool:
+    """Country files are named after three-letter codes; other codes (groups, areas) are not split."""
+    return code is not None and re.fullmatch(r"[A-Z]{3}", code) is not None
 
 
 def country_files(directory: Path) -> List[Path]:
@@ -77,6 +82,7 @@ def _scan(source: Path, transformation: str, selectors: set) -> Tuple[List[str],
         at_series, at_type, at_cofog = (header.index(c) for c in _FILTER_COLUMNS)
 
         kept: Dict[str, List[List[str]]] = {}
+        skipped: set = set()
         n_kept = 0
         n_read = 1
         for n_read, row in enumerate(rows, start=2):
@@ -91,10 +97,13 @@ def _scan(source: Path, transformation: str, selectors: set) -> Tuple[List[str],
             if not keys & selectors:
                 continue
             country = _country_of(row[at_series])
-            if country is None:
+            if not _is_country_code(country):
+                skipped.add(country)
                 continue
             kept.setdefault(country, []).append(["" if cell is None else str(cell) for cell in row])
             n_kept += 1
+    if skipped:
+        print(f"⚠️ Series with a code that is not three letters were not written: {sorted(map(str, skipped))}")
     return header, kept, n_read
 
 
@@ -195,9 +204,10 @@ def list_cofog(source_file_path: Path) -> List[Tuple[str, str, int]]:
         countries: Dict[Tuple[str, str], set] = {}
         for row in rows:
             code = _cofog_code_from_series(row[at_series])
-            if code is None:
+            country = _country_of(row[at_series])
+            if code is None or not _is_country_code(country):
                 continue
             label = "" if row[at_cofog] is None else str(row[at_cofog]).strip()
-            countries.setdefault((code, label), set()).add(_country_of(row[at_series]))
+            countries.setdefault((code, label), set()).add(country)
     return sorted(((code, label, len(isos)) for (code, label), isos in countries.items()),
                   key=lambda item: ([int(part) for part in item[0].split(".")], item[1]))

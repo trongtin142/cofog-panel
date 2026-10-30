@@ -48,7 +48,7 @@ Stage numbers follow the `[Stage n/5]` log lines and module docstrings. `AGENTS.
 
 ## Data model
 
-- **Extract**: ~372k rows, one per series. Used columns: `SERIES_CODE` (country = first 3 chars, COFOG = 4th dot field, e.g. `GF0510_T` -> `05.1`), `TYPE_OF_TRANSFORMATION`, `COFOG` (label), `SECTOR`, year columns 1972+.
+- **Extract**: ~372k rows, one per series. Used columns: `SERIES_CODE` (country = first dot-field, kept only if three letters, COFOG = 4th dot field, e.g. `GF0510_T` -> `05.1`), `TYPE_OF_TRANSFORMATION`, `COFOG` (label), `SECTOR`, year columns 1972+.
 - **Master**: sheet `MasterData`, key `SortKey = ISO3 + year` (`ARM2019`). Default years 1972-2025. IMF codes `KOS`, `WBG` map to `XKX`, `PSE` (`IMF_TO_ISO`).
 - **Split directory**: `AAA.csv` per country (UTF-8 with BOM; `etl.country_files` also finds `AAA.xlsx` from splits made up to 1.0.5, CSV preferred), plus `.cofog_panel_split` recording `cofog=` and `transformation=`. `etl` deletes country files only in a directory that has the marker (or is empty). `aggregate` reads the marker to name the data column.
 - **Output columns** per indicator, suffix from the COFOG code (`DATA_05`, `DATA_07_3`): data, `SOURCE_TIER_<s>`, `SOURCE_SECTORS_<s>`, `SOURCE_COMPLETE_<s>`. `DATA_NEW` keeps unsuffixed names. Naming lives in `aggregate._suffix`, `tier_column`, `provenance_columns`, and `options.data_column_for`.

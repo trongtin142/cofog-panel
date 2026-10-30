@@ -7,6 +7,12 @@ Results are unchanged (selection rule untouched).
 - `check-format` (and stage 1 of `run`): unknown extra columns in the extract give a warning instead of failing. Missing columns and a broken year range still fail.
 - `aggregate` warns when a country file has several series for one sector with different values (the first series was already used, silently).
 - Faster `split` and `aggregate`: `split` writes one CSV file per country (`AAA.csv`, UTF-8 with BOM) instead of an Excel workbook, and `aggregate` reads them. On a synthetic 200-country extract `run` took 7.4 s instead of 15.7 s; the master is identical. `aggregate` still reads `AAA.xlsx` files from a split made by an earlier version (CSV preferred if both exist), and a new `split` removes both kinds of old country file in its own directory.
+- Input validation (selected values are unchanged for valid input):
+  - Cells that are not finite numbers (`Infinity`, `1,5`, `..`, `5%`) are read as missing, as before for text, and `aggregate` now lists them per country. `Infinity` used to be accepted as a value.
+  - The country is the first field of `SERIES_CODE` instead of its first three characters. Series with a code that is not three letters (`EU`, `G20`, `ABCD`) are reported by `split` and no longer written to a country file that `aggregate` would never read. `list-cofog` counts only three-letter codes.
+  - `seed-master` (and `run`, when it creates the master) rejects a lookup with alpha-3 codes that are not three letters or are repeated (compared in upper case); `check-country-format` reports the same. Codes are written in upper case.
+  - `seed-master` rejects `--start-year` after `--end-year` (it used to write an empty master).
+  - `aggregate` stops before writing when the master has repeated `SortKey` values, or when a selected value could not be written as a number; the master file is left unchanged.
 - Internal: one `source.header_row` helper, `cli.VALID_SECTORS` built from `aggregate.DIRECT_SECTORS`, no lazy import of `COUNTRY_FILE_PATTERN`. New tests for these and for completeness/selection edge cases. `docs/` with `architecture.md` and `TODO.md`.
 
 ## Planned (v1.1.0)

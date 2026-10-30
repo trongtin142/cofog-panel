@@ -8,7 +8,7 @@ from typing import Tuple
 
 import pandas as pd
 
-from .checks import read_lookup
+from .checks import alpha3_problems, read_lookup
 from .messages import hint_for_write_error, print_error
 
 # Lookup bundled with the package (ISO 3166 with Kosovo, XKX): the default --lookup-file
@@ -23,7 +23,7 @@ PANEL_KEYS = ["SortKey", "Country", "Year"]
 
 def build_panel(lookup: pd.DataFrame, start_year: int, end_year: int) -> pd.DataFrame:
     """Every country with an alpha-3 code crossed with every year, countries in lookup order."""
-    iso = lookup["alpha-3"].astype(str).str.strip()
+    iso = lookup["alpha-3"].astype(str).str.strip().str.upper()
     usable = (iso != "") & (iso.str.upper() != "NAN")
     countries = pd.DataFrame({"Country": lookup.loc[usable, "name"].astype(str).str.strip(), "ISO": iso[usable]})
     years = pd.DataFrame({"Year": list(range(start_year, end_year + 1))})
@@ -46,6 +46,10 @@ def seed_master(
     """
     target = output_path / output_name
     print(f"\n--- SEEDING MASTER: Processing {lookup_file_path.name} ---")
+    if start_year > end_year:
+        print_error(f"--start-year {start_year} is after --end-year {end_year}.",
+                    f"Give a first year not later than the last year (the IMF data start in {DEFAULT_START_YEAR}).")
+        return target, False
     if not lookup_file_path.exists():
         print_error(f"Lookup file not found: {lookup_file_path}", "Omit --lookup-file to use the lookup bundled with the package, or give the path of your own file.")
         return Path(""), False
@@ -55,6 +59,16 @@ def seed_master(
         if not {"name", "alpha-3"} <= set(lookup.columns):
             print_error("Lookup file must contain 'name' and 'alpha-3' columns.",
                         "Check the column names in the first row, or omit --lookup-file to use the bundled lookup.")
+            return target, False
+        invalid, repeated = alpha3_problems(lookup)
+        if invalid or repeated:
+            what = []
+            if invalid:
+                what.append(f"codes that are not three letters {invalid[:10]}")
+            if repeated:
+                what.append(f"repeated codes {repeated[:10]}")
+            print_error("The lookup file has " + " and ".join(what) + " in 'alpha-3'.",
+                        "Use one row per country with a three-letter alpha-3 code, or omit --lookup-file to use the bundled lookup.")
             return target, False
         panel = build_panel(lookup, start_year, end_year)
         if target.exists():

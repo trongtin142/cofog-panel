@@ -54,6 +54,18 @@ def read_lookup(path: Path) -> pd.DataFrame:
     raise ValueError(f"Unsupported file format for lookup: {path.suffix}. Must be .csv or .xlsx.")
 
 
+def alpha3_problems(table: pd.DataFrame) -> Tuple[List[str], List[str]]:
+    """
+    (codes that are not three letters, codes used by more than one row) among the non-blank
+    alpha-3 values of a lookup table, compared in upper case without surrounding spaces.
+    """
+    codes = table["alpha-3"].astype(str).str.strip().str.upper()
+    codes = codes[codes != ""]
+    invalid = sorted(set(codes[~codes.str.fullmatch(r"[A-Z]{3}")]))
+    repeated = sorted(set(codes[codes.duplicated()]))
+    return invalid, repeated
+
+
 def _years_are_valid(years: List[int]) -> bool:
     if not years or years[-1] < END_YEAR:
         return False
@@ -112,7 +124,8 @@ def verify_cofog_format(file_path: Path) -> Tuple[bool, Dict[str, Any]]:
 
 def verify_country_format(file_path: Path) -> Tuple[bool, Dict[str, Any]]:
     """Check that the lookup file has the ISO columns and no repeated alpha-3 code."""
-    details: Dict[str, Any] = {"Valid": False, "Missing_Columns": [], "Duplicate_Alpha3": False, "Total_Rows": 0}
+    details: Dict[str, Any] = {"Valid": False, "Missing_Columns": [], "Duplicate_Alpha3": False,
+                               "Invalid_Alpha3": [], "Total_Rows": 0}
     if not file_path.exists():
         print_error(f"Lookup file not found: {file_path}", "Omit --lookup-file to use the lookup bundled with the package, or give the path of your own file.")
         return False, details
@@ -128,8 +141,10 @@ def verify_country_format(file_path: Path) -> Tuple[bool, Dict[str, Any]]:
     columns = list(table.columns)
     details["Total_Rows"] = len(table)
     details["Missing_Columns"] = [c for c in REQUIRED_COUNTRY_COLS if c not in columns]
-    details["Duplicate_Alpha3"] = "alpha-3" in columns and bool(table["alpha-3"].duplicated().any())
-    details["Valid"] = not (details["Missing_Columns"] or details["Duplicate_Alpha3"])
+    if "alpha-3" in columns:
+        details["Invalid_Alpha3"], repeated = alpha3_problems(table)
+        details["Duplicate_Alpha3"] = bool(repeated)
+    details["Valid"] = not (details["Missing_Columns"] or details["Duplicate_Alpha3"] or details["Invalid_Alpha3"])
 
     if not details["Valid"]:
         print(f"❌ Mismatch detected in {file_path.name}.")
@@ -137,8 +152,10 @@ def verify_country_format(file_path: Path) -> Tuple[bool, Dict[str, Any]]:
             print(f"   -> Missing required columns: {details['Missing_Columns']}")
         if details["Duplicate_Alpha3"]:
             print("   -> Duplicate 'alpha-3' codes found.")
+        if details["Invalid_Alpha3"]:
+            print(f"   -> 'alpha-3' codes that are not three letters: {details['Invalid_Alpha3'][:10]}")
         print(f"   -> Columns found: {columns}")
-        print("   Hint: the lookup needs the columns name, alpha-2, alpha-3 and country-code, one row per alpha-3 code.")
+        print("   Hint: the lookup needs the columns name, alpha-2, alpha-3 and country-code, one row per alpha-3 code, each of three letters.")
         return False, details
 
     print("✅ SUCCESS: Country lookup file structure is VALID.")

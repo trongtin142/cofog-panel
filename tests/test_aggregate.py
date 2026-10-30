@@ -4,12 +4,12 @@ import pandas as pd
 import pytest
 
 from cofog_panel.aggregate import (
-    resolve_value, run_aggregation, is_complete,
+    _as_decimal, resolve_value, run_aggregation, is_complete,
     GG, CGSS, CGXSS, BCG, EBCG, SSF, SG, LG,
 )
-from cofog_panel.etl import _cofog_code_from_series, country_files, split_data
+from cofog_panel.etl import _cofog_code_from_series, _country_of, country_files, list_cofog, split_data
 from cofog_panel.master_seed import seed_master
-from cofog_panel.checks import verify_cofog_format, FIXED_HEADERS_SAMPLE
+from cofog_panel.checks import verify_cofog_format, verify_country_format, FIXED_HEADERS_SAMPLE
 
 
 def D(x):
@@ -402,3 +402,103 @@ def test_country_file_keeps_text_exactly(workspace):
     back = pd.read_csv(split_dir / "AAA.csv", dtype=str, keep_default_na=False, encoding="utf-8-sig")
     assert back.at[0, "FULL_DESCRIPTION"] == 'Ünïcode, "quoted"\nsecond line'
     assert back.at[0, "2000"] == "0.1" and back.at[0, "2001"] == ""
+
+
+# --- Input validation: unreadable cells, country codes, lookup, year range, master ---
+
+@pytest.mark.parametrize("text", ["Infinity", "-inf", "NaN", "1,5", "..", "n/a", "5%", "1 000", ""])
+def test_cell_texts_that_are_not_finite_numbers_are_missing(text):
+    assert _as_decimal(text) is None
+
+
+def test_unreadable_cells_are_reported_and_read_as_missing(workspace, capsys):
+    tmp, _, lookup_path = workspace
+    rows = _raw_rows("AAA", "Alpha", {"General government": {2000: "1,5", 2001: "Infinity", 2002: 1.0},
+                                      "Local Government": {2000: "..", 2003: 0.5}})
+    path = tmp / "bad_cells.xlsx"
+    pd.DataFrame(rows, columns=FIXED_HEADERS_SAMPLE + YEARS).to_excel(path, index=False)
+    master_path, _ = seed_master(lookup_path, tmp)
+    split_dir, _ = split_data(path, "Percent of GDP", {"05"}, tmp / "s")
+    assert run_aggregation(master_path, split_dir, "DATA_ENV")
+    assert "3 distinct cell texts are not numbers" in capsys.readouterr().out
+    out = pd.read_excel(master_path, sheet_name="MasterData").set_index("SortKey")
+    assert pd.isna(out.at["AAA2000", "DATA_ENV"]) and pd.isna(out.at["AAA2001", "DATA_ENV"])
+    assert out.at["AAA2002", "DATA_ENV"] == 1.0 and out.at["AAA2003", "DATA_ENV"] == 0.5
+
+
+@pytest.mark.parametrize("series, country", [
+    ("ARM.S13.G2MF.GF05_T.POGDP_PT.A", "ARM"), ("usa.S13.X.GF05_T.A", "USA"),
+    ("EU.S13.G2MF.GF05_T.POGDP_PT.A", "EU"), ("G20.S13.X", "G20"), ("ABCD.S13", "ABCD"), ("", None), (None, None),
+])
+def test_country_is_the_first_field_of_the_series_code(series, country):
+    assert _country_of(series) == country
+
+
+def test_series_of_codes_that_are_not_countries_are_reported_not_split(workspace, capsys):
+    tmp, _, _ = workspace
+    rows = (_raw_rows("AAA", "Alpha", {"General government": {2000: 1.0}})
+            + _raw_rows("EU", "Euro area", {"General government": {2000: 2.0}})
+            + _raw_rows("ABCD", "Four", {"General government": {2000: 3.0}}))
+    path = tmp / "groups.xlsx"
+    pd.DataFrame(rows, columns=FIXED_HEADERS_SAMPLE + YEARS).to_excel(path, index=False)
+    split_dir, ok = split_data(path, "Percent of GDP", {"05"}, tmp / "s")
+    assert ok and [f.name for f in country_files(split_dir)] == ["AAA.csv"]
+    assert "['ABCD', 'EU']" in capsys.readouterr().out
+    assert [n for _, _, n in list_cofog(path)] == [1]
+
+
+def _lookup(tmp_path, codes):
+    path = tmp_path / "lookup.xlsx"
+    pd.DataFrame({"name": [f"C{i}" for i in range(len(codes))], "alpha-2": "XX",
+                  "alpha-3": codes, "country-code": range(len(codes))}).to_excel(path, index=False)
+    return path
+
+
+@pytest.mark.parametrize("codes, message", [
+    (["AAA", "aaa"], "repeated codes ['AAA']"),
+    (["AAA", "US1"], "not three letters ['US1']"),
+    (["AAA", "AB"], "not three letters ['AB']"),
+])
+def test_seed_master_rejects_a_bad_lookup(tmp_path, capsys, codes, message):
+    path = _lookup(tmp_path, codes)
+    _, ok = seed_master(path, tmp_path / "out")
+    assert not ok and message in capsys.readouterr().out
+    assert not (tmp_path / "out").exists()
+    assert not verify_country_format(path)[0]
+
+
+def test_seed_master_writes_upper_case_keys_for_a_lower_case_lookup(tmp_path):
+    path = _lookup(tmp_path, [" aaa", "BBB"])
+    target, ok = seed_master(path, tmp_path / "out", start_year=2000, end_year=2000)
+    assert ok and list(pd.read_excel(target)["SortKey"]) == ["AAA2000", "BBB2000"]
+
+
+def test_seed_master_rejects_a_reversed_year_range(tmp_path, capsys):
+    _, ok = seed_master(_lookup(tmp_path, ["AAA"]), tmp_path / "out", start_year=2030, end_year=2000)
+    assert not ok and "--start-year 2030 is after --end-year 2000" in capsys.readouterr().out
+    assert not (tmp_path / "out").exists()
+
+
+def test_aggregate_refuses_a_master_with_repeated_sortkeys(workspace, capsys):
+    tmp, raw_path, lookup_path = workspace
+    master_path, _ = seed_master(lookup_path, tmp, start_year=2000, end_year=2001)
+    master = pd.read_excel(master_path, sheet_name="MasterData")
+    pd.concat([master, master.iloc[[0]]]).to_excel(master_path, index=False, sheet_name="MasterData")
+    before = master_path.read_bytes()
+    split_dir, _ = split_data(raw_path, "Percent of GDP", {"05"}, tmp / "s")
+    assert not run_aggregation(master_path, split_dir, "DATA_ENV")
+    assert "repeated SortKey values, e.g. ['AAA2000']" in capsys.readouterr().out
+    assert master_path.read_bytes() == before
+
+
+def test_aggregate_leaves_the_master_unchanged_when_a_value_cannot_be_written(workspace, monkeypatch, capsys):
+    import cofog_panel.aggregate as aggregate
+    tmp, raw_path, lookup_path = workspace
+    master_path, _ = seed_master(lookup_path, tmp)
+    before = master_path.read_bytes()
+    split_dir, _ = split_data(raw_path, "Percent of GDP", {"05"}, tmp / "s")
+    monkeypatch.setattr(aggregate, "_select_for_country",
+                        lambda *a, **k: {"AAA2000": ("not a number", "T1", "GG", "Y")})
+    assert not run_aggregation(master_path, split_dir, "DATA_ENV")
+    assert "could not be written as numbers" in capsys.readouterr().out
+    assert master_path.read_bytes() == before

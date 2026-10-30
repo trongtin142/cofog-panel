@@ -183,17 +183,31 @@ def is_complete(
 
 # --- Reading country files ---
 
+# Cell texts that mean "no value" and are not reported as unreadable
+_EMPTY_CELLS = ("", "NAN", "NONE")
+
+
 def _as_decimal(cell: Any) -> Optional[Decimal]:
-    """Decimal value of a cell read as text; None for empty, NaN or non-numeric cells."""
+    """Decimal value of a cell read as text; None for empty, NaN, infinite or non-numeric cells."""
     if cell is None:
         return None
     text = str(cell).strip()
-    if text.upper() in ("", "NAN", "NONE"):
+    if text.upper() in _EMPTY_CELLS:
         return None
     try:
-        return Decimal(text)
+        number = Decimal(text)
     except InvalidOperation:
         return None
+    return number if number.is_finite() else None
+
+
+def _unreadable_cells(cells: pd.DataFrame) -> List[str]:
+    """Distinct texts of the cells that are not empty but are not finite numbers (e.g. '1,5', '..', 'Infinity')."""
+    texts = set()
+    for cell in cells.to_numpy().ravel():
+        if cell is not None and str(cell).strip().upper() not in _EMPTY_CELLS and _as_decimal(cell) is None:
+            texts.add(str(cell).strip())
+    return sorted(texts)
 
 
 def _plain(value: Decimal) -> str:
@@ -345,6 +359,12 @@ def run_aggregation(
     if "SortKey" not in master.columns:
         print_error("The master file has no 'SortKey' column.", "Use a master created by 'cofog-panel seed-master'.")
         return False
+    keys_in_master = master["SortKey"].astype(str).str.strip()
+    repeated_keys = sorted(set(keys_in_master[keys_in_master.duplicated()]))
+    if repeated_keys:
+        print_error(f"The master file has repeated SortKey values, e.g. {repeated_keys[:5]}.",
+                    "Rebuild it with 'cofog-panel seed-master' (the lookup file needs one row per alpha-3 code).")
+        return False
     print(f"✅ Master XLSX loaded: {len(master)} rows.")
 
     new_columns = [data_col_out, tier_col_out, sectors_col_out, complete_col_out]
@@ -367,6 +387,7 @@ def run_aggregation(
         print(f"[{position}/{len(files)}] Processing {iso}", end=" ")
         try:
             cells, summable, conflicting = _read_country_file(path)
+            unreadable = _unreadable_cells(cells)
             found = _select_for_country(iso, cells, summable, sector_override, zero_as_missing)
         except Exception as exc:
             print(f"❌ Processing Error: {exc}")
@@ -374,6 +395,9 @@ def run_aggregation(
             continue
         selected.update(found)
         print(f"-> OK ({len(found)} updates)")
+        if unreadable:
+            print(f"   ⚠️ {iso}: {len(unreadable)} distinct cell texts are not numbers and were read as missing, "
+                  f"e.g. {unreadable[:5]}")
         if conflicting:
             print(f"   ⚠️ {iso}: several series with different values for {conflicting}; the first one is used.")
 
@@ -391,6 +415,11 @@ def run_aggregation(
     for position, column in enumerate(new_columns[1:], start=1):
         master[column] = [r[position] for r in rows]
 
+    n_values, n_tiers = int(master[data_col_out].notna().sum()), int((master[tier_col_out] != "").sum())
+    if n_values != n_tiers:
+        print_error(f"{n_tiers - n_values} selected values could not be written as numbers to {data_col_out}.",
+                    "The master file was not changed. Run 'cofog-panel --debug aggregate' or check the country files.")
+        return False
     out = master[PANEL_KEYS + [c for c in master.columns if c not in PANEL_KEYS]].copy()
     out["Year"] = pd.to_numeric(out["Year"], errors="coerce").astype("Int64")
     out = _restore_types(out, skip=PANEL_KEYS + [data_col_out])

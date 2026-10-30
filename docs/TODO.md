@@ -21,6 +21,24 @@ Working list, easy to hard. Status: `[x]` done, `[ ]` open. Numbers in published
 - [x] M6 Faster split to aggregate hand-off: one CSV per country instead of xlsx (stdlib, no new dependency). Older `.xlsx` splits are still read.
 - [ ] M7 CSV/Parquet master next to the xlsx (v1.1.0).
 
+## Input validation (first batch done)
+
+- [x] V1 `Infinity`/`-inf` are not values; unreadable cell texts are reported per country.
+- [x] V2 Country = first field of `SERIES_CODE`; non-three-letter codes reported, not split.
+- [x] V3 Lookup alpha-3 checked (three letters, unique) by `seed-master` and `check-country-format`.
+- [x] V4 `seed-master` rejects `--start-year` > `--end-year`.
+- [x] V5 `aggregate` refuses a master with repeated `SortKey` and never writes values it could not convert.
+- [ ] V6 Scale/currency/unit uniform within a country before summing (Domestic currency).
+- [ ] V7 Compare countries in the extract with the lookup at the start of `split`.
+- [ ] V8 Check `--cofog` group codes (e.g. `07.99`) against the extract before the scan.
+- [ ] V9 Warn when `--data-col` does not match the COFOG recorded in the split marker.
+- [ ] V10 Read `PUBLICATION_DATE`; warn on mixed dates; record in marker and master.
+- [ ] V11 Range sanity flags (negative, Percent of GDP > 100), opt-in.
+- [ ] V12 Count rows skipped by `split` (no COFOG code in series).
+- [ ] V13 Master year range vs extract year span.
+- [ ] V14 Move `IMF_TO_ISO` to a data file.
+- [ ] V15 Check label selectors that match several COFOG codes; check `FREQUENCY` (needs real data).
+
 ## Hard
 
 - [ ] H1 `build_panel(...)` Python API: stage functions return data, the CLI prints (v1.1.0).
