@@ -1,4 +1,5 @@
 """Command-line behaviour: separate provenance per indicator, master reuse, early option checks."""
+import re
 import shutil
 import pandas as pd
 import pytest
@@ -305,7 +306,8 @@ def test_aggregate_warns_when_data_col_names_another_function(extract, data_col,
 @pytest.mark.parametrize("command", ["aggregate", "run"])
 def test_check_ranges_option_is_accepted(command):
     result = runner.invoke(app, [command, "--help"])
-    assert "--check-ranges" in result.output
+    # Rich colours the help on GitHub Actions, so compare the text without ANSI codes
+    assert "--check-ranges" in re.sub(r"\x1b\[[0-9;]*m", "", result.output)
 
 
 def test_aggregate_command_passes_check_ranges(extract):
