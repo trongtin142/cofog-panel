@@ -30,7 +30,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=7.0"]
 gui = ["streamlit>=1.49.0"]
-replication = ["statsmodels>=0.14", "matplotlib>=3.9"]
+replication = ["statsmodels>=0.14", "scipy>=1.8", "matplotlib>=3.9", "linearmodels>=6.0", "tabulate>=0.9"]
 
 [project.scripts]
 cofog-panel = "cofog_panel.cli:app"
@@ -41,7 +41,7 @@ Issues = "https://github.com/trongtin142/cofog-panel/issues"
 Archive = "https://doi.org/10.5281/zenodo.23511907"
 
 [tool.setuptools]
-packages = ["cofog_panel"]
+packages = ["cofog_panel", "cofog_panel.data"]
 
 [tool.setuptools.package-data]
 cofog_panel = ["data/*.xlsx", "data/*.csv"]

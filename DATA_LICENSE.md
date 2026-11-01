@@ -16,6 +16,10 @@ The IMF extract is not included in the repository. Users download it from the IM
 
 ISO 3166-1 country names and codes (alpha-2, alpha-3, numeric) with UN M49 regions, plus Kosovo (XKX, a user-assigned code used by the European Commission and others).
 
+## Third-party data of `replication/eeps/data_ext/lab/`
+
+The Regional Authority Index, terrain ruggedness (Nunn and Puga 2012), CEDS emissions and the OECD SNG-WOFI functional data are not distributed: `replication/eeps/fetch_data.py` downloads them from their sources. The other files of that folder are distributed under CC BY 4.0 or CC0 with attribution to their sources. Sources, URLs and licences: `replication/eeps/data_ext/SOURCES.md`.
+
 ## Replication data (`replication/*/data_ext/`)
 
 See `SOURCES.md` in each replication folder.

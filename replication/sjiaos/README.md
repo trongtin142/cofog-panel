@@ -1,6 +1,6 @@
-# Replication: subsector harmonisation of IMF GFS COFOG data
+# Replication: harmonisation study
 
-Reproduces all tables and figures of the article on subsector harmonisation of the IMF GFS COFOG data.
+Reproduces all tables and figures of the harmonisation study (manuscript under review; the reference will be added on publication).
 
 ## Requirements
 
