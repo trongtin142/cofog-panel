@@ -48,7 +48,7 @@ Stage numbers follow the `[Stage n/5]` log lines and module docstrings. `AGENTS.
 
 ## Data model
 
-- **Extract**: ~372k rows, one per series. Used columns: `SERIES_CODE` (country = first dot-field, kept only if three letters, COFOG = 4th dot field, e.g. `GF0510_T` -> `05.1`), `TYPE_OF_TRANSFORMATION`, `COFOG` (label), `SECTOR`, year columns 1972+.
+- **Extract**: ~372k rows, one per series. Used columns: `SERIES_CODE` (country = first dot-field, kept only if three letters, COFOG = 4th dot field, e.g. `GF0510_T` -> `05.1`; the extract also carries series of other indicators, total outlays `TOA_T`/`TOTOUT_T` and a liability series, with an empty `COFOG` label, which `split` skips without counting them as rows without a function), `TYPE_OF_TRANSFORMATION`, `COFOG` (label), `SECTOR`, year columns 1972+.
 - **Master**: sheet `MasterData`, key `SortKey = ISO3 + year` (`ARM2019`). Default years 1972-2025. IMF codes `KOS`, `WBG` map to `XKX`, `PSE` (`IMF_TO_ISO`).
 - **Split directory**: `AAA.csv` per country (UTF-8 with BOM; `etl.country_files` also finds `AAA.xlsx` from splits made up to 1.0.5, CSV preferred), plus `.cofog_panel_split` recording `cofog=`, `transformation=`, `publication_date=` (selected series, comma-separated if several) and `years=FIRST-LAST`. `etl` deletes country files only in a directory that has the marker (or is empty). `aggregate` reads the marker to name the data column.
 - **Output columns** per indicator, suffix from the COFOG code (`DATA_05`, `DATA_07_3`): data, `SOURCE_TIER_<s>`, `SOURCE_SECTORS_<s>`, `SOURCE_COMPLETE_<s>`. `DATA_NEW` keeps unsuffixed names. Naming lives in `aggregate._suffix`, `tier_column`, `provenance_columns`, and `options.data_column_for`.
@@ -99,8 +99,8 @@ Per country: `_read_country_file` (first series per sector, warns when later ser
 
 ## Tests
 
-`tests/test_aggregate.py`: selection rule, completeness, stage-level pipeline on a synthetic extract. `tests/test_cli.py`: provenance naming, `run` master handling, option validation. `tests/test_usability.py`: defaults, CSV vs Excel, error messages and exit codes. CI: ubuntu/windows/macos x Python 3.10/3.12/3.14, plus oldest and newest Typer.
+`tests/test_aggregate.py`: selection rule, completeness, stage-level pipeline on a synthetic extract. `tests/test_cli.py`: provenance naming, `run` master handling, option validation. `tests/test_usability.py`: defaults, CSV vs Excel, error messages and exit codes. `tests/test_gui.py`: runs `gui.py` with Streamlit's AppTest (skipped without the `gui` extra). CI: ubuntu/windows/macos x Python 3.10/3.12/3.14, a job with `.[dev,gui]` (Python 3.12) so that the GUI tests run, plus oldest and newest Typer.
 
 ## Outside the package
 
-`replication/sjiaos/`, `replication/eeps/`: scripts reproducing published analyses, each with its own README. Selection-rule changes alter their numbers; rerun and state whether outputs changed. `cofog.ipynb`: notebook demo. `gui.py`: optional Streamlit page (extra `gui`) that calls the same stage functions as `cli.run` for one built-in function; launched by `run_gui.sh` / `run_gui.bat`. IMF data is not MIT-licensed (`DATA_LICENSE.md`).
+`replication/sjiaos/`, `replication/eeps/`: scripts reproducing published analyses, each with its own README. Selection-rule changes alter their numbers; rerun and state whether outputs changed. `cofog.ipynb`: notebook demo. `gui.py`: optional Streamlit page (extra `gui`, Streamlit 1.49 or later) that calls the same stage functions as `cli.run` for one built-in function with the default column names; each run works in a new temporary folder, so it always builds a new master (no `--overwrite-master` to offer). Launched by `run_gui.sh` / `run_gui.bat`. The code is MIT-licensed (`LICENSE.txt`); IMF data is not (`DATA_LICENSE.md`).

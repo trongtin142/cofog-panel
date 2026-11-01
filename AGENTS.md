@@ -6,10 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 pip install -e ".[dev]"            # install + pytest
+pip install -e ".[dev,gui]"        # + Streamlit >=1.49, so tests/test_gui.py runs (skipped without it)
 pip install -e ".[replication]"    # statsmodels, matplotlib for replication/ scripts
-pytest -q                          # all tests (CI: ubuntu/windows/macos x py3.10/3.12/3.14)
+pytest -q                          # all tests (CI: ubuntu/windows/macos x py3.10/3.12/3.14, plus a gui job)
 pytest tests/test_aggregate.py -k <name>   # single test
 cofog-panel run --cofog 05         # full pipeline; needs data/gfs_raw_data.csv|xlsx (IMF download, not in repo)
+cofog-panel run --cofog 05 --cofog 07   # several functions, one master; split dirs intermediate_splits/05, /07
 cofog-panel --debug <command>      # full traceback instead of 2-line error
 ```
 
@@ -22,7 +24,7 @@ Package `cofog_panel/` is a Typer CLI over a 5-stage pipeline; `cli.py` wires st
 1. `checks.py` (`check-format`) — validate IMF metadata/year columns
 2. `checks.py` (`check-country-format`) — validate country lookup
 3. `master_seed.py` — build master panel (SortKey = ISO3+year, 1972–2025), country lookup bundled at `cofog_panel/data/country_codes.xlsx` (copy also at `data/`)
-4. `etl.py` (`split`) — filter one transformation + one COFOG function, write per-country CSV files (`AAA.csv`) into a split dir marked by `.cofog_panel_split` (records the COFOG function; never delete files elsewhere)
+4. `etl.py` (`split`) — filter one transformation + one COFOG function, write per-country CSV files (`AAA.csv`) into a split dir marked by `.cofog_panel_split` (records the COFOG function, `PUBLICATION_DATE` and year span; never delete files elsewhere). Rows without a COFOG function are counted in a warning, except the series of other indicators (e.g. `TOA_T`, `TOTOUT_T`: fourth field not `GF...`, empty `COFOG` label; `etl._is_other_indicator`)
 5. `aggregate.py` — core selection rule `resolve_value`: T1 (GG) → T2 (CGSS+SG+LG) → T3 (central components+SSF+SG+LG); also C1/C2 and D (single sector) methods. Writes value + tier + sectors + completeness (`Y/N`) columns into master.
 Supporting: `source.py` reads IMF CSV or xlsx (xlsx preferred if both exist); `options.py` validates `--cofog`/`--filter-type`/`--sector` *before* any file is read (file is ~372k rows, scan is slow); `messages.py` holds the shared two-line error format.
 
@@ -33,7 +35,9 @@ Conventions to keep:
 - Values use `Decimal` in the selection rule; shares of total outlays are never summed (T1 only).
 - CLI reconfigures stdout/stderr with `errors="replace"` for Windows consoles.
 
-`replication/` (`sjiaos/`, `eeps/`) holds scripts reproducing published analyses, each with own README; `cofog.ipynb` is a notebook demo. IMF data is not MIT-licensed (`DATA_LICENSE.md`); IMF revises releases in place, so report `PUBLICATION_DATE`. Release process: update `CHANGELOG.md`, `CITATION.cff` (Zenodo DOIs).
+`gui.py` (optional extra `gui`, Streamlit) calls the same stage functions as `run` for one built-in COFOG function with default column names, in a new temporary folder per run (always a new master; no `--zero-as-missing`, `--check-ranges`, `--split-dir`, several functions or non-xlsx lookup); `tests/test_gui.py` drives it with Streamlit's AppTest.
+
+`replication/` (`sjiaos/`, `eeps/`) holds scripts reproducing published analyses, each with own README; `cofog.ipynb` is a notebook demo. IMF data is not MIT-licensed (`DATA_LICENSE.md`); the code licence is `LICENSE.txt`. IMF revises releases in place, so report `PUBLICATION_DATE`. Release process: update `CHANGELOG.md`, `CITATION.cff` (version, date, Zenodo DOIs), `__version__`, the `RELEASE` pin in `cofog.ipynb` and the version placeholder in `.github/ISSUE_TEMPLATE/test_report.yml`.
 
 ## Document map (read before editing)
 
@@ -43,7 +47,7 @@ Conventions to keep:
 | CLI options, errors, exit codes | `README.md` §3, `cofog_panel/options.py`, `messages.py` |
 | Data source, licence, vintages | `README.md` §5, `DATA_LICENSE.md` |
 | Published results | `replication/<paper>/README.md` |
-| Past/planned changes | `CHANGELOG.md` ("Planned (v1.1.0)" list) |
+| Past/planned changes | `CHANGELOG.md` ("Planned" list), `docs/TODO.md` |
 
 Never edit from memory: read the module and grep every caller first.
 

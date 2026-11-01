@@ -1,6 +1,6 @@
 # COFOG-Panel
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.txt)
 [![tests](https://github.com/trongtin142/cofog-panel/actions/workflows/tests.yml/badge.svg)](https://github.com/trongtin142/cofog-panel/actions/workflows/tests.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23511907.svg)](https://doi.org/10.5281/zenodo.23511907)
 
@@ -13,10 +13,10 @@ The DOI badge points to all versions of the software. Each release also has its 
 For users who prefer a graphical interface (a browser page, no command line options to remember):
 
 1. Install Python 3.10 or later from [python.org](https://www.python.org/) (on Windows, tick "Add Python to PATH").
-2. Start the application: on macOS or Linux run `bash run_gui.sh`, on Windows double-click `run_gui.bat`. The script creates a `.venv` folder, installs the package with the `gui` extra (`pip install -e ".[gui]"`, which adds Streamlit) and opens the page.
+2. Start the application: on macOS or Linux run `bash run_gui.sh`, on Windows double-click `run_gui.bat`. The script creates a `.venv` folder, installs the package with the `gui` extra (`pip install -e ".[gui]"`, which adds Streamlit 1.49 or later) and opens the page.
 3. In the page, upload the IMF file, choose the COFOG function, method and transformation in the sidebar, and click **Run Pipeline**. Download the master when it finishes. The page shows the reports and warnings of the stages (the same text the command line prints) in a run log, and the reason when a stage fails.
 
-The GUI runs the same five stages as `cofog-panel run` for one COFOG function from the built-in list, with the default column names. It does not offer `--zero-as-missing`, `--check-ranges`, several functions or `--split-dir`; use the command line for those. Uploaded files and the result live in a temporary folder and are deleted when the run ends, so download the master from the page.
+The GUI runs the same five stages as `cofog-panel run` for one COFOG function from the built-in list, with the default column names. It does not offer `--zero-as-missing`, `--check-ranges`, several functions, `--split-dir` or a country lookup in another format than `.xlsx`; use the command line for those. Each run builds a new master with one indicator: uploaded files and the result live in a temporary folder that is deleted when the run ends, so download the master from the page. To collect several indicators in one master, use `cofog-panel run` (Section 3).
 
 ## Quickstart in 3 steps
 
@@ -62,7 +62,7 @@ Other useful commands: `cofog-panel list-cofog` lists the COFOG codes and labels
 
 ## 1. How it works
 
-The pipeline runs on local Excel files in five stages. Each stage is a sub-command, and `cofog-panel run` runs all five.
+The pipeline runs on local files (an Excel master and one CSV file per country between stages 4 and 5) in five stages. Each stage is a sub-command, and `cofog-panel run` runs all five.
 
 | Stage | Command | Module | Purpose |
 | :--- | :--- | :--- | :--- |
@@ -107,6 +107,7 @@ python -m venv venv
 source venv/bin/activate          # macOS and Linux
 pip install -e .                  # the command-line tool
 pip install -e ".[dev]"           # adds pytest, to run the tests
+pip install -e ".[gui]"           # adds Streamlit, for the browser interface (streamlit run gui.py)
 pip install -e ".[replication]"   # adds statsmodels and matplotlib, for the scripts in replication/
 ```
 
@@ -154,7 +155,7 @@ cofog-panel split --cofog "07" --output-dir intermediate_splits
 cofog-panel aggregate --master-file output/COFOG_MASTER_SCHEMA.xlsx --folder-path intermediate_splits
 ```
 
-`seed-master` always writes a new master, replacing a file of the same name. `split` writes only into a new or empty directory, or into one it created earlier (marked by a `.cofog_panel_split` file that also records the COFOG function, the `PUBLICATION_DATE` of the selected series and the extract's year span), where it replaces the country files of its previous run; it never deletes files elsewhere. `aggregate` names the data column after the function recorded by `split` (`DATA_07` here) unless `--data-col` is given; a `--data-col` of the form `DATA_<code>` for another function than the recorded one gives a warning.
+`seed-master` always writes a new master, replacing a file of the same name. `split` writes only into a new or empty directory, or into one it created earlier (marked by a `.cofog_panel_split` file that also records the COFOG function, the `PUBLICATION_DATE` of the selected series and the extract's year span), where it replaces the country files of its previous run; it never deletes files elsewhere. `split` warns about rows of the transformation whose series code gives no COFOG function; the series of other indicators that the extract also carries (such as total outlays, `TOA_T` and `TOTOUT_T`), which have an empty `COFOG` label, are skipped without a warning. `aggregate` names the data column after the function recorded by `split` (`DATA_07` here) unless `--data-col` is given; a `--data-col` of the form `DATA_<code>` for another function than the recorded one gives a warning.
 
 ### Errors and exit codes
 
@@ -190,6 +191,8 @@ pip install -e ".[dev]"
 pytest
 ```
 
+The tests of the browser interface (`tests/test_gui.py`) are skipped unless Streamlit is installed: `pip install -e ".[dev,gui]"` runs them as well.
+
 ## 5. Data
 
 The source file can be the CSV or the Excel download of IMF.STA:GFS_COFOG; both have the same columns and give the same panel. The IMF revises the dataset in place: a download made on 21 October 2026 still carries the version number 11.0.0 but has a new `PUBLICATION_DATE` and revised values. Keep the downloaded file with your results and report its `PUBLICATION_DATE` (a column of the file) when you cite the data. `split` warns if the selected series carry several dates, and `aggregate` prints the date it recorded.
@@ -208,6 +211,6 @@ Reports from users help improve the tool. After a run, please open a short [test
 
 See `CITATION.cff`. Please cite the DOI of the release you used.
 
-## 9. Acknowledgements
+## 9. Authors and acknowledgements
 
-Pham Thanh Tung contributed to an early prototype of the pipeline (March 2026), from which this repository grew. The current code was written by Trong Tin Nguyen.
+COFOG-Panel is developed by Trong Tin Nguyen and Thanh-Tung Pham. Thanh-Tung Pham wrote the early prototype of the pipeline (March 2026), from which this repository grew, and, in version 1.1.0, the browser interface and the input validation. Cam Quyen Tran (GitHub `qynntrn`) contributed to an early version of the code (the `--sector` option and the notebook) and gave helpful comments.

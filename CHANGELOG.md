@@ -1,18 +1,30 @@
 # Changelog
 
-## Unreleased
+## Planned
 
-Results are unchanged (selection rule untouched).
+- Cache: read the source Excel file once and keep a Parquet copy keyed by its SHA-256, with a `--no-cache` flag.
+- One pass over the extract for several `--cofog` values (since 1.1.0 the extract is read once per value).
+- Progress bar and summary table instead of one log line per country; `--quiet` and `--verbose` flags; no emoji, or safe handling of the console encoding on Windows.
+- `--format xlsx|csv|parquet` and a `--long` option for long-format output.
+- A `<master>.provenance.json` file (version, SHA-256 of the source, command run, time, columns created).
+- High-level Python API `build_panel(...)` returning a DataFrame.
+- "Open in Colab" badge for `cofog.ipynb` in the README.
+
+## 1.1.0 (2026-11-01)
+
+Results are unchanged (selection rule untouched): on the IMF extract of 3 February 2026, `run --cofog 05` and `run --cofog 07` give the same values, tiers, sectors and completeness flags as 1.0.5, and the SJIAOS replication gives the same tables as 1.0.5.
+
+Authors: Thanh-Tung Pham is now an author of the software with Trong Tin Nguyen (`CITATION.cff`, `pyproject.toml`). The README credits him for the early prototype and, in this release, the browser interface and the input validation, and Cam Quyen Tran for contributions to an early version of the code.
 
 - `check-format` (and stage 1 of `run`): unknown extra columns in the extract give a warning instead of failing. Missing columns and a broken year range still fail.
 - `aggregate` warns when a country file has several series for one sector with different values (the first series was already used, silently).
-- `aggregate` warns when `--data-col` is `DATA_<code>` for a COFOG function other than the one recorded by `split` in `--folder-path`. `split` reports how many rows of the chosen transformation were skipped because their series code has no COFOG function.
+- `aggregate` warns when `--data-col` is `DATA_<code>` for a COFOG function other than the one recorded by `split` in `--folder-path`. `split` reports how many rows of the chosen transformation were skipped because their series code has no COFOG function. The series of other indicators that the IMF extract also carries are not counted: total outlays (`TOA_T`, `TOTOUT_T`) and a liability series, recognised by a fourth field of the series code that is not a GF code and an empty `COFOG` label (on the extract of 3 February 2026 they are 3105 rows of Percent of GDP, which would have given a warning on every run). Rows with a `COFOG` label, or with a GF code that cannot be read, are still counted.
 - `split` reads `PUBLICATION_DATE` of the selected series, warns when they differ (the extract mixes IMF releases), and records the date(s) and the extract's year span in the split marker. `aggregate` prints the recorded `PUBLICATION_DATE` and warns when the master's years extend beyond the extract's, or the extract's beyond the master's. The date is not written to the master (see TODO H2).
 - `aggregate` and `run` get an opt-in `--check-ranges`: it lists selected values that are negative, or above 100 for the two percentage transformations. Values are kept as they are.
 - `split` warns when a label given to `--cofog` covers several COFOG functions (their series would be mixed) and when the selected series have different `FREQUENCY` values.
 - `run --cofog` can be repeated (`run --cofog 05 --cofog 07`): one master with `DATA_05` and `DATA_07` and their provenance columns, the same result as two separate runs. Each function is split into its own subdirectory of `--split-dir`; the source is read once per function. A single `--cofog` behaves as before. Column-name options are refused with several values.
 - The IMF-to-ISO code map (`KOS` to `XKX`, `WBG` to `PSE`) is read from `cofog_panel/data/imf_country_codes.csv` instead of being written in the code. `IMF_TO_ISO` is still importable.
-- Optional browser interface (from a team member's contribution): `gui.py` (Streamlit) with `run_gui.sh` / `run_gui.bat` launchers and `.streamlit/config.toml` (upload limit 1000 MB). Streamlit is an optional extra, `pip install -e ".[gui]"`; the command line does not need it. The GUI offers one built-in COFOG function per run with default column names. It shows the stage reports, warnings and errors on the page (before, a failure only said "Failed to split data"), passes the lookup to `split` so countries missing from it are listed, previews rows that have a value, and takes its sector list from `aggregate.DIRECT_SECTORS`.
+- Optional browser interface (written by Thanh-Tung Pham): `gui.py` (Streamlit) with `run_gui.sh` / `run_gui.bat` launchers and `.streamlit/config.toml` (upload limit 1000 MB). Streamlit is an optional extra, `pip install -e ".[gui]"` (Streamlit 1.49.0 or later); the command line does not need it. The GUI offers one built-in COFOG function per run with default column names, and each run builds a new master in a temporary folder (download it from the page). It shows the stage reports, warnings and errors on the page (before, a failure only said "Failed to split data"), passes the lookup to `split` so countries missing from it are listed, previews rows that have a value, and takes its sector list from `aggregate.DIRECT_SECTORS`. The "Overwrite Master File" box of the first version is removed: there is never a master to keep, so it had no effect. The page uses `width="stretch"` instead of `use_container_width`, which Streamlit has deprecated.
 - Faster `split` and `aggregate`: `split` writes one CSV file per country (`AAA.csv`, UTF-8 with BOM) instead of an Excel workbook, and `aggregate` reads them. On a synthetic 200-country extract `run` took 7.4 s instead of 15.7 s; the master is identical. `aggregate` still reads `AAA.xlsx` files from a split made by an earlier version (CSV preferred if both exist), and a new `split` removes both kinds of old country file in its own directory.
 - Input validation (selected values are unchanged for valid input):
   - Cells that are not finite numbers (`Infinity`, `1,5`, `..`, `5%`) are read as missing, as before for text, and `aggregate` now lists them per country. `Infinity` used to be accepted as a value.
@@ -24,17 +36,11 @@ Results are unchanged (selection rule untouched).
   - `split` takes `--lookup-file` (default: the bundled lookup; `run` passes its own) and lists the countries of the extract that have no row in it, with their names, as a warning. `KOS` and `WBG` are compared as `XKX` and `PSE`. `IMF_TO_ISO` moved from `aggregate.py` to `etl.py`.
   - `--cofog` with a well-formed code that is not in the built-in list (`07.99`) is looked up among the series codes of the extract and rejected with the nearest codes before the scan. Codes of the list are accepted without reading the file. The lookup is skipped for a workbook without a shared-strings part (written by pandas or openpyxl), because reading every row would take minutes.
   - Values in domestic currency are not added when the series of a country differ in `SCALE`, `UNIT` or `CURRENCY`; the country gets reported values only (T1, C1, D) and a warning names the differing columns. Percent of GDP is unaffected.
-- Internal: one `source.header_row` helper, `cli.VALID_SECTORS` built from `aggregate.DIRECT_SECTORS`, no lazy import of `COUNTRY_FILE_PATTERN`. New tests for these and for completeness/selection edge cases. `docs/` with `architecture.md` and `TODO.md`.
-
-## Planned (v1.1.0)
-
-- Cache: read the source Excel file once and keep a Parquet copy keyed by its SHA-256, with a `--no-cache` flag.
-- `--cofog` accepts several codes in one run.
-- Progress bar and summary table instead of one log line per country; `--quiet` and `--verbose` flags; no emoji, or safe handling of the console encoding on Windows.
-- `--format xlsx|csv|parquet` and a `--long` option for long-format output.
-- A `<master>.provenance.json` file (version, SHA-256 of the source, command run, time, columns created).
-- High-level Python API `build_panel(...)` returning a DataFrame.
-- "Open in Colab" badge for `cofog.ipynb`.
+- Replication: `replication/eeps/env_federalism.py` reproduces the current version of the EEPS article, "Decentralised environmental spending, administrative capacity and PM2.5 exposure: evidence from 110 countries": main models with the subnational share of environmental spending and its interaction with government effectiveness, Mundlak and two-way fixed-effects estimates, robustness checks (general government values only, lagged and start-of-period government effectiveness, among others), estimates leaving out one UN sub-region at a time, the composition of the sample, and two figures (PNG at 600 dpi and PDF). Models and data files of the earlier version that the article no longer reports are removed. `replication/sjiaos` is unchanged.
+- The licence file is renamed `LICENSE.txt` (text unchanged); `pyproject.toml`, the README and `DATA_LICENSE.md` refer to it.
+- README: section on feedback, with issue templates for test reports and bug reports. `CITATION.cff` cites the concept DOI (all versions) and keeps the DOI of 1.0.5 as an identifier. The notebook installs 1.1.0.
+- CI: a job installs `.[dev,gui]`, so the GUI tests run on GitHub Actions (they are skipped without Streamlit). A test compares the `--help` output without ANSI codes, so `--check-ranges` is found on GitHub Actions.
+- Internal: one `source.header_row` helper, `cli.VALID_SECTORS` built from `aggregate.DIRECT_SECTORS`, no lazy import of `COUNTRY_FILE_PATTERN`. New tests for these and for completeness/selection edge cases. `docs/` with `architecture.md` and `TODO.md`; `AGENTS.md` with commands, architecture and working rules for coding agents.
 
 ## 1.0.5 (2026-10-22)
 

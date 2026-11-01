@@ -1,6 +1,6 @@
 # Data licences
 
-The **code** in this repository is released under the MIT License (see `LICENSE`). The MIT License does **not** apply to the data described below.
+The **code** in this repository is released under the MIT License (see `LICENSE.txt`). The MIT License does **not** apply to the data described below.
 
 ## IMF Government Finance Statistics (`data/gfs_raw_data.csv` or `.xlsx`, not distributed)
 
