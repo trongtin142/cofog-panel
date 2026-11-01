@@ -9,8 +9,11 @@ description = "Harmonise IMF GFS COFOG data into reproducible country-year panel
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
-license-files = ["LICENSE"]
-authors = [{ name = "Trong Tin Nguyen", email = "nttin@hcmiu.edu.vn" }]
+license-files = ["LICENSE.txt"]
+authors = [
+    { name = "Trong Tin Nguyen", email = "nttin@hcmiu.edu.vn" },
+    { name = "Thanh-Tung Pham" },
+]
 keywords = ["COFOG", "IMF GFS", "government expenditure", "panel data", "harmonisation"]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -26,7 +29,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0"]
-gui = ["streamlit>=1.30.0"]
+gui = ["streamlit>=1.49.0"]
 replication = ["statsmodels>=0.14", "matplotlib>=3.9"]
 
 [project.scripts]

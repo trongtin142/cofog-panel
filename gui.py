@@ -51,8 +51,6 @@ with col1:
 with col2:
     end_year = st.number_input("End Year", value=2025, step=1)
 
-overwrite_master = st.sidebar.checkbox("Overwrite Master File", value=False)
-
 st.sidebar.divider()
 
 # --- Main Area ---
@@ -74,7 +72,7 @@ with col_file2:
     uploaded_lookup = st.file_uploader("Upload custom Country Codes Excel", type=["xlsx"])
 
 # --- Execution Logic ---
-if st.sidebar.button("🚀 Run Pipeline", type="primary", use_container_width=True):
+if st.sidebar.button("🚀 Run Pipeline", type="primary", width="stretch"):
     if not uploaded_source:
         st.error("❌ Please upload the IMF GFS data file first!")
     else:
@@ -129,9 +127,10 @@ if st.sidebar.button("🚀 Run Pipeline", type="primary", use_container_width=Tr
                         fail(status, 2, "Country lookup check failed (details below).")
 
                     st.write("🏗️ [Stage 3/5] Preparing Master XLSX...")
+                    # output_dir is new for every run, so there is never a master to keep or overwrite
                     master_path, ok = prepare_master(
-                        lookup_path, output_dir, DEFAULT_FILE_NAME, 
-                        start_year, end_year, overwrite=overwrite_master
+                        lookup_path, output_dir, DEFAULT_FILE_NAME,
+                        start_year, end_year
                     )
                     if not ok:
                         fail(status, 3, "Failed to prepare the master file (details below).")
@@ -158,14 +157,14 @@ if st.sidebar.button("🚀 Run Pipeline", type="primary", use_container_width=Tr
                         data=f,
                         file_name="COFOG_MASTER_SCHEMA.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        use_container_width=True
+                        width="stretch"
                     )
                 
                 # Preview (Optional)
                 try:
                     df_preview = pd.read_excel(master_path, sheet_name="MasterData")
                     st.subheader("👀 Preview (first 10 rows with a value)")
-                    st.dataframe(df_preview[df_preview[data_col].notna()].head(10), use_container_width=True)
+                    st.dataframe(df_preview[df_preview[data_col].notna()].head(10), width="stretch")
                 except Exception:
                     st.warning("Could not generate preview, but the file is ready for download.")
 

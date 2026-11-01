@@ -615,6 +615,23 @@ def test_split_is_silent_when_every_row_has_a_function(workspace, tmp_path, caps
     assert "no COFOG function" not in capsys.readouterr().out
 
 
+@pytest.mark.parametrize("series, label, warned", [
+    ("AAA.S13.G2MF.TOA_T.POGDP_PT.A", None, False),        # total outlays, in every IMF extract
+    ("AAA.S1311.G2MF.TOTOUT_T.POGDP_PT.A", None, False),
+    ("AAA.S13.G2MF.F6N_G33_L_T.POGDP_PT.A", None, False),  # a liability series
+    ("AAA.S13.G2MF.TOA_T.POGDP_PT.A", "Health", True),     # labelled with a function its code does not give
+    ("AAA.S13.G2MF.GF0X_T.POGDP_PT.A", None, True),        # a GF code that cannot be read
+])
+def test_split_does_not_count_series_of_other_indicators(workspace, tmp_path, capsys, series, label, warned):
+    _, raw_path, _ = workspace
+    frame = pd.read_excel(raw_path)
+    other = frame.iloc[[0]].copy()
+    other["SERIES_CODE"], other["COFOG"] = series, label
+    pd.concat([frame, other]).to_excel(raw_path, index=False)
+    _, ok = split_data(raw_path, "Percent of GDP", {"05"}, tmp_path / "s")
+    assert ok and ("1 rows of this transformation have no COFOG function" in capsys.readouterr().out) == warned
+
+
 def _with_publication_dates(raw_path, dates):
     frame = pd.read_excel(raw_path, dtype=str, keep_default_na=False)
     frame.loc[frame["COFOG"] == "Environmental protection", "PUBLICATION_DATE"] = (

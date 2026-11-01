@@ -1,14 +1,14 @@
 """
 Paper C: environmental protection spending, its decentralisation and air pollution.
 
-Uses the harmonised COFOG 05 panel produced by COFOG-Panel (via paperB_analysis.py, which
+Uses the harmonised COFOG 05 panel produced by COFOG-Panel (via the SJIAOS replication, which
 calls cofog_panel.resolve_value / is_complete) and World Bank WDI / WGI indicators.
 
 Replication script for the EEPS article. Run from the repository root, after the SJIAOS replication
 (which writes replication/sjiaos/output/harmonised_all_divisions.csv):
     python replication/sjiaos/evaluate_harmonisation.py
     python replication/eeps/env_federalism.py
-Outputs: analysis/output/paperC/*.csv, *.png
+Outputs: replication/eeps/output/*.csv, *.json, *.png, *.pdf
 """
 import json
 import warnings
@@ -34,7 +34,7 @@ BCG, EBCG, SSF = "budgetary central government", "extrabudgetary central governm
 SG, LG = "state government", "local government"
 
 WDI = {
-    "EN.ATM.PM25.MC.M3": "PM25", "EN.GHG.CO2.PC.CE.AR5": "CO2PC", "NY.GDP.PCAP.PP.KD": "GDPPC",
+    "EN.ATM.PM25.MC.M3": "PM25", "NY.GDP.PCAP.PP.KD": "GDPPC",
     "NV.IND.TOTL.ZS": "IND", "SP.URB.TOTL.IN.ZS": "URB", "NE.TRD.GNFS.ZS": "TRADE",
     "EN.POP.DNST": "DENS", "NY.GDP.TOTL.RT.ZS": "RENTS",
 }
@@ -91,6 +91,8 @@ def build_panel() -> pd.DataFrame:
 
     cov = load_covariates()
     p = cov.merge(lag, on=["ISO", "YEAR"], how="inner").merge(e, on=["ISO", "YEAR"], how="left")
+    ge_lag = cov[["ISO", "YEAR", "GE"]].assign(YEAR=cov["YEAR"] + 1).rename(columns={"GE": "GE_L1"})
+    p = p.merge(ge_lag, on=["ISO", "YEAR"], how="left")
     lk = pd.read_excel(LOOKUP)[["alpha-3", "region", "sub-region"]].rename(
         columns={"alpha-3": "ISO", "region": "REGION", "sub-region": "SUBREGION"})
     p = p.merge(lk, on="ISO", how="left")
@@ -99,7 +101,6 @@ def build_panel() -> pd.DataFrame:
     p["lnENV"] = np.log(p["ENV_L1"])
     p["SUB"] = p["SUBSHARE_L1"]
     p["lnPM"] = np.log(p["PM25"])
-    p["lnCO2"] = np.log(p["CO2PC"])
     p["lnY"] = np.log(p["GDPPC"])
     p["lnY2"] = p["lnY"] ** 2
     p["lnDENS"] = np.log(p["DENS"])
@@ -132,38 +133,38 @@ def _row(name, r, d, keys):
 BASE_NEEDED = ["lnPM", "lnENV", "lnY", "IND", "URB", "TRADE", "lnDENS", "GE", "SUBREGION"]
 
 
-def table_samples(p: pd.DataFrame) -> pd.DataFrame:
-    """The headline coefficient on lnENV under alternative harmonisation choices."""
-    f = f"lnPM ~ lnENV + GE + {CONTROLS} + C(YEAR) + C(SUBREGION)"
-    rows = []
-    for name, s, form in [
-        ("GG values only (T1)", p[p["TIER_L1"] == "T1"], f),
-        ("Complete values (T1 + complete T2/T3)", p[p["COMPLETE_L1"]], f),
-        ("All values (T1-T3)", p, f),
-        ("All values + tier dummies", p, f.replace("lnENV + ", "lnENV + T2 + T3 + ")),
-        ("Complete values, excl. Europe", p[p["COMPLETE_L1"] & (p["REGION"] != "Europe")], f),
-    ]:
-        r, d = _fit(form, s, BASE_NEEDED)
-        rows.append(_row(name, r, d, ["lnENV", "GE", "T2", "T3"]))
-    return pd.DataFrame(rows)
+def sample_composition(p: pd.DataFrame, fits: dict) -> dict:
+    """Which countries the harmonised panel adds, and where they lie relative to the GE threshold."""
+    s = p[p["COMPLETE_L1"]].dropna(subset=BASE_NEEDED + ["SUB"])
+    gg = s[s["TIER_L1"] == "T1"]
+    r, _ = fits["(3) + SUB x GE"]
+    threshold = -r.params["SUB"] / r.params["SUB:GE"]
+    ge_all = s.groupby("ISO")["GE"].mean()
+    ge_gg = gg.groupby("ISO")["GE"].mean()
+    added = sorted(set(s["ISO"]) - set(gg["ISO"]))
+    return {"countries": int(s["ISO"].nunique()), "countries_gg_only_sample": int(gg["ISO"].nunique()),
+            "countries_added": len(added), "added_iso": added,
+            "countries_mean_ge_below_0_harmonised": int((ge_all < 0).sum()),
+            "countries_mean_ge_below_0_gg_only": int((ge_gg < 0).sum()),
+            "countries_added_mean_ge_below_0": int((ge_all[added] < 0).sum()),
+            "ge_threshold": round(float(threshold), 3),
+            "share_obs_below_threshold": round(float((s["GE"] < threshold).mean()), 3),
+            "countries_mean_ge_below_threshold": int((ge_all < threshold).sum())}
 
 
 def table_main(p: pd.DataFrame) -> tuple:
-    """Spending level, decentralisation and their interaction with governance."""
+    """Decentralisation of environmental spending and its interaction with government effectiveness."""
     s = p[p["COMPLETE_L1"]]
     need = BASE_NEEDED + ["SUB"]
     specs = [
-        ("(1) Level", f"lnPM ~ lnENV + GE + {CONTROLS} + C(YEAR) + C(SUBREGION)", BASE_NEEDED),
+        ("(1) Controls only", f"lnPM ~ lnENV + GE + {CONTROLS} + C(YEAR) + C(SUBREGION)", BASE_NEEDED),
         ("(2) + decentralisation", f"lnPM ~ lnENV + SUB + GE + {CONTROLS} + C(YEAR) + C(SUBREGION)", need),
         ("(3) + SUB x GE", f"lnPM ~ lnENV + SUB + SUB:GE + GE + {CONTROLS} + C(YEAR) + C(SUBREGION)", need),
-        ("(4) + lnENV x GE", f"lnPM ~ lnENV + lnENV:GE + SUB + SUB:GE + GE + {CONTROLS} + C(YEAR) + C(SUBREGION)", need),
-        ("(5) CO2 per capita", f"lnCO2 ~ lnENV + SUB + SUB:GE + GE + {CONTROLS} + C(YEAR) + C(SUBREGION)",
-         [n for n in need if n != "lnPM"] + ["lnCO2"]),
     ]
     rows, fits = [], {}
     for name, f, nd in specs:
         r, d = _fit(f, s, nd)
-        rows.append(_row(name, r, d, ["lnENV", "SUB", "SUB:GE", "lnENV:GE", "GE"]))
+        rows.append(_row(name, r, d, ["lnENV", "SUB", "SUB:GE", "GE"]))
         fits[name] = (r, d)
     return pd.DataFrame(rows), fits
 
@@ -203,8 +204,15 @@ def table_robustness(p: pd.DataFrame) -> pd.DataFrame:
     s = p[p["COMPLETE_L1"]]
     dust = ["Northern Africa", "Western Asia"]
     rows = []
+    # GE averaged over each country's first three sample years
+    s0 = s.dropna(subset=need).sort_values(["ISO", "YEAR"])
+    s0 = s0.assign(GE=s0.groupby("ISO")["GE"].transform(lambda x: x.iloc[:3].mean()), GE_NOW=s0["GE"])
+    start = base.replace(" + GE + ", " + GE_NOW + ")
     for name, data, f in [
         ("Baseline", s, base),
+        ("GG values only (T1)", s[s["TIER_L1"] == "T1"], base),
+        ("GE lagged one year", s.assign(GE=s["GE_L1"]), base),
+        ("GE at start of period in the interaction", s0, start),
         ("Excl. Northern Africa & Western Asia (dust)", s[~s["SUBREGION"].isin(dust)], base),
         ("Excl. Europe", s[s["REGION"] != "Europe"], base),
         ("Control of corruption instead of GE", s.assign(GE=s["CC"]), base),
@@ -214,7 +222,7 @@ def table_robustness(p: pd.DataFrame) -> pd.DataFrame:
         nd = need + (["RENTS"] if "RENTS" in f else [])
         try:
             r, d = _fit(f, data, nd)
-            rows.append(_row(name, r, d, ["lnENV", "SUB", "SUB:GE"]))
+            rows.append(_row(name, r, d, ["SUB", "SUB:GE"]))
         except Exception as ex:  # noqa: BLE001
             rows.append({"Model": name, "error": str(ex)})
     # Five-year averages (reduces short-run noise and serial correlation)
@@ -224,13 +232,24 @@ def table_robustness(p: pd.DataFrame) -> pd.DataFrame:
     a = s5.groupby(["ISO", "PERIOD", "SUBREGION"], as_index=False)[num].mean()
     r = smf.ols(f"lnPM ~ lnENV + SUB + SUB:GE + GE + {CONTROLS} + C(PERIOD) + C(SUBREGION)", data=a).fit(
         cov_type="cluster", cov_kwds={"groups": pd.factorize(a["ISO"])[0]})
-    rows.append(_row("Five-year averages", r, a, ["lnENV", "SUB", "SUB:GE"]))
+    rows.append(_row("Five-year averages", r, a, ["SUB", "SUB:GE"]))
+    return pd.DataFrame(rows)
+
+
+def table_leave_one_out(p: pd.DataFrame) -> pd.DataFrame:
+    """Baseline re-estimated with one UN sub-region left out at a time."""
+    s = p[p["COMPLETE_L1"]]
+    base = f"lnPM ~ lnENV + SUB + SUB:GE + GE + {CONTROLS} + C(YEAR) + C(SUBREGION)"
+    rows = []
+    for sr in sorted(s["SUBREGION"].dropna().unique()):
+        r, d = _fit(base, s[s["SUBREGION"] != sr], BASE_NEEDED + ["SUB"])
+        rows.append(_row(f"Excl. {sr}", r, d, ["SUB", "SUB:GE"]))
     return pd.DataFrame(rows)
 
 
 def table_descriptives(p: pd.DataFrame) -> pd.DataFrame:
     s = p[p["COMPLETE_L1"]].dropna(subset=BASE_NEEDED + ["SUB"])
-    cols = {"PM25": "PM2.5 exposure (µg/m³)", "CO2PC": "CO2 per capita (t)", "ENV_L1": "Env. spending (% GDP, t-1)",
+    cols = {"PM25": "PM2.5 exposure (µg/m³)", "ENV_L1": "Env. spending (% GDP, t-1)",
             "SUB": "Subnational share of env. spending", "GE": "Government effectiveness",
             "GDPPC": "GDP per capita (PPP, 2021 $)", "IND": "Industry (% GDP)", "URB": "Urban population (%)",
             "TRADE": "Trade (% GDP)", "DENS": "Population density"}
@@ -254,27 +273,10 @@ def _style(ax):
     ax.set_axisbelow(True)
 
 
-def fig_samples(t: pd.DataFrame, path: Path):
-    import matplotlib.pyplot as plt
-    t = t.iloc[::-1].reset_index(drop=True)
-    fig, ax = plt.subplots(figsize=(7, 3.0), dpi=200)
-    for i, row in t.iterrows():
-        lo, hi = row["lnENV"] - 1.96 * row["se_lnENV"], row["lnENV"] + 1.96 * row["se_lnENV"]
-        col = TIER_COLORS["T1"] if row["Model"].startswith("GG") else INK
-        ax.plot([lo, hi], [i, i], color=col, linewidth=2, solid_capstyle="round")
-        ax.scatter([row["lnENV"]], [i], s=40, color=col, edgecolor="white", linewidth=1.5, zorder=3)
-        ax.text(hi + 0.01, i, f"{row['lnENV']:.3f}  (N={row['N']:,}, {row['Countries']} countries)",
-                va="center", fontsize=7.5, color=INK2)
-    ax.axvline(0, color=INK2, linewidth=0.8)
-    ax.set_yticks(range(len(t)), t["Model"], fontsize=8)
-    ax.set_xlabel("Coefficient on ln env. spending (t-1), 95% CI", fontsize=8.5, color=INK2)
-    ax.xaxis.grid(True, color=GRID, linewidth=0.8)
-    ax.set_xlim(-0.2, 0.42)
-    _style(ax)
-    ax.set_title("ln PM2.5 exposure: estimate by harmonisation choice", fontsize=9.5, color=INK, loc="left")
-    fig.tight_layout()
-    fig.savefig(path)
-    plt.close(fig)
+def _save(fig, path: Path):
+    # EEPS asks for vector graphics or bitmaps of at least 600 dpi
+    fig.savefig(path, dpi=600)
+    fig.savefig(path.with_suffix(".pdf"))
 
 
 def fig_marginal(fits: dict, path: Path):
@@ -284,7 +286,7 @@ def fig_marginal(fits: dict, path: Path):
     b, V = r.params, r.cov_params()
     me = b["SUB"] + b["SUB:GE"] * ge
     se = np.sqrt(V.loc["SUB", "SUB"] + ge ** 2 * V.loc["SUB:GE", "SUB:GE"] + 2 * ge * V.loc["SUB", "SUB:GE"])
-    fig, ax = plt.subplots(figsize=(6, 3.4), dpi=200)
+    fig, ax = plt.subplots(figsize=(6, 3.4))
     ax.fill_between(ge, me - 1.96 * se, me + 1.96 * se, color=TIER_COLORS["T1"], alpha=0.18, linewidth=0)
     ax.plot(ge, me, color=TIER_COLORS["T1"], linewidth=2)
     ax.axhline(0, color=INK2, linewidth=0.8)
@@ -297,31 +299,33 @@ def fig_marginal(fits: dict, path: Path):
     # rug of observed GE values
     ax.plot(d["GE"], np.full(len(d), ax.get_ylim()[0]), "|", color=INK2, alpha=0.15, markersize=6)
     fig.tight_layout()
-    fig.savefig(path)
+    _save(fig, path)
     plt.close(fig)
 
 
-def fig_between(p: pd.DataFrame, path: Path):
+def fig_ge_by_source(p: pd.DataFrame, comp: dict, path: Path):
+    """Country-mean government effectiveness, for countries with and without general government data."""
     import matplotlib.pyplot as plt
-    s = p[p["COMPLETE_L1"]].dropna(subset=BASE_NEEDED)
-    g = s.groupby("ISO").agg(lnENV=("lnENV", "mean"), lnPM=("lnPM", "mean"),
-                             share_t1=("TIER_L1", lambda x: (x == "T1").mean())).reset_index()
-    fig, ax = plt.subplots(figsize=(5.6, 4.2), dpi=200)
-    for lab, mask, col in [("Mostly GG-reported (≥ 50% T1)", g["share_t1"] >= 0.5, TIER_COLORS["T1"]),
-                           ("Mostly fallback (< 50% T1)", g["share_t1"] < 0.5, TIER_COLORS["T3"])]:
-        x = g[mask]
-        ax.scatter(np.exp(x["lnENV"]), np.exp(x["lnPM"]), s=22, color=col, alpha=0.85, edgecolor="white",
-                   linewidth=0.6, label=f"{lab}, n={len(x)}")
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.yaxis.grid(True, color=GRID, linewidth=0.8)
+    s = p[p["COMPLETE_L1"]].dropna(subset=BASE_NEEDED + ["SUB"])
+    ge = s.groupby("ISO")["GE"].mean()
+    added = set(comp["added_iso"])
+    groups = [("Subsector data only", ge[ge.index.isin(added)], TIER_COLORS["T3"]),
+              ("General government data", ge[~ge.index.isin(added)], TIER_COLORS["T1"])]
+    rng = np.random.default_rng(0)
+    fig, ax = plt.subplots(figsize=(6, 2.6))
+    for i, (lab, x, col) in enumerate(groups):
+        ax.scatter(x, i + rng.uniform(-0.18, 0.18, len(x)), s=18, color=col, alpha=0.85,
+                   edgecolor="white", linewidth=0.5)
+    ax.axvline(comp["ge_threshold"], color=INK2, linewidth=0.8, linestyle="--")
+    ax.text(comp["ge_threshold"] - 0.05, 1.5, "Marginal association of the\nsubnational share changes sign",
+            fontsize=7, color=INK2, va="center", ha="right")
+    ax.set_yticks([0, 1], [f"{lab} (n={len(x)})" for lab, x, _ in groups], fontsize=8)
+    ax.set_ylim(-0.5, 1.7)
+    ax.set_xlabel("Government effectiveness (WGI), country mean", fontsize=8.5, color=INK2)
+    ax.xaxis.grid(True, color=GRID, linewidth=0.8)
     _style(ax)
-    ax.set_xlabel("Env. protection spending, % of GDP (country mean, log scale)", fontsize=8.5, color=INK2)
-    ax.set_ylabel("PM2.5 exposure, µg/m³ (country mean, log scale)", fontsize=8.5, color=INK2)
-    ax.set_title("Countries by source of their harmonised spending data", fontsize=9.5, color=INK, loc="left")
-    ax.legend(frameon=False, fontsize=7.5, loc="lower left")
     fig.tight_layout()
-    fig.savefig(path)
+    _save(fig, path)
     plt.close(fig)
 
 
@@ -332,25 +336,29 @@ def main():
     p.to_csv(OUT / "paperC_panel.csv", index=False)
 
     t_desc = table_descriptives(p)
-    t_samp = table_samples(p)
     t_main, fits = table_main(p)
+    comp = sample_composition(p, fits)
     t_mund = table_mundlak(p)
     t_rob = table_robustness(p)
+    t_loo = table_leave_one_out(p)
 
     print(f"Descriptives: N={t_desc.attrs['N']}, countries={t_desc.attrs['Countries']}, "
           f"years={t_desc.attrs['years']}, tiers={t_desc.attrs['tiers']}")
-    for name, t in [("tabC1_descriptives", t_desc), ("tabC2_samples", t_samp), ("tabC3_main", t_main),
-                    ("tabC4_mundlak", t_mund), ("tabC5_robustness", t_rob)]:
+    for name, t in [("tabC1_descriptives", t_desc), ("tabC2_main", t_main), ("tabC3_mundlak", t_mund),
+                    ("tabC4_robustness", t_rob), ("tabC4b_leave_one_out", t_loo)]:
         t.to_csv(OUT / f"{name}.csv", index=False)
         print(f"\n=== {name} ===")
         print(t.to_string(index=False))
+    print(f"\nLeave one sub-region out: SUB x GE in [{t_loo['SUB:GE'].min()}, {t_loo['SUB:GE'].max()}], "
+          f"max p = {t_loo['p_SUB:GE'].max()}")
     print(f"\nMundlak N={t_mund.attrs['N']}, countries={t_mund.attrs['Countries']}")
     print("TWFE:", t_mund.attrs["TWFE"])
-    pd.DataFrame([t_mund.attrs["TWFE"]]).to_csv(OUT / "tabC4b_twfe.csv", index=False)
+    pd.DataFrame([t_mund.attrs["TWFE"]]).to_csv(OUT / "tabC3b_twfe.csv", index=False)
+    (OUT / "sample_composition.json").write_text(json.dumps(comp, indent=1), encoding="utf8")
+    print("\nSample composition:", {k: v for k, v in comp.items() if k != "added_iso"})
 
-    fig_samples(t_samp, OUT / "figC1_samples.png")
-    fig_marginal(fits, OUT / "figC2_marginal_subshare.png")
-    fig_between(p, OUT / "figC3_between.png")
+    fig_marginal(fits, OUT / "figC1_marginal_subshare.png")
+    fig_ge_by_source(p, comp, OUT / "figC2_ge_by_source.png")
 
 
 if __name__ == "__main__":

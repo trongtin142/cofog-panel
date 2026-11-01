@@ -23,6 +23,19 @@ jobs:
       # CLI smoke test with redirected output (catches console-encoding problems on Windows)
       - run: cofog-panel --version > version.txt && cofog-panel run --help > help.txt && cofog-panel list-sectors > sectors.txt
 
+  # With the optional gui extra, so that tests/test_gui.py runs instead of being skipped
+  gui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev,gui]"
+      # Fails here, not in a silent skip, if Streamlit did not install
+      - run: python -c "import streamlit; print('streamlit', streamlit.__version__)"
+      - run: pytest -q
+
   # Oldest supported and newest Typer, each installed in a clean environment.
   # Typer 0.27 and later no longer install click, so the package must not import it.
   typer-versions:

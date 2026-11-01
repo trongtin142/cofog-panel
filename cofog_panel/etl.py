@@ -53,6 +53,16 @@ def _cofog_code_from_series(series_code: Any) -> Optional[str]:
     return f"{division}.{group}" if group else division
 
 
+def _is_other_indicator(series_code: Any, label: Any) -> bool:
+    """
+    Series of another GFS indicator than a COFOG function, which the extract also carries: total
+    outlays 'ARM.S13.G2MF.TOA_T.POGDP_PT.A' and '...TOTOUT_T...', or a liability series. The fourth
+    field is not a GF code and the COFOG label is empty, so these rows cannot belong to a function.
+    """
+    fields = series_code.split(".") if isinstance(series_code, str) else []
+    return len(fields) >= 4 and not fields[3].startswith("GF") and (label is None or not str(label).strip())
+
+
 def _country_of(series_code: Any) -> Optional[str]:
     """IMF code of the first field of the series code (upper case): 'ARM.S13...' -> 'ARM', 'EU.S13...' -> 'EU'."""
     if isinstance(series_code, str) and series_code.split(".")[0].strip():
@@ -140,7 +150,7 @@ def _scan(
             if label is not None:
                 keys.add(str(label).strip())
             if not keys & selectors:
-                if code is None:
+                if code is None and not _is_other_indicator(row[at_series], label):
                     n_no_function += 1
                 continue
             country = _country_of(row[at_series])
