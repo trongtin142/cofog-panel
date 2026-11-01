@@ -108,7 +108,7 @@ source venv/bin/activate          # macOS and Linux
 pip install -e .                  # the command-line tool
 pip install -e ".[dev]"           # adds pytest, to run the tests
 pip install -e ".[gui]"           # adds Streamlit, for the browser interface (streamlit run gui.py)
-pip install -e ".[replication]"   # adds statsmodels and matplotlib, for the scripts in replication/
+pip install -e ".[replication]"   # adds statsmodels, scipy, matplotlib, linearmodels and tabulate, for replication/
 ```
 
 `cofog-panel --version` prints the installed version.

@@ -1,0 +1,5 @@
+# Files added to the source distribution beyond the package, README, licence and pyproject
+include CITATION.cff CHANGELOG.md DATA_LICENSE.md requirements.txt requirements-dev.txt
+include gui.py run_gui.sh run_gui.bat .streamlit/config.toml
+include data/country_codes.xlsx
+recursive-include tests *.py

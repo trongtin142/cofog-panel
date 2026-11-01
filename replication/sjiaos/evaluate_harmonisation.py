@@ -1,7 +1,7 @@
 """
-Empirical evaluation of the tiered harmonisation rule for IMF GFS COFOG data (Paper B).
+Empirical evaluation of the tiered harmonisation rule for IMF GFS COFOG data.
 
-Replication script for the SJIAOS article on subsector harmonisation. Run from the repository root:
+Replication script for the harmonisation study (manuscript under review). Run from the repository root:
     python replication/sjiaos/evaluate_harmonisation.py
 Another IMF release (Excel or CSV) is evaluated with --source FILE --out DIR (see compare_vintages.py).
 

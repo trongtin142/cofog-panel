@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 pip install -e ".[dev]"            # install + pytest
 pip install -e ".[dev,gui]"        # + Streamlit >=1.49, so tests/test_gui.py runs (skipped without it)
-pip install -e ".[replication]"    # statsmodels, matplotlib for replication/ scripts
+pip install -e ".[replication]"    # statsmodels, scipy, matplotlib, linearmodels, tabulate for replication/
 pytest -q                          # all tests (CI: ubuntu/windows/macos x py3.10/3.12/3.14, plus a gui job)
 pytest tests/test_aggregate.py -k <name>   # single test
 cofog-panel run --cofog 05         # full pipeline; needs data/gfs_raw_data.csv|xlsx (IMF download, not in repo)
@@ -54,7 +54,7 @@ Never edit from memory: read the module and grep every caller first.
 ## Working rules
 
 - `README.md` is the spec: update it before changing behaviour, tiers or column names it documents.
-- Selection-rule changes alter numbers in the SJIAOS/EEPS papers: rerun `replication/` scripts and state whether outputs changed (the 1.0.4/1.0.5 changelog entries say "results unchanged" explicitly).
+- Selection-rule changes alter numbers in the studies under `replication/`: rerun `replication/` scripts and state whether outputs changed (the 1.0.4/1.0.5 changelog entries say "results unchanged" explicitly).
 - Add a `CHANGELOG.md` entry for user-visible changes; do not bump version, tag or push unless asked.
 - **Plan first.** Non-trivial task: state assumptions, list multiple interpretations if any, ask when ambiguous, agree a plan with verifiable success criteria before coding. Push back with a simpler option; build the user's choice if they insist.
 - **Execution ladder, stop at first true:** needn't exist → already in codebase (reuse) → stdlib → installed dep (pandas, openpyxl, typer) → one line → minimum new code. No new dependencies without asking.

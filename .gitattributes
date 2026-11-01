@@ -1,0 +1,4 @@
+# Third-party data of replication/eeps are stored byte for byte: fetch_data.py checks them against SHA-256
+replication/eeps/data_ext/lab/** -text
+replication/eeps/data_ext/*.json -text
+replication/eeps/data_ext/CHECKSUMS_r5i.sha256 -text

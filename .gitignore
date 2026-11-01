@@ -34,3 +34,12 @@ replication/*/output_vintage/
 # IMF data (download from the IMF portal; see DATA_LICENSE.md)
 data/gfs_raw_data*.xlsx
 data/gfs_raw_data*.csv
+
+# Third-party data of replication/eeps that the repository does not distribute
+# (downloaded by replication/eeps/fetch_data.py; see replication/eeps/data_ext/SOURCES.md)
+replication/eeps/data_ext/lab/_downloads/
+replication/eeps/data_ext/lab/RAI_country-april-2021.xlsx
+replication/eeps/data_ext/lab/rugged/
+replication/eeps/data_ext/lab/ceds/
+replication/eeps/data_ext/lab/r3c/ceds/
+replication/eeps/data_ext/lab/sngwofi/
