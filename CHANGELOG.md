@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+Results are unchanged (selection rule untouched).
+
+- `pyproject.toml` lists the issue tracker (`Issues` in `[project.urls]`), so the package page links to it. The README licence badge links to `LICENSE.txt` on GitHub instead of a relative path.
+
 ## Planned
 
 - Cache: read the source Excel file once and keep a Parquet copy keyed by its SHA-256, with a `--no-cache` flag.
