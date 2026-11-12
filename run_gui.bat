@@ -27,6 +27,14 @@ call .venv\Scripts\activate
 echo Checking/Installing dependencies inside the virtual environment...
 python -m pip install --upgrade pip
 pip install -e ".[gui]"
+if errorlevel 1 (
+    echo.
+    echo Error: pip could not install COFOG-Panel and Streamlit, so the GUI cannot start.
+    echo Check the internet connection and the messages above, then run this file again.
+    echo A long folder path can also stop the installation: move the folder to a short path such as C:\cofog-panel.
+    pause
+    exit /b 1
+)
 
 :: 5. Run Streamlit
 echo Starting GUI... The browser window should open automatically.

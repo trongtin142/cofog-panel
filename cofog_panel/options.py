@@ -226,13 +226,15 @@ def suggest_cofog(value: str, extra_labels: Optional[Set[str]] = None) -> List[s
 
 def check_cofog(value: str, source_file: Optional[Path] = None) -> str:
     """
-    Accept a COFOG code (01 to 10, optionally with a group such as 07.3) or an exact label.
+    Accept a COFOG code (01 to 10, optionally with a group such as 07.3) or a label in any letter case.
 
     A code that is not in the built-in list (e.g. 07.99) is also looked for among the series of the
     source file when there is one; a code of the list is accepted without reading the file.
 
     Labels are looked up in the built-in list of the February 2026 release and, when a source
     file is given, among the text values of that workbook (later releases may add labels).
+    A label typed in another letter case is returned as the file spells it, or else as the
+    built-in list spells it, because `split` selects rows by the exact label.
     """
     text = value.strip()
     if text in COFOG_LABELS.values():
@@ -249,10 +251,19 @@ def check_cofog(value: str, source_file: Optional[Path] = None) -> str:
     file_labels = labels_in_file(source_file) if source_file is not None and source_file.exists() else set()
     if text in file_labels:
         return text
+    folded = text.casefold()
+    in_file = sorted(label for label in file_labels if label.casefold() == folded)
+    if len(in_file) > 1:
+        raise OptionError(f"Invalid --cofog '{value}'.",
+                          "The file has several labels that differ only in letter case: "
+                          + ", ".join(f"'{label}'" for label in in_file) + ". Give one of them exactly.")
+    built_in = [label for label in COFOG_LABELS.values() if label.casefold() == folded]
+    if in_file or built_in:
+        return (in_file or built_in)[0]
     hints = suggest_cofog(text)
     hint = ("Did you mean: " + ", ".join(hints) + "? ") if hints else ""
-    hint += ("Use a COFOG code (01 to 10, or a group such as 07.3) or the exact label used in the file; "
-             "'cofog-panel list-cofog' lists them.")
+    hint += ("Use a COFOG code (01 to 10, or a group such as 07.3) or a label used in the file (letter case "
+             "ignored); 'cofog-panel list-cofog' lists them.")
     raise OptionError(f"Invalid --cofog '{value}'.", hint)
 
 

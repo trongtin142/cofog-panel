@@ -444,7 +444,26 @@ def test_series_of_codes_that_are_not_countries_are_reported_not_split(workspace
     split_dir, ok = split_data(path, "Percent of GDP", {"05"}, tmp / "s")
     assert ok and [f.name for f in country_files(split_dir)] == ["AAA.csv"]
     assert "['ABCD', 'EU']" in capsys.readouterr().out
-    assert [n for _, _, n in list_cofog(path)] == [1]
+    assert [counts for _, _, *counts in list_cofog(path)] == [[1, 1]]
+
+
+@pytest.mark.parametrize("suffix", [".xlsx", ".csv"])
+def test_list_cofog_counts_countries_with_a_value_and_countries_with_a_series(tmp_path, suffix):
+    rows = (_raw_rows("AAA", "Alpha", {"General government": {2000: 1.0}})
+            + _raw_rows("BBB", "Beta", {"General government": {}})                  # a series without values
+            + _raw_rows("CCC", "Gamma", {"General government": {2000: ".."}})       # text is not a value
+            + _raw_rows("DDD", "Delta", {"General government": {}, "Local Government": {2001: 0.0}})  # zero is a value
+            + _raw_rows("AAA", "Alpha", {"General government": {}}, cofog_label="Health", cofog_code="07"))
+    path = tmp_path / f"extract{suffix}"
+    frame = pd.DataFrame(rows, columns=FIXED_HEADERS_SAMPLE + YEARS)
+    frame.to_excel(path, index=False) if suffix == ".xlsx" else frame.to_csv(path, index=False)
+    assert list_cofog(path) == [("05", "Environmental protection", 2, 4), ("07", "Health", 0, 1)]
+
+
+def test_split_counts_the_data_rows_without_the_header(workspace, tmp_path, capsys):
+    _, raw_path, _ = workspace          # six series, four of them for 05 in per cent of GDP
+    split_data(raw_path, "Percent of GDP", {"05"}, tmp_path / "s")
+    assert "Total Processed: 6. Total Valid: 4" in capsys.readouterr().out
 
 
 def _lookup(tmp_path, codes):
