@@ -3,13 +3,16 @@ Two extensions of the harmonisation study: consequences of the filling choice on
 (Analysis A) and the recording of consolidation in COFOG group 01.8 (Analysis B).
 
 Run from the repository root, after or instead of evaluate_harmonisation.py:
-    python replication/harmonisation/evaluate_extensions.py [--source FILE] [--out DIR]
+    python replication/harmonisation/evaluate_extensions.py [--source FILE] [--out DIR] [--grants FILE]
 
 Inputs : data/gfs_raw_data.xlsx (IMF GFS_COFOG 11.0.0, published 2026-02-03; SHA-256 checked)
          data/country_codes.xlsx (UN M49 regions)
          replication/harmonisation/data_ext/wb_NY.GDP.PCAP.PP.KD.json (World Bank WDI)
          replication/harmonisation/data_ext/eurostat_gov10a_exp_S13_TE_pcgdp.tsv (Eurostat gov_10a_exp)
-Outputs: ext_*.csv and fig1_coverage_09.png in --out (default replication/harmonisation/output_ext)
+         replication/harmonisation/data_ext/gfs_soo_grants_pcgdp.csv (optional, --grants: IMF GFS_SOO 12.0.0,
+         grants and interest within general government by subsector, % of GDP; SHA-256 checked; the
+         SDMX-ML download it was made from, read by grants_sdmx.py, gives the same results)
+Outputs: ext_*.csv, ext_fig_*.png and fig1_coverage_09.png in --out (default replication/harmonisation/output_ext)
 
 Every tier, sum and completeness flag comes from evaluate_harmonisation.harmonise, which calls
 cofog_panel.resolve_value and cofog_panel.aggregate.is_complete. The script is deterministic:
@@ -49,6 +52,7 @@ REPO = HERE.parents[1]
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(HERE))
 import evaluate_harmonisation as eh  # noqa: E402
+import grants_sdmx  # noqa: E402
 from cofog_panel.aggregate import (  # noqa: E402
     resolve_value, IMF_TO_ISO, GG, CGSS, CGXSS, BCG, EBCG, SSF, SG, LG,
 )
@@ -438,6 +442,31 @@ def test1(h: pd.DataFrame, gv: GroupValues) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+PRACTICE_LABELS = {"A": "A. Transfers in 01.8, eliminated there; divisions 02-10 additive",
+                   "B": "B. No 01.8 record; gaps in divisions 02-10 (eliminated by function)",
+                   "C": "C. Both: 01.8 recorded and gaps in divisions 02-10",
+                   "D": "D. Consolidation in 01 outside 01.8 or 01.8 not reported; 02-10 additive",
+                   "E": "E. No consolidation visible (no gap in 01 or 02-10)",
+                   "U": "U. Undetermined (no majority practice, fewer than three classified years, "
+                        "or fewer than six divisions)"}
+MIN_CLASSIFIED_YEARS = 3                # a country practice needs this many classified years
+
+
+def country_practice(cls: pd.Series) -> tuple:
+    """
+    (practice, modal class, % of classified years in it) for one country. Classified years are years
+    with a class other than U. The practice is the modal class when it holds in more than half of the
+    classified years and the country has at least MIN_CLASSIFIED_YEARS of them, and U otherwise.
+    """
+    c = cls[cls != "U"]
+    if c.empty:
+        return "U", "U", np.nan
+    vc = c.value_counts().sort_index()
+    modal, share = vc.idxmax(), 100 * vc.max() / len(c)
+    ok = len(c) >= MIN_CLASSIFIED_YEARS and share > 50
+    return (modal if ok else "U"), modal, share
+
+
 def practice_tables(h: pd.DataFrame, gv: GroupValues, reg: pd.DataFrame):
     o = overlap_cells(h, "RULE")
     d = division01_metrics(o, gv)
@@ -466,20 +495,15 @@ def practice_tables(h: pd.DataFrame, gv: GroupValues, reg: pd.DataFrame):
             return "A" if rec else "D"
         return "C" if rec else "B"
 
-    labels = {"A": "A. Transfers in 01.8, eliminated there; divisions 02-10 additive",
-              "B": "B. No 01.8 record; gaps in divisions 02-10 (eliminated by function)",
-              "C": "C. Both: 01.8 recorded and gaps in divisions 02-10",
-              "D": "D. Consolidation in 01 outside 01.8 or 01.8 not reported; 02-10 additive",
-              "E": "E. No consolidation visible (no gap in 01 or 02-10)",
-              "U": "U. Undetermined (fewer than six divisions)"}
+    labels = PRACTICE_LABELS
     counts = []
     for fcol, cut in [("F", F_CUT)] + [("F", x) for x in F_CUT_ALT] + [("F_X", F_CUT)]:
         cls = [classify(F, rec, gp) for F, rec, gp in zip(d[fcol], d["REC018"], d["ANY_GAP"])]
         name = f"CLASS_{fcol}_{cut:.2f}"
         d[name] = cls
-        mode = d.groupby("ISO")[name].agg(lambda s: s.value_counts().sort_index().idxmax())
+        prac = d.groupby("ISO")[name].agg(lambda s: country_practice(s)[0])
         lab = f"Countries, threshold {cut:.2f}" + (" (F excluding 07 and 10)" if fcol == "F_X" else "")
-        counts.append(mode.value_counts().rename(lab))
+        counts.append(prac.value_counts().rename(lab))
     d["CLASS"] = d[f"CLASS_F_{F_CUT:.2f}"]
 
     # country table
@@ -498,9 +522,15 @@ def practice_tables(h: pd.DataFrame, gv: GroupValues, reg: pd.DataFrame):
         "Median share of consolidation outside 01 (F)": ("F", "median"),
         "Median F excluding 07 and 10": ("F_X", "median"),
         "Identities in 02-10 (%)": ("N_IDENT", "sum"),
-        "Practice": ("CLASS", lambda s: s.value_counts().sort_index().idxmax()),
-        "Years in modal practice (%)": ("CLASS", lambda s: 100 * s.value_counts().max() / len(s))})
+        "Classified years": ("CLASS", lambda s: int((s != "U").sum())),
+        "Modal practice": ("CLASS", lambda s: country_practice(s)[1]),
+        "Years in modal practice (% of classified)": ("CLASS", lambda s: country_practice(s)[2]),
+        "Practice": ("CLASS", lambda s: country_practice(s)[0])})
     ctry["Median 01 gap (% of GG 01)"] = (100 * d["GAP01"] / d["G01"]).groupby(d["ISO"]).median()
+    ctry["Median 01 gap (% GDP)"] = d.groupby("ISO")["GAP01"].median()
+    ctry["Median 01.8 gap (% GDP)"] = d.groupby("ISO")["GAP018"].median()
+    ctry["Median central 01.8 (% GDP)"] = d.groupby("ISO")["C018"].median()
+    ctry["Median total-outlays gap / 01 gap"] = d.groupby("ISO")["RTOT"].median()
     ctry["Identities in 02-10 (%)"] = 100 * ctry["Identities in 02-10 (%)"] / d.groupby("ISO")["N_DIV"].sum()
     for dv in ("07", "09", "10"):
         x = sub[sub["DIV"] == dv].groupby("ISO")
@@ -544,7 +574,25 @@ def practice_tables(h: pd.DataFrame, gv: GroupValues, reg: pd.DataFrame):
     sens.index = [labels[i] for i in sens.index]
     for col in sens.columns:
         summ[col] = summ["Practice"].map(sens[col])
-    return d, ctry, summ
+    # Effect on 07, 09, 10 by type of sum: T2 sums (CGSS consolidated, so only grants between levels can be
+    # counted twice) and T3 sums (which also count transfers between central government and social security
+    # funds twice)
+    by_sum = []
+    for p in ["A", "B", "C", "BC"]:
+        members = ["B", "C"] if p == "BC" else [p]
+        for kind in ("T2", "T3", "All"):
+            x = sub[sub["Practice"].isin(members) & ((sub["KIND"] == kind) if kind != "All" else True)]
+            row = {"Practice": "B and C together" if p == "BC" else labels[p], "Sum": kind,
+                   "Countries": x["ISO"].nunique()}
+            for dv in ("07", "09", "10"):
+                y = x[x["DIV"] == dv]
+                row[f"{dv}: cells"] = len(y)
+                row[f"{dv}: countries"] = y["ISO"].nunique()
+                row[f"{dv}: median sum/GG"] = y["R_SUM"].median()
+                row[f"{dv}: P75 sum/GG"] = y["R_SUM"].quantile(0.75)
+                row[f"{dv}: median of country medians"] = y.groupby("ISO")["R_SUM"].median().median()
+            by_sum.append(row)
+    return d, ctry, summ, pd.DataFrame(by_sum)
 
 
 def main_table_b(summ: pd.DataFrame) -> pd.DataFrame:
@@ -619,7 +667,7 @@ def test4(d: pd.DataFrame, o: pd.DataFrame, eu: pd.DataFrame) -> pd.DataFrame:
                  "Countries": fo.loc[above, "ISO"].nunique(), "Share (%)": 100 * above.mean()})
     rows.append({"Check": "Divisions 02-10, subnational > 0: all cells", "N": len(fo), "Countries": fo["ISO"].nunique()})
     # Eurostat agreement in cells where GG equals the unconsolidated sum
-    cls_of = d.groupby("ISO")["CLASS"].agg(lambda s: s.value_counts().sort_index().idxmax())
+    cls_of = d.groupby("ISO")["CLASS"].agg(lambda s: country_practice(s)[0])
     f = fo.merge(eu, on=["ISO", "DIV", "YEAR"], how="inner")
     f_a = f["ISO"].map(cls_of) == "A"
     for cat, x in (("Eurostat: informative identities in 02-10, |IMF GG - Eurostat| <= 0.1 pp", f[f["IDENT"]]),
@@ -628,6 +676,311 @@ def test4(d: pd.DataFrame, o: pd.DataFrame, eu: pd.DataFrame) -> pd.DataFrame:
         diff = (x[GG] - x["EUROSTAT"]).abs()
         rows.append({"Check": cat, "N": len(x), "Countries": x["ISO"].nunique(), "Share (%)": 100 * (diff <= 0.1).mean(),
                      "Median": diff.median(), "ISO codes": ", ".join(sorted(set(x["ISO"]))) if f_a[x.index].all() else None})
+    return pd.DataFrame(rows)
+
+
+# ----------------------------------------------------------------------------
+# Fixed sample without identities, with rank-shift benchmarks
+# ----------------------------------------------------------------------------
+
+PERM_REPS = 10_000                     # permutations for the rank-shift benchmark (seed BOOT_SEED)
+
+
+def rank_shift(s: pd.DataFrame) -> dict:
+    """
+    Shifts between the country rankings by GG and by the alternative (country means over the sample
+    years), against random reordering: the alternative's quintiles (ranks) are permuted across countries
+    PERM_REPS times. p = share of permutations with a mean shift at most as large as the observed one.
+    """
+    cm = s.groupby("ISO")[["GG", "ALT"]].mean()
+    n = len(cm)
+    if n < 10:
+        return {}
+    r_gg = cm["GG"].rank(method="first").to_numpy()
+    r_alt = cm["ALT"].rank(method="first").to_numpy()
+    q_gg = pd.qcut(r_gg, 5, labels=False)
+    q_alt = pd.qcut(r_alt, 5, labels=False)
+    dq, dr = np.abs(q_gg - q_alt), np.abs(r_gg - r_alt)
+    rng = np.random.default_rng(BOOT_SEED)
+    perms = np.argsort(rng.random((PERM_REPS, n)), axis=1)
+    pq = np.abs(q_gg[None, :] - q_alt[perms])
+    pr = np.abs(r_gg[None, :] - r_alt[perms])
+    return {"Mean abs. quintile shift": dq.mean(),
+            "Mean abs. quintile shift, random reordering": pq.mean(axis=1).mean(),
+            "Mean abs. quintile shift, permutation p": (pq.mean(axis=1) <= dq.mean()).mean(),
+            "Countries moving 2+ quintiles (%)": 100 * (dq >= 2).mean(),
+            "Countries moving 2+ quintiles, random reordering (%)": 100 * (pq >= 2).mean(),
+            "Mean abs. rank shift (positions)": dr.mean(),
+            "Mean abs. rank shift, random reordering": pr.mean(axis=1).mean(),
+            "Mean abs. rank shift, permutation p": (pr.mean(axis=1) <= dr.mean()).mean()}
+
+
+def fixed_sample_stats_r(s: pd.DataFrame) -> dict:
+    """fixed_sample_stats plus median-country versions of the ratio and the shortfall, and rank shifts."""
+    st = fixed_sample_stats(s)
+    r = s["ALT"] / s["GG"]
+    short = s["GG"] - s["ALT"]
+    st.update({"Median ratio, median country": r.groupby(s["ISO"]).median().median(),
+               "Shortfall GG - alt (pp GDP), pooled median": short.median(),
+               "Shortfall GG - alt (pp GDP), median country": short.groupby(s["ISO"]).median().median(),
+               "Shortfall (% of GG), pooled median": (100 * short / s["GG"]).median(),
+               "Shortfall (% of GG), median country": (100 * short / s["GG"]).groupby(s["ISO"]).median().median()})
+    st.update(rank_shift(s))
+    return st
+
+
+def analysis_a_noident(c: pd.DataFrame, gdp: pd.DataFrame, reg: pd.DataFrame):
+    """
+    Fixed samples restricted to country-years with subnational spending (SG + LG > 0) and without exact
+    identities. Common sample: GG and every alternative of COMMON are available, and neither the
+    complete T2 sum nor the complete T3 sum equals GG for the measure (relative difference <= TOL).
+    Pairwise variant: for each alternative, the cells in which that alternative differs from GG.
+    """
+    rows, fig = [], None
+    for code, name, divs in MEASURES:
+        m = measure_table(c, divs).merge(gdp, on=["ISO", "YEAR"], how="left")
+        m["REGION"] = m["ISO"].map(reg["region"]).fillna("Unassigned")
+        base = m[m["GG_OK"].notna() & (m["SUBNAT"] > 0)]
+        ident = {a: (base[a] - base["GG_OK"]).abs() <= TOL * base["GG_OK"] for a, _ in ALTERNATIVES}
+        common = base[base[COMMON].notna().all(axis=1) & ~(ident["T2"] | ident["T3"])]
+        if code == "HE":
+            fig = common
+        samples = [("Common, subnational > 0, no identity", a, common) for a in COMMON]
+        samples += [("Pairwise, subnational > 0, alternative differs from GG", a,
+                     base[base[a].notna() & ~ident[a]]) for a, _ in ALTERNATIVES]
+        for sample_name, alt, frame in samples:
+            s = frame.rename(columns={"GG_OK": "GG"})
+            s = s.assign(ALT=s[alt])[["ISO", "YEAR", "GG", "ALT", "GDPPC", "REGION"]]
+            if s.empty:
+                continue
+            rows.append({"Measure": code, "Function": name, "Sample": sample_name,
+                         "Alternative": dict(ALTERNATIVES)[alt], **fixed_sample_stats_r(s)})
+    return pd.DataFrame(rows), fig
+
+
+def main_table_a_noident(a4: pd.DataFrame) -> pd.DataFrame:
+    """Candidate main-text table: common sample with subnational spending and no identities, 07 + 09 and 07 + 09 + 10."""
+    keep = a4[(a4["Sample"] == "Common, subnational > 0, no identity") & a4["Measure"].isin(["HE", "SOC"])]
+    cols = ["Measure", "Function", "Alternative", "N", "Countries", "Countries outside Europe", "Years",
+            "Median ratio", "P25 ratio", "P75 ratio", "Median ratio, median country",
+            "Error > 10% (%)", "Error > 25% (%)", "Spearman, country means",
+            "Mean abs. quintile shift", "Mean abs. quintile shift, random reordering",
+            "Countries moving 2+ quintiles (%)", "Countries moving 2+ quintiles, random reordering (%)",
+            "Shortfall GG - alt (pp GDP), pooled median", "Shortfall GG - alt (pp GDP), median country",
+            "b GG", "b alt", "Difference (alt - GG)", "Difference, bootstrap 2.5%", "Difference, bootstrap 97.5%"]
+    return keep[cols]
+
+
+def fig_consequence(frame: pd.DataFrame, path) -> pd.DataFrame:
+    """
+    Health and education (% of GDP) by country: GG, CGSS alone, the tiered value without GG and the
+    spliced value, country means over the years of the fixed sample, ranked by GG.
+    """
+    import matplotlib.pyplot as plt
+    cm = frame.groupby("ISO")[["GG_OK", "CG", "RULE", "SPL5"]].mean().sort_values("GG_OK")
+    cm["Years"] = frame.groupby("ISO").size()
+    fig, ax = plt.subplots(figsize=(7, 0.24 * len(cm) + 1.4), dpi=200)
+    y = np.arange(len(cm))
+    ax.hlines(y, cm[["GG_OK", "CG", "RULE", "SPL5"]].min(axis=1), cm[["GG_OK", "CG", "RULE", "SPL5"]].max(axis=1),
+              color=eh.GRID, linewidth=1.2, zorder=1)
+    for col, lab, colour, marker, size in [("CG", "CGSS alone", eh.INK2, "o", 26),
+                                           ("RULE", "Tiered value (unconsolidated sum)", eh.TIER_COLORS["T2"], "s", 24),
+                                           ("SPL5", "Spliced value", eh.TIER_COLORS["T1"], "D", 22),
+                                           ("GG_OK", "General government (GG)", eh.INK, "|", 90)]:
+        ax.scatter(cm[col], y, s=size, marker=marker, color=colour, zorder=3, label=lab,
+                   linewidth=1.6 if marker == "|" else 0.5, edgecolor="white" if marker != "|" else None)
+    eh._style(ax)
+    ax.yaxis.grid(False)
+    ax.xaxis.grid(True, color=eh.GRID, linewidth=0.8)
+    ax.set_yticks(y, cm.index, fontsize=8)
+    ax.set_xlabel("Health and education, % of GDP (country mean)", color=eh.INK2, fontsize=9)
+    ax.set_xlim(left=0)
+    ax.legend(frameon=False, fontsize=8, loc="lower right")
+    fig.tight_layout()
+    fig.savefig(path, dpi=300)
+    plt.close(fig)
+    return cm.rename(columns={"GG_OK": "GG", "CG": "CGSS alone", "RULE": "Tiered value", "SPL5": "Spliced value"}).reset_index()
+
+
+PRACTICE_COLORS = {"A": eh.TIER_COLORS["T1"], "B": eh.TIER_COLORS["T2"], "C": eh.TIER_COLORS["T3"]}
+
+
+def fig_classification(ctry: pd.DataFrame, path):
+    """
+    Left: median 01.8 gap against median 01 gap by country (% of GDP). Right: the two classification
+    criteria, share of consolidation outside division 01 (F) and 01.8 gap / 01 gap. Colours by practice.
+    """
+    import matplotlib.pyplot as plt
+    fig, axes = plt.subplots(1, 2, figsize=(9, 4.2), dpi=200)
+    groups = [(p, ctry[ctry["Practice"] == p], PRACTICE_COLORS[p], f"{p}") for p in ("A", "B", "C")]
+    groups.append(("other", ctry[~ctry["Practice"].isin(["A", "B", "C"])], eh.INK2, "Undetermined or other"))
+    labels = {"A": "A: 01.8, eliminated there", "B": "B: by function", "C": "C: both"}
+    ax = axes[0]
+    hi = np.nanmax(ctry[["Median 01 gap (% GDP)", "Median 01.8 gap (% GDP)"]].to_numpy()) * 1.05
+    ax.plot([0, hi], [0, hi], color=eh.INK2, linewidth=0.8, zorder=1)
+    for p, g, col, _ in groups:
+        filled = p != "other"
+        has = g["Median 01.8 gap (% GDP)"].notna()
+        ax.scatter(g.loc[has, "Median 01 gap (% GDP)"], g.loc[has, "Median 01.8 gap (% GDP)"], s=26, zorder=2,
+                   color=col if filled else "white", edgecolor="white" if filled else col, linewidth=0.8 if filled else 1.2,
+                   label=labels.get(p, "Undetermined or other"))
+        # GG 01.8 not reported: central 01.8 in place of the 01.8 gap (triangles)
+        ax.scatter(g.loc[~has, "Median 01 gap (% GDP)"], g.loc[~has, "Median central 01.8 (% GDP)"], s=30, zorder=2,
+                   marker="^", color=col if filled else "white", edgecolor="white" if filled else col,
+                   linewidth=0.8 if filled else 1.2)
+    ax.set_title("(a) Gap in group 01.8 against gap in division 01", fontsize=10, color=eh.INK, loc="left")
+    eh._style(ax)
+    ax.set_xlim(0, hi)
+    ax.set_ylim(0, hi)
+    ax.set_xlabel("Gap in division 01: sum minus GG, % of GDP", fontsize=9, color=eh.INK2)
+    ax.set_ylabel("Gap in group 01.8, % of GDP", fontsize=9, color=eh.INK2)
+    ax.legend(frameon=False, fontsize=8, loc="upper left")
+    ax = axes[1]
+    for p, g, col, _ in groups:
+        filled = p != "other"
+        ax.scatter(g["Median share of consolidation outside 01 (F)"],
+                   g["Median 01.8 gap / 01 gap"].fillna(g["Median central 01.8 / 01 gap"]).clip(-0.1, 1.5),
+                   s=26, zorder=2, color=col if filled else "white", edgecolor="white" if filled else col,
+                   linewidth=0.8 if filled else 1.2)
+    ax.axvline(F_CUT, color=eh.INK2, linewidth=0.8, linestyle="--")
+    ax.axhline(0.5, color=eh.INK2, linewidth=0.8, linestyle="--")
+    ax.set_title("(b) Classification criteria", fontsize=10, color=eh.INK, loc="left")
+    eh._style(ax)
+    ax.set_xlim(-0.03, 1.03)
+    ax.set_xlabel("Share of consolidation outside division 01 (F)", fontsize=9, color=eh.INK2)
+    ax.set_ylabel("01.8 gap / 01 gap", fontsize=9, color=eh.INK2)
+    fig.tight_layout()
+    fig.savefig(path, dpi=300)
+    plt.close(fig)
+
+
+# ----------------------------------------------------------------------------
+# Validation with grant flows (IMF GFS Statement of Operations)
+# ----------------------------------------------------------------------------
+
+GRANTS_FILE = grants_sdmx.CSV_FILE
+# IMF.STA:GFS_SOO 12.0.0, PUBLICATION_DATE 2026-11-12, SDMX 2.1 query
+# .../data/IMF.STA,GFS_SOO,latest/...G26_S13U_T+G26C_S13U_T+G26K_S13U_T+G13_S13U_T+G24_S13U_T.POGDP_PT.A
+#   ?startPeriod=1990&endPeriod=2024
+# SHA-256 of the download and of the filtered CSV: grants_sdmx.SHA256
+SOO_SECTORS = {"S13": "GG", "S1321": "CGSS", "S1311": "CGXSS", "S1311B": "BCG", "S13112": "EBCG",
+               "S1314": "SSF", "S1312MIXED": "SG", "S1313MIXED": "LG"}
+SOO_ITEMS = {"G26_S13U_T": "263", "G13_S13U_T": "133", "G24_S13U_T": "243"}
+
+
+def load_grants(path: Path) -> pd.DataFrame:
+    """
+    Grants to (263) and from (133) other general government units and interest to them (243), % of GDP,
+    from the filtered CSV in data_ext/ or the SDMX-ML download it was made from (grants_sdmx.records).
+    """
+    digest = sha256(path)
+    if digest != grants_sdmx.expected_sha256(path):
+        print(f"WARNING: {path.name} differs from the grant extract used here (SHA-256 {digest[:12]}...).")
+    recs = []
+    for r in grants_sdmx.records(path):
+        item, sec = SOO_ITEMS.get(r["INDICATOR"]), SOO_SECTORS.get(r["SECTOR"])
+        if item is None or sec is None:
+            continue
+        iso = IMF_TO_ISO.get(r["COUNTRY"].upper(), r["COUNTRY"].upper())
+        recs.append((iso, int(r["TIME_PERIOD"]), sec, item, float(r["OBS_VALUE"])))
+    g = pd.DataFrame(recs, columns=["ISO", "YEAR", "SECTOR", "ITEM", "VALUE"])
+    return g.drop_duplicates(subset=["ISO", "YEAR", "SECTOR", "ITEM"])
+
+
+def grant_tests(d: pd.DataFrame, ctry: pd.DataFrame, gr: pd.DataFrame) -> tuple:
+    """
+    (a) central 01.8 against central grants to other general government units (263), same sectors;
+    (b) gap in total outlays against grants (263) plus interest (243) paid to other government units by
+        the components of the complete sum;
+    (c) grants not recorded in 01.8 (sum of 263 minus sum of 01.8) against the gaps in divisions 02-10.
+    Country-years of division 01 with subnational spending, as in the practice classification.
+    """
+    v = gr.set_index(["ISO", "YEAR", "SECTOR", "ITEM"])["VALUE"].to_dict()
+
+    def comp(iso, yr, comps, item):
+        vals = [v.get((iso, yr, s, item), np.nan) for s in comps]
+        return np.nan if not comps or any(pd.isna(x) for x in vals) else float(sum(vals))
+
+    prac = ctry.set_index("ISO")["Practice"]
+    x = d.copy()
+    comps = x["COMPS"].str.split("+")
+    cent = comps.apply(lambda c: [s for s in c if s in CENTRAL_ABBR])
+    x["C263"] = [comp(i, y, c, "263") for i, y, c in zip(x["ISO"], x["YEAR"], cent)]
+    x["S263"] = [comp(i, y, c, "263") for i, y, c in zip(x["ISO"], x["YEAR"], comps)]
+    x["S243"] = [comp(i, y, c, "243") for i, y, c in zip(x["ISO"], x["YEAR"], comps)]
+    x["G263"] = [v.get((i, y, "GG", "263"), np.nan) for i, y in zip(x["ISO"], x["YEAR"])]
+    x["R_C018_C263"] = (x["C018"] / x["C263"]).where(x["C263"] > 0)
+    x["R_TOT_GRINT"] = (x["GAPTOT"] / (x["S263"] + x["S243"].fillna(0))).where(x["S263"] > 0)
+    x["R_TOT_GR"] = (x["GAPTOT"] / x["S263"]).where(x["S263"] > 0)
+    x["NOT018"] = x["S263"] - x["S018"]
+    x["R_NOT018_FGAP"] = (x["NOT018"] / x["FGAP"]).where(x["FGAP"] > 0)
+    x["PRACTICE"] = x["ISO"].map(prac)
+    rows = []
+
+    def stat(test, group, kind, r, mask):
+        rr = r[mask].dropna()
+        rows.append({"Test": test, "Practice": group, "Sum": kind, "Cells": len(rr),
+                     "Countries": x.loc[rr.index, "ISO"].nunique(),
+                     "Years": f"{x.loc[rr.index, 'YEAR'].min()}-{x.loc[rr.index, 'YEAR'].max()}" if len(rr) else "",
+                     "P25": rr.quantile(0.25), "Median": rr.median(), "P75": rr.quantile(0.75),
+                     "Within 10% (%)": 100 * ((rr - 1).abs() <= 0.10).mean() if len(rr) else np.nan,
+                     "Within 25% (%)": 100 * ((rr - 1).abs() <= 0.25).mean() if len(rr) else np.nan,
+                     "Median of country medians": rr.groupby(x.loc[rr.index, "ISO"]).median().median() if len(rr) else np.nan})
+
+    tests = [("(a) Central 01.8 / central grants to other GG units (263)", "R_C018_C263"),
+             ("(b) Total-outlays gap / (grants 263 + interest 243 paid within GG)", "R_TOT_GRINT"),
+             ("(b') Total-outlays gap / grants 263 paid within GG", "R_TOT_GR"),
+             ("(c) Grants outside 01.8 (sum of 263 - sum of 01.8) / gaps in divisions 02-10", "R_NOT018_FGAP")]
+    for test, col in tests:
+        for group, members in (("A", ["A"]), ("B", ["B"]), ("C", ["C"]), ("B and C", ["B", "C"]),
+                               ("All classified", ["A", "B", "C", "D", "E"])):
+            for kind in ("T2", "T3"):
+                stat(test, group, kind, x[col], x["PRACTICE"].isin(members) & (x["KIND"] == kind))
+    # country-level pass for test (a): country median of central 01.8 / central 263 within 10% of 1
+    cc = x.dropna(subset=["R_C018_C263"]).groupby("ISO").agg(
+        Practice=("PRACTICE", "first"), Sum=("KIND", lambda s: "/".join(sorted(set(s)))), Years=("YEAR", "size"),
+        **{"Median central 01.8 / central 263": ("R_C018_C263", "median"),
+           "Median total-outlays gap / (263 + 243)": ("R_TOT_GRINT", "median"),
+           "Median grants outside 01.8 / gaps 02-10": ("R_NOT018_FGAP", "median"),
+           "Median central 263 (% GDP)": ("C263", "median"), "Median central 01.8 (% GDP)": ("C018", "median")})
+    cc["Passes (a): within 10%"] = (cc["Median central 01.8 / central 263"] - 1).abs() <= 0.10
+    cov = {"Country-years in the classification": len(x), "with central 263": int(x["C263"].notna().sum()),
+           "countries with central 263": x.loc[x["C263"].notna(), "ISO"].nunique(),
+           "with 263 for every component": int(x["S263"].notna().sum()),
+           "with 243 for every component": int(x["S243"].notna().sum())}
+    rows.append({"Test": "Coverage", **{k: v_ for k, v_ in cov.items()}})
+    return pd.DataFrame(rows), cc.reset_index()
+
+
+# ----------------------------------------------------------------------------
+# Traces for statements in the text
+# ----------------------------------------------------------------------------
+
+def trace_table(h: pd.DataFrame, c: pd.DataFrame, reg: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+    ok = h[GG].notna() & (h[GG] > 0) & (h["COMPLETE"] == True)  # noqa: E712
+    est = h["EST_CG"].notna() | h["EST_T2"].notna() | h["EST_T3"].notna()
+    rows.append({"Item": "Countries with GG (positive, not flagged) and CGSS alone, a T2 sum or a T3 sum in the same "
+                         "cell (overlap sample of Table 4, all divisions)", "Value": h.loc[ok & est, "ISO"].nunique()})
+    rows.append({"Item": "  of which with a complete T2 or T3 sum", "Value": h.loc[ok & (h["T2_COMPLETE"] | h["T3_COMPLETE"]), "ISO"].nunique()})
+    rows.append({"Item": "  of which with a complete sum and SG or LG spending",
+                 "Value": h.loc[ok & (h["T2_COMPLETE"] | h["T3_COMPLETE"]) & (h[[SG, LG]].fillna(0).sum(axis=1) > 0), "ISO"].nunique()})
+    t2 = h[h["TIER"] == "T2"]
+    for lab, x in (("all divisions", t2), ("05", t2[t2["DIV"] == "05"]), ("09", t2[t2["DIV"] == "09"])):
+        only = x["SECTORS"] == "CGSS"
+        early = x["YEAR"] <= 1994
+        rows.append({"Item": f"T2 values ({lab})", "Value": len(x)})
+        rows.append({"Item": f"  CGSS only (no SG or LG value in the year) ({lab})", "Value": int(only.sum()),
+                     "Detail": f"{x.loc[only, 'ISO'].nunique()} countries, {int((only & x['COMPLETE']).sum())} flagged complete"})
+        rows.append({"Item": f"  1990-1994: T2 values / CGSS only ({lab})", "Value": int(early.sum()),
+                     "Detail": str(int((early & only).sum()))})
+    m = measure_table(c, ["07", "09"])
+    m["REGION"] = m["ISO"].map(reg["region"])
+    ng = m[m["NO_GG_TIER"] & m["ALL_COMPLETE"] & m["CENTRAL"].notna() & (m["VALUE"] > 0) & (m["SUBNAT"] > 0)]
+    for iso, x in ng[ng["REGION"] == "Oceania"].groupby("ISO"):
+        rows.append({"Item": f"Oceania, health and education without GG, subnational > 0: {iso}", "Value": len(x),
+                     "Detail": f"{x['YEAR'].min()}-{x['YEAR'].max()}, median tiered {x['VALUE'].median():.2f}, "
+                               f"median central {x['CENTRAL'].median():.2f}, median SG+LG {x['SUBNAT'].median():.2f} (% GDP)"})
     return pd.DataFrame(rows)
 
 
@@ -676,7 +1029,7 @@ COVERAGE_DIV = "09"
 # ----------------------------------------------------------------------------
 
 def checks(h: pd.DataFrame, a1: pd.DataFrame, c: pd.DataFrame) -> pd.DataFrame:
-    """Recompute Table 4 / Online Appendix Table S4 and compare it with the pairwise statistics of Analysis A,
+    """Recompute Table 4 / supplementary Table S4 and compare it with the pairwise statistics of Analysis A,
     and compare the spliced values with the adjusted estimates of the Table 5 evaluation."""
     t4 = eh.table_overlap(h)
     rows = []
@@ -733,6 +1086,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n", 1)[0].strip())
     ap.add_argument("--source", type=Path, default=RAW, help="IMF GFS COFOG extract, Excel or CSV (default: %(default)s)")
     ap.add_argument("--out", type=Path, default=OUT, help="output folder (default: %(default)s)")
+    ap.add_argument("--grants", type=Path, default=GRANTS_FILE,
+                    help="IMF GFS_SOO extract of grants and interest within general government (default: %(default)s); "
+                         "the grant-flow tests are skipped if the file is missing")
     args = ap.parse_args()
     RAW, OUT = args.source.resolve(), args.out.resolve()
     OUT.mkdir(parents=True, exist_ok=True)
@@ -752,16 +1108,28 @@ def main():
     gv = GroupValues(grp)
     b0 = group_coverage(grp)
     b1 = test1(h, gv)
-    d, ctry, summ = practice_tables(h, gv, reg)
+    d, ctry, summ, by_sum = practice_tables(h, gv, reg)
     o = overlap_cells(h, "RULE")
     b2 = test2(d, o)
     b4 = test4(d, o, eu)
     chk = checks(h, a1, c)
+    # Fixed sample with subnational spending and without identities; figures; traces
+    a4, fig_frame = analysis_a_noident(c, gdp, reg)
+    fig_data = fig_consequence(fig_frame, OUT / "ext_fig_consequence_he.png")
+    fig_classification(ctry, OUT / "ext_fig_classification.png")
+    trace = trace_table(h, c, reg)
 
     tables = {"ext_a1_fixed_sample": a1, "ext_a1_main_table": main_table_a(a1), "ext_a2_without_gg_by_region": a2,
               "ext_a3_inkind_shortfall": a3, "ext_b0_group_coverage": b0, "ext_b1_gap01_vs_018": b1,
               "ext_b2_identities_018": b2, "ext_b3_practice_countries": ctry, "ext_b3_practice_summary": summ,
-              "ext_b3_main_table": main_table_b(summ), "ext_b4_alternatives": b4, "ext_checks": chk}
+              "ext_b3_main_table": main_table_b(summ), "ext_b4_alternatives": b4, "ext_checks": chk,
+              "ext_a4_fixed_sample_noident": a4, "ext_a4_main_table": main_table_a_noident(a4),
+              "ext_b3_by_sum": by_sum, "ext_fig_consequence_he_data": fig_data, "ext_trace": trace}
+    if args.grants.exists():
+        b5, b5c = grant_tests(d, ctry, load_grants(args.grants))
+        tables.update({"ext_b5_grant_tests": b5, "ext_b5_grant_countries": b5c})
+    else:
+        print(f"Grant-flow tests skipped: {args.grants} not found.")
     for name, t in tables.items():
         t.round(6).to_csv(OUT / f"{name}.csv", index=False)
     d.round(6).to_csv(OUT / "ext_b_country_years.csv", index=False)
@@ -775,9 +1143,11 @@ def main():
     pd.set_option("display.width", 250)
     pd.set_option("display.max_columns", 40)
     for name in ("ext_a1_main_table", "ext_b1_gap01_vs_018", "ext_b2_identities_018", "ext_b3_main_table",
-                 "ext_b4_alternatives", "ext_checks", f"ext_table3_region_{COVERAGE_DIV}"):
-        print(f"\n=== {name} ===")
-        print(tables[name].round(3).to_string(index=False))
+                 "ext_b4_alternatives", "ext_checks", f"ext_table3_region_{COVERAGE_DIV}", "ext_a4_main_table",
+                 "ext_b3_by_sum", "ext_b5_grant_tests", "ext_trace"):
+        if name in tables:
+            print(f"\n=== {name} ===")
+            print(tables[name].round(3).to_string(index=False))
     print(f"\nDone in {time.time() - t0:.0f} s. Outputs in {OUT}")
 
 
