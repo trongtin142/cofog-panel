@@ -3,10 +3,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/trongtin142/cofog-panel/blob/main/LICENSE.txt)
 [![tests](https://github.com/trongtin142/cofog-panel/actions/workflows/tests.yml/badge.svg)](https://github.com/trongtin142/cofog-panel/actions/workflows/tests.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23511907.svg)](https://doi.org/10.5281/zenodo.23511907)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/trongtin142/cofog-panel/blob/v1.1.2/cofog.ipynb)
 
 COFOG-Panel builds a country-year panel for any COFOG division or group from a raw download (CSV or Excel) of the IMF Government Finance Statistics (GFS) dataset on expenditure by function of government. Countries report these data for different sets of government subsectors. The tool selects one value per country-year with a documented three-tier rule and records, next to every value, the tier, the sectors that entered it and whether it covers every level of government.
 
-The DOI badge points to all versions of the software. Each release also has its own DOI, listed on the Zenodo page and in `CITATION.cff`.
+The DOI badge points to all versions of the software. Each release also has its own DOI, listed on the Zenodo page and in `CITATION.cff`. The Colab badge opens the notebook `cofog.ipynb` of release 1.1.2 in Google Colab, and the notebook installs that same tagged release.
 
 ## Quickstart (GUI)
 
@@ -28,7 +29,9 @@ cd cofog-panel
 pip install -e .
 ```
 
-**2. Download the IMF data** (once, about 220 MB):
+On Windows, clone into a short path such as `C:\cofog-panel`, because Windows limits paths to 260 characters unless long paths are enabled.
+
+**2. Download the IMF data** (once, a CSV file of about 530 MB for the release of 21 October 2026):
 
 1. Open the dataset page <https://data.imf.org/en/datasets/IMF.STA:GFS_COFOG> ("GFS Government Expenditures by Function").
 2. Click **DOWNLOAD** (top right). A "Download Dataset" window opens.
@@ -54,6 +57,8 @@ The panel is written to `output/COFOG_MASTER_SCHEMA.xlsx` (sheet `MasterData`). 
 | DEU2015 | Germany | 2015 | 0.541 | T1 | GG | Y |
 
 Values are in per cent of GDP (rounded here; the file keeps all digits). They come from the release published on 3 February 2026; a later download gives revised values.
+
+To reproduce these rows, run the command on the Excel download of the release of 3 February 2026 (SHA-256 `91e3db1bdb838f322dcbe648b133f511f3efe1921e50c8bc0d7621f512668cfe`, recorded in `replication/sjiaos/README.md`). The IMF has since replaced that release with revised values, so the portal now serves a different file. That README says how to obtain the February extract.
 
 * **T1**: general government (GG) as reported. **T2**: central government including social security (CGSS) plus the state and local levels that are reported. **T3**: the central government components (budgetary BCG, extrabudgetary EBCG, social security funds SSF) plus state (SG) and local (LG) government, when neither GG nor CGSS is reported.
 * **Y / N**: `Y` when the value covers every level of government that the country reports in its series; `N` when a level is missing (Armenia 2014 lacks the local level it reports in other years), so the value understates spending.
@@ -106,12 +111,14 @@ cd cofog-panel
 python -m venv venv
 source venv/bin/activate          # macOS and Linux
 pip install -e .                  # the command-line tool
-pip install -e ".[dev]"           # adds pytest, to run the tests
+pip install -e ".[dev,gui]"       # adds pytest and Streamlit, to run all the tests (Section 4)
 pip install -e ".[gui]"           # adds Streamlit, for the browser interface (streamlit run gui.py)
 pip install -e ".[replication]"   # adds statsmodels, scipy, matplotlib, linearmodels and tabulate, for replication/
 ```
 
 `cofog-panel --version` prints the installed version.
+
+The command-line tool is also on PyPI: `pip install cofog-panel`. The browser interface, the tests and `replication/` come with the repository.
 
 ### Windows (PowerShell)
 
@@ -139,7 +146,7 @@ Several functions can be added in one command by repeating the option: `cofog-pa
 
 Options:
 
-* `--cofog` takes a division or group code (`05`, `07.3`) or the exact label used in the file (`"Environmental protection"`). A value that is neither is rejected at once, with the closest codes or labels. `cofog-panel list-cofog` lists the codes and labels in the file with the number of countries (it reads the whole file: seconds for the CSV download, about a minute for the Excel one). A well-formed code that is not in the built-in list (for example `07.99`) is also looked up in the file before the scan and rejected, with the nearest codes, if the file has no series for it; for an Excel download this takes under a second, for a CSV download a few seconds.
+* `--cofog` takes a division or group code (`05`, `07.3`) or a label used in the file, in any letter case (`"Environmental protection"` or `"environmental protection"`). A value that is neither is rejected at once, with the closest codes or labels. `cofog-panel list-cofog` lists the codes and labels in the file with two counts (it reads the whole file: seconds for the CSV download, about a minute for the Excel one). `Countries` counts the countries with at least one value for the code, and `Listed` the countries with a series for it, with or without values. A well-formed code that is not in the built-in list (for example `07.99`) is also looked up in the file before the scan and rejected, with the nearest codes, if the file has no series for it; for an Excel download this takes under a second, for a CSV download a few seconds.
 * `--filter-type` is one of `"Percent of GDP"`, `"Domestic currency"` and `"Percent of total outlays"`, in any letter case. Any other value is rejected at once.
 * `--sector` selects the method described in Section 1; `cofog-panel list-sectors` lists the accepted values.
 
@@ -187,11 +194,11 @@ value, tier, sectors = resolve_value({
 ## 4. Tests
 
 ```bash
-pip install -e ".[dev]"
-pytest
+pip install -e ".[dev,gui]"
+python -m pytest
 ```
 
-The tests of the browser interface (`tests/test_gui.py`) are skipped unless Streamlit is installed: `pip install -e ".[dev,gui]"` runs them as well.
+Run the tests from the repository root. The `gui` extra adds Streamlit, which the tests of the browser interface (`tests/test_gui.py`) need. Without it, these tests are skipped.
 
 ## 5. Data
 

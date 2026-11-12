@@ -8,7 +8,19 @@
 - `--format xlsx|csv|parquet` and a `--long` option for long-format output.
 - A `<master>.provenance.json` file (version, SHA-256 of the source, command run, time, columns created).
 - High-level Python API `build_panel(...)` returning a DataFrame.
-- "Open in Colab" badge for `cofog.ipynb` in the README.
+
+## 1.1.2 (2026-11-12)
+
+The selection rule is unchanged (`resolve_value` and `is_complete` are untouched). On the IMF extract of 3 February 2026, `run --cofog 05` and `run --cofog 07.3` give the same master as 1.1.1, cell for cell, and the same country files, byte for byte.
+
+- `split` reports the number of data rows it read. "Total Processed" also counted the header row, so it was one too high (372,482 instead of 372,481 rows on the February extract).
+- `list-cofog` gives two counts for each code. `Countries` counts the countries with at least one value for the code, in any sector, transformation and year. `Listed` counts the countries with a series for it, with or without values, which is the count of earlier versions. On the February extract, every code had 194 countries under the earlier count, against 144 countries with a value for environmental protection (05). `etl.list_cofog` returns both counts.
+- `--cofog` accepts a label in any letter case (`"environmental protection"`). The label is passed on as the file spells it, or as the built-in list spells it, so the split and the data column are those of the exact label. Two labels of the file that differ only in letter case are refused with both spellings.
+- `run_gui.bat` stops with a message when `pip install` fails, instead of starting Streamlit without the package.
+- Metadata: `pyproject.toml` lists both authors without e-mail addresses. `CITATION.cff` adds the DOI of 1.1.1 (10.5281/zenodo.24144305), describes each version DOI by its version number alone, and gives the School of Business in the first author's affiliation.
+- README: an "Open in Colab" badge for the notebook of this release, the size of the CSV download (about 530 MB for the release of 21 October 2026), and the SHA-256 of the February 2026 extract for reproducing the example rows, with a note that the IMF has since replaced that release. Also a note on short clone paths on Windows, the PyPI package (`pip install cofog-panel`), and `pip install -e ".[dev,gui]"` for the tests. The notebook installs 1.1.2.
+- Changelog: the earlier entries name the harmonisation study and its replication without the journal. The folders `replication/sjiaos` and `replication/eeps` keep their names, because published versions refer to them.
+- Tests for each of the four fixes.
 
 ## 1.1.1 (2026-11-11)
 
@@ -23,7 +35,7 @@ The package code and the selection rule are unchanged. On the IMF extract of 3 F
 
 ## 1.1.0 (2026-11-01)
 
-Results are unchanged (selection rule untouched): on the IMF extract of 3 February 2026, `run --cofog 05` and `run --cofog 07` give the same values, tiers, sectors and completeness flags as 1.0.5, and the SJIAOS replication gives the same tables as 1.0.5.
+Results are unchanged (selection rule untouched): on the IMF extract of 3 February 2026, `run --cofog 05` and `run --cofog 07` give the same values, tiers, sectors and completeness flags as 1.0.5, and the harmonisation replication gives the same tables as 1.0.5.
 
 Authors: Thanh-Tung Pham is now an author of the software with Trong Tin Nguyen (`CITATION.cff`, `pyproject.toml`). The README credits him for the early prototype and, in this release, the browser interface and the input validation, and Cam Quyen Tran for contributions to an early version of the code.
 
@@ -55,7 +67,7 @@ Authors: Thanh-Tung Pham is now an author of the software with Trong Tin Nguyen 
 
 ## 1.0.5 (2026-10-22)
 
-Replication: robustness of the SJIAOS results to the IMF release. Results for the article extract are unchanged.
+Replication: robustness of the results of the harmonisation study to the IMF release. Results for the extract of the study are unchanged.
 
 - `replication/sjiaos/evaluate_harmonisation.py` takes `--source FILE` (Excel or CSV download) and `--out DIR`. Without options it runs as before.
 - New `replication/sjiaos/compare_vintages.py`: evaluates a second IMF extract and writes `supp_vintage.csv` (Supplementary Table S13), which compares the main statistics of the article on the releases of 3 February and 21 October 2026.
@@ -65,7 +77,7 @@ Replication: robustness of the SJIAOS results to the IMF release. Results for th
 
 ## 1.0.4 (2026-10-22)
 
-Fixes for a fresh installation. Results are unchanged: the SJIAOS replication gives the same tables as 1.0.3.
+Fixes for a fresh installation. Results are unchanged: the harmonisation replication gives the same tables as 1.0.3.
 
 - Installation: `cli.py` no longer imports click. Typer 0.27 and later do not install click, so a fresh `pip install -e .` failed with `ModuleNotFoundError: No module named 'click'`. The command-line tool now catches Typer's own exception classes and works both with the Typer versions that depend on click and with those that bundle it.
 - Minimum Typer version raised to 0.18.0 (`typer>=0.18.0`): Typer 0.16 and 0.17.0 to 0.17.4 install with the current click (8.5) but do not enforce required options or eager flags with it.
@@ -78,7 +90,7 @@ Fixes for a fresh installation. Results are unchanged: the SJIAOS replication gi
 
 ## 1.0.3 (2026-10-22)
 
-The core modules (`checks.py`, `cli.py`, `etl.py`, `master_seed.py`, `aggregate.py`, `__init__.py`) were rewritten, and packaging moved from `setup.py` to `pyproject.toml`. The selection rule and the completeness flags are unchanged: the SJIAOS replication gives the same tables as 1.0.2.
+The core modules (`checks.py`, `cli.py`, `etl.py`, `master_seed.py`, `aggregate.py`, `__init__.py`) were rewritten, and packaging moved from `setup.py` to `pyproject.toml`. The selection rule and the completeness flags are unchanged: the harmonisation replication gives the same tables as 1.0.2.
 
 Fixes:
 
@@ -100,13 +112,13 @@ Acknowledgements: the README credits Pham Thanh Tung for the early prototype of 
 
 ## 1.0.2 (2026-10-21)
 
-- Relabel the central-government estimator as 'CGSS alone' in the SJIAOS replication; add ORCID to CITATION.cff.
-- SJIAOS replication: limit the year axis of Figure 1 to 1990–2023. Tables are unchanged.
+- Relabel the central-government estimator as 'CGSS alone' in the harmonisation replication; add ORCID to CITATION.cff.
+- Harmonisation replication: limit the year axis of Figure 1 to 1990–2023. Tables are unchanged.
 - DOI: 10.5281/zenodo.23546439
 
 ## 1.0.1 (2026-10-20)
 
-- SJIAOS replication: country-cluster bootstrap intervals and k-sensitivity of the consolidation adjustment (Tables S11–S12).
+- Harmonisation replication: country-cluster bootstrap intervals and k-sensitivity of the consolidation adjustment (Tables S11–S12).
 - DOI: 10.5281/zenodo.23512435
 
 ## 1.0.0 (2026-10-20)

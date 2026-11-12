@@ -64,8 +64,8 @@ SourceFile = Annotated[Optional[Path], typer.Option(
 LookupFile = Annotated[Path, typer.Option(
     "--lookup-file", help="Country lookup file. Default: the lookup bundled with the package.")]
 Cofog = Annotated[str, typer.Option(
-    "--cofog", help="COFOG code (e.g. '05', '07.3') or exact COFOG label (e.g. 'Environmental protection'). "
-                    "'cofog-panel list-cofog' lists them.")]
+    "--cofog", help="COFOG code (e.g. '05', '07.3') or COFOG label, letter case ignored "
+                    "(e.g. 'Environmental protection'). 'cofog-panel list-cofog' lists them.")]
 FilterType = Annotated[str, typer.Option(
     "--filter-type", help=f"Transformation type, letter case ignored: {', '.join(TRANSFORMATIONS)}.")]
 Sector = Annotated[str, typer.Option(
@@ -163,7 +163,12 @@ def list_sectors() -> None:
 @app.command("list-cofog")
 @_guarded
 def list_cofog_command(source_file: SourceFile = None) -> None:
-    """Lists the COFOG codes and labels in the extract, with the number of countries (reads the whole file)."""
+    """
+    Lists the COFOG codes and labels in the extract, with two counts of countries (reads the whole file).
+
+    Countries: the countries with at least one value for the code, in any sector, transformation and year.
+    Listed: the countries with a series for the code, with or without values.
+    """
     source_file = source_file or default_source()
     _require_source(source_file)
     typer.echo(f"Reading {source_file.name} (seconds for a CSV file, about a minute for an Excel file)...")
@@ -172,11 +177,13 @@ def list_cofog_command(source_file: SourceFile = None) -> None:
     except KeyError as exc:
         _stop(f"The extract has no column {exc.args[0]}.",
               "Use the Excel download of IMF.STA:GFS_COFOG without changes; 'cofog-panel check-format' checks it.")
-    typer.echo(f"\n{'Code':<7} {'Countries':>9}  Label")
-    for code, label, n_countries in functions:
+    typer.echo(f"\n{'Code':<7} {'Countries':>9} {'Listed':>6}  Label")
+    for code, label, n_with_values, n_listed in functions:
         indent = "" if "." not in code else "  "
-        typer.echo(f"{code:<7} {n_countries:>9}  {indent}{label or COFOG_LABELS.get(code, '')}")
-    typer.echo(f"\n{len(functions)} COFOG functions. Use the code or the exact label with --cofog.")
+        typer.echo(f"{code:<7} {n_with_values:>9} {n_listed:>6}  {indent}{label or COFOG_LABELS.get(code, '')}")
+    typer.echo(f"\n{len(functions)} COFOG functions. Countries: countries with at least one value for the code. "
+               "Listed: countries with a series for it, with or without values.")
+    typer.echo("Use the code or the label (letter case ignored) with --cofog.")
 
 
 # --- Stages 1 and 2 ---
@@ -281,9 +288,9 @@ def aggregate(
 @app.command("run")
 @_guarded
 def run(
-    cofog: Annotated[List[str], typer.Option("--cofog", help="COFOG code (e.g. '05') or exact COFOG label "
-                                                             "('cofog-panel list-cofog' lists them). Repeat the option "
-                                                             "for several functions in one master.")],
+    cofog: Annotated[List[str], typer.Option("--cofog", help="COFOG code (e.g. '05') or COFOG label, letter case "
+                                                             "ignored ('cofog-panel list-cofog' lists them). Repeat the "
+                                                             "option for several functions in one master.")],
     source_file: SourceFile = None,
     lookup_file: LookupFile = PACKAGED_LOOKUP,
     filter_type: FilterType = DEFAULT_TRANSFORMATION,

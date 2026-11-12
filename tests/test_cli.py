@@ -168,7 +168,6 @@ def test_cofog_codes_accepted(code):
 @pytest.mark.parametrize("value, hint", [
     ("5", "'05' (Environmental protection)"),
     ("7.3", "'07.3' (Hospital services)"),
-    ("environmental protection", "'Environmental protection'"),
     ("Enviromental protection", "(Environmental protection)"),
 ])
 def test_cofog_suggestions(value, hint):
@@ -188,6 +187,45 @@ def test_cofog_label_found_in_file(extract):
     assert check_cofog("Custom function", raw_path) == "Custom function"
     with pytest.raises(OptionError):
         check_cofog("Custom function")
+
+
+@pytest.mark.parametrize("value, label", [
+    ("environmental protection", "Environmental protection"),
+    ("HOSPITAL SERVICES", "Hospital services"),
+    ("  health ", "Health"),
+])
+def test_cofog_labels_ignore_letter_case(value, label):
+    assert check_cofog(value) == label
+
+
+def test_cofog_label_in_other_letter_case_takes_the_spelling_of_the_file(extract, tmp_path):
+    _, raw_path, _ = extract
+    assert check_cofog("custom FUNCTION", raw_path) == "Custom function"
+    rows = [_series("AAA", "Alpha", "General government", "05", "Environmental Protection", {2000: 1.0})]
+    renamed = tmp_path / "renamed.csv"
+    pd.DataFrame(rows, columns=FIXED_HEADERS_SAMPLE + YEARS).to_csv(renamed, index=False)
+    assert check_cofog("environmental protection", renamed) == "Environmental Protection"
+
+
+def test_cofog_label_that_matches_several_spellings_of_the_file_is_rejected(tmp_path):
+    rows = [_series("AAA", "Alpha", "General government", "99", label, {2000: 1.0}) for label in ("Odd", "ODD")]
+    path = tmp_path / "two.csv"
+    pd.DataFrame(rows, columns=FIXED_HEADERS_SAMPLE + YEARS).to_csv(path, index=False)
+    with pytest.raises(OptionError) as error:
+        check_cofog("odd", path)
+    assert "'ODD', 'Odd'" in error.value.hint
+
+
+def test_run_with_a_label_in_other_letter_case_gives_the_same_master(extract):
+    tmp, raw_path, lookup_path = extract
+    for name, value in (("code", "05"), ("label", "ENVIRONMENTAL protection")):
+        result = runner.invoke(app, ["run", "--source-file", str(raw_path), "--lookup-file", str(lookup_path),
+                                     "--cofog", value, "--output-dir", str(tmp / f"out_{name}"),
+                                     "--split-dir", str(tmp / f"split_{name}")])
+        assert result.exit_code == 0, result.output
+    by_code = _master(tmp / "out_code" / "COFOG_MASTER_SCHEMA.xlsx")
+    pd.testing.assert_frame_equal(by_code, _master(tmp / "out_label" / "COFOG_MASTER_SCHEMA.xlsx"))
+    assert by_code.at["AAA2000", "DATA_05"] == "0.6" and by_code.at["AAA2000", "SOURCE_TIER_05"] == "T3"
 
 
 def test_invalid_cofog_on_command_line(extract):

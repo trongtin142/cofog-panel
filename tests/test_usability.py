@@ -115,9 +115,31 @@ def test_list_cofog(project):
     result = runner.invoke(cli.app, ["list-cofog"])
     assert result.exit_code == 0, result.output
     lines = [line.split() for line in result.output.splitlines()]
-    assert ["05", "2", "Environmental", "protection"] in lines
-    assert ["07.3", "1", "Hospital", "services"] in lines
+    assert ["Code", "Countries", "Listed", "Label"] in lines
+    assert ["05", "2", "2", "Environmental", "protection"] in lines
+    assert ["07.3", "1", "1", "Hospital", "services"] in lines
     assert "3 COFOG functions" in result.output
+
+
+def test_list_cofog_leaves_countries_without_values_out_of_the_first_count(project):
+    path = project / "data" / "gfs_raw_data.xlsx"
+    empty = _row("AFG", "S13", "General government", "05", "Environmental protection", {})
+    pd.concat([pd.read_excel(path), pd.DataFrame([empty])]).to_excel(path, index=False)
+    result = runner.invoke(cli.app, ["list-cofog"])
+    assert result.exit_code == 0, result.output
+    assert ["05", "2", "3", "Environmental", "protection"] in [line.split() for line in result.output.splitlines()]
+
+
+def test_list_cofog_help_explains_both_counts():
+    result = runner.invoke(cli.app, ["list-cofog", "--help"])
+    assert "at least one value" in result.output and "with or without values" in result.output
+
+
+def test_windows_launcher_stops_when_pip_fails():
+    lines = [line.strip() for line in (REPO / "run_gui.bat").read_text().splitlines()]
+    after_install = lines[lines.index('pip install -e ".[gui]"') + 1:lines.index("streamlit run gui.py")]
+    assert after_install[0] == "if errorlevel 1 ("
+    assert "exit /b 1" in after_install[:after_install.index(")")]
 
 
 # --- Errors: two lines, no traceback, exit codes ---
@@ -214,7 +236,7 @@ def test_csv_is_used_when_there_is_no_xlsx(project):
     assert runner.invoke(cli.app, ["check-format"]).exit_code == 0
     result = runner.invoke(cli.app, ["list-cofog"])
     assert result.exit_code == 0 and "gfs_raw_data.csv" in result.output
-    assert ["07.3", "1", "Hospital", "services"] in [line.split() for line in result.output.splitlines()]
+    assert ["07.3", "1", "1", "Hospital", "services"] in [line.split() for line in result.output.splitlines()]
     result = runner.invoke(cli.app, ["run", "--cofog", "Hospital services"])
     assert result.exit_code == 0, result.output
     assert _master(project / "output" / "COFOG_MASTER_SCHEMA.xlsx").at["ALB2015", "DATA_07_3"] == "1.1"

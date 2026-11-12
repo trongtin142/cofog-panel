@@ -4,6 +4,7 @@ matching series to one CSV file per country (AAA.csv) in a directory owned by th
 """
 import csv
 import re
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -119,7 +120,7 @@ def _scan(
 ) -> Tuple[List[str], Dict[str, List[List[str]]], int, List[str]]:
     """
     Stream the extract once and keep the rows of the requested transformation and function.
-    Returns (header, rows by country, number of rows read, PUBLICATION_DATE values of the kept rows).
+    Returns (header, rows by country, number of data rows read, PUBLICATION_DATE values of the kept rows).
     Cells are kept as text.
     """
     with open_rows(source) as rows:
@@ -138,8 +139,8 @@ def _scan(
         skipped: set = set()
         n_no_function = 0
         n_kept = 0
-        n_read = 1
-        for n_read, row in enumerate(rows, start=2):
+        n_read = 0
+        for n_read, row in enumerate(rows, start=1):  # data rows: the header row was read by header_row
             if n_read % _PROGRESS_EVERY == 0:
                 print(f"   ... Processed {n_read} rows. Found {n_kept} valid rows so far.")
             if row[at_type] != transformation:
@@ -279,9 +280,21 @@ def read_split_marker(directory: Path) -> Dict[str, str]:
     return {key.strip(): value.strip() for key, value in pairs}
 
 
-def list_cofog(source_file_path: Path) -> List[Tuple[str, str, int]]:
+def _is_value(cell: Any) -> bool:
+    """True for a cell that holds a finite number, as aggregate reads it; empty, NaN and text cells are missing."""
+    if cell is None:
+        return False
+    try:
+        return Decimal(str(cell).strip()).is_finite()
+    except InvalidOperation:
+        return False
+
+
+def list_cofog(source_file_path: Path) -> List[Tuple[str, str, int, int]]:
     """
-    COFOG functions in an extract: (code, label, number of countries), sorted by code.
+    COFOG functions in an extract, sorted by code: (code, label, countries with at least one value,
+    countries with a series). A value is a finite number in a year column, in any sector and
+    transformation. A series with empty year cells adds its country to the second count only.
     Reads the whole file once (seconds for the CSV download, about a minute for the Excel one).
     """
     with open_rows(source_file_path) as rows:
@@ -290,13 +303,18 @@ def list_cofog(source_file_path: Path) -> List[Tuple[str, str, int]]:
         if missing:
             raise KeyError(missing)
         at_series, at_cofog = header.index("SERIES_CODE"), header.index("COFOG")
-        countries: Dict[Tuple[str, str], set] = {}
+        at_years = [i for i, name in enumerate(header) if len(name) == 4 and name.isdigit()]
+        listed: Dict[Tuple[str, str], set] = {}
+        with_values: Dict[Tuple[str, str], set] = {}
         for row in rows:
             code = _cofog_code_from_series(row[at_series])
             country = _country_of(row[at_series])
             if code is None or not _is_country_code(country):
                 continue
-            label = "" if row[at_cofog] is None else str(row[at_cofog]).strip()
-            countries.setdefault((code, label), set()).add(country)
-    return sorted(((code, label, len(isos)) for (code, label), isos in countries.items()),
+            key = (code, "" if row[at_cofog] is None else str(row[at_cofog]).strip())
+            listed.setdefault(key, set()).add(country)
+            found = with_values.setdefault(key, set())
+            if country not in found and any(_is_value(row[i]) for i in at_years if i < len(row)):
+                found.add(country)
+    return sorted(((code, label, len(with_values[(code, label)]), len(isos)) for (code, label), isos in listed.items()),
                   key=lambda item: ([int(part) for part in item[0].split(".")], item[1]))
