@@ -3,7 +3,15 @@ name: tests
 on:
   push:
     branches: [main]
+    # A release tag gets its own run, so the tag cited in an article shows its own test status
+    tags: ["v*"]
   pull_request:
+  # Started by hand from the Actions tab
+  workflow_dispatch:
+  # Every Monday, so that a new release of pandas, openpyxl, Typer or Streamlit that breaks the
+  # package shows up between commits
+  schedule:
+    - cron: "17 5 * * 1"
 
 jobs:
   pytest:
