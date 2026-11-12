@@ -2,7 +2,7 @@
 Replication of the environmental-spending study (manuscript under review; the reference will be added on
 publication).
 
-Uses the harmonised COFOG 05 panel produced by COFOG-Panel (via the replication in replication/sjiaos, which
+Uses the harmonised COFOG 05 panel produced by COFOG-Panel (via the replication in replication/harmonisation, which
 calls cofog_panel.resolve_value / is_complete) and World Bank WDI / WGI indicators.
 The main sample codes the subnational share as missing for coverage gaps, the countries whose COFOG data cover
 central government alone for all ten functions in every year (see build_panel and paperC_samples.py);
@@ -11,10 +11,10 @@ The specificity tests also read total outlays by subsector from the IMF extract 
 them with the same functions.
 
 Replication script for the environmental-spending study. Run from the repository root, after the
-harmonisation replication (which writes replication/sjiaos/output/harmonised_all_divisions.csv):
-    python replication/sjiaos/evaluate_harmonisation.py
-    python replication/eeps/env_federalism.py
-Outputs: replication/eeps/output/*.csv, *.json, *.png, *.pdf
+harmonisation replication (which writes replication/harmonisation/output/harmonised_all_divisions.csv):
+    python replication/harmonisation/evaluate_harmonisation.py
+    python replication/environment/env_federalism.py
+Outputs: replication/environment/output/*.csv, *.json, *.png, *.pdf
 Every number quoted in the text of the article is written to the tables or to sample_composition.json.
 """
 import hashlib
@@ -38,7 +38,7 @@ REPO = HERE.parents[1]
 EXT = HERE / "data_ext"
 OUT = HERE / "output"
 OUT.mkdir(parents=True, exist_ok=True)
-HARMONISED = REPO / "replication" / "sjiaos" / "output" / "harmonised_all_divisions.csv"
+HARMONISED = REPO / "replication" / "harmonisation" / "output" / "harmonised_all_divisions.csv"
 LOOKUP = REPO / "data" / "country_codes.xlsx"
 RAW = REPO / "data" / "gfs_raw_data.xlsx"
 # SHA-256 of the extract used in the article (IMF.STA:GFS_COFOG 11.0.0, published 3 February 2026)

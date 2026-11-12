@@ -6,12 +6,12 @@ Reproduces all tables and figures of the environmental-spending study (manuscrip
 
 ```bash
 pip install -e .[replication]
-python replication/sjiaos/evaluate_harmonisation.py   # builds the harmonised panel (needs data/gfs_raw_data.xlsx)
-python replication/eeps/fetch_data.py                 # downloads the third-party data not distributed here
-python replication/eeps/run_all.py                    # runs the scripts below in order
+python replication/harmonisation/evaluate_harmonisation.py   # builds the harmonised panel (needs data/gfs_raw_data.xlsx)
+python replication/environment/fetch_data.py                 # downloads the third-party data not distributed here
+python replication/environment/run_all.py                    # runs the scripts below in order
 ```
 
-`run_all.py` runs the scripts in this order, from `replication/eeps`, and writes each console output to `output/run_<step>_log.txt`. All outputs go to `replication/eeps/output/`. The table numbers in some output file names are working labels, and Online Resource 1 numbers its tables in its own order. The run takes about ten minutes, and about two minutes more the first time, when `env_federalism.py` reads the IMF extract.
+`run_all.py` runs the scripts in this order, from `replication/environment`, and writes each console output to `output/run_<step>_log.txt`. All outputs go to `replication/environment/output/`. The table numbers in some output file names are working labels, and Online Resource 1 numbers its tables in its own order. The run takes about ten minutes, and about two minutes more the first time, when `env_federalism.py` reads the IMF extract.
 
 | Step | Script | Outputs |
 | :--- | :--- | :--- |
@@ -50,7 +50,7 @@ A country is central-only when, in every year of its estimation sample, environm
 
 ## Data
 
-- **IMF GFS COFOG.** The harmonised COFOG panel comes from the harmonisation replication (`replication/sjiaos/output/harmonised_all_divisions.csv`), so it needs the IMF extract described in `replication/sjiaos/README.md` (`data/gfs_raw_data.xlsx`, release of 3 February 2026); another release gives different numbers. `env_federalism.py` also reads the extract directly for total outlays by subsector (`TOTOUT_T`), for transfers of a general character between levels of government (`GF0180_T`) and for the six COFOG groups of environmental protection (`GF0510_T` to `GF0560_T`), in per cent of GDP, harmonises them with `cofog_panel.resolve_value` and `is_complete`, and compares the file with the SHA-256 of the extract used in the study. The first run caches the harmonised series in `output/`; the caches are rebuilt when the extract is newer than them.
+- **IMF GFS COFOG.** The harmonised COFOG panel comes from the harmonisation replication (`replication/harmonisation/output/harmonised_all_divisions.csv`), so it needs the IMF extract described in `replication/harmonisation/README.md` (`data/gfs_raw_data.xlsx`, release of 3 February 2026); another release gives different numbers. `env_federalism.py` also reads the extract directly for total outlays by subsector (`TOTOUT_T`), for transfers of a general character between levels of government (`GF0180_T`) and for the six COFOG groups of environmental protection (`GF0510_T` to `GF0560_T`), in per cent of GDP, harmonises them with `cofog_panel.resolve_value` and `is_complete`, and compares the file with the SHA-256 of the extract used in the study. The first run caches the harmonised series in `output/`; the caches are rebuilt when the extract is newer than them.
 - **World Bank** (`data_ext/`): World Development Indicators and Worldwide Governance Indicators, CC BY 4.0, distributed with the repository. The World Bank country metadata (`data_ext/wb_countries.json`) give the current income classification used for the income groups. Six further series used by step 21 were downloaded from the World Bank API on 3 November 2026 (`https://api.worldbank.org/v2/country/all/indicator/<code>?format=json&per_page=20000`, with `source=3` for the WGI series); their SHA-256 are also in `data_ext/CHECKSUMS_r5i.sha256`:
 
   | File | Series | SHA-256 |

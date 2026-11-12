@@ -2,12 +2,12 @@
 Downloads the third-party data of the environmental-spending replication that the repository does not
 distribute, checks each file against the SHA-256 of the copy used in the study, and checks the third-party
 files that the repository includes. Run from any folder:
-    python replication/eeps/fetch_data.py            # download what is missing, then check every file
-    python replication/eeps/fetch_data.py --check    # check only, download nothing
-Files are written below replication/eeps/data_ext/lab/. When a download fails, the script prints the URL and
+    python replication/environment/fetch_data.py            # download what is missing, then check every file
+    python replication/environment/fetch_data.py --check    # check only, download nothing
+Files are written below replication/environment/data_ext/lab/. When a download fails, the script prints the URL and
 the place to save the file by hand. A file that differs from the checksum gives a warning: the provider may
 have revised it, and results can then differ from those of the study. Sources and licences:
-replication/eeps/data_ext/SOURCES.md.
+replication/environment/data_ext/SOURCES.md.
 """
 import argparse
 import hashlib

@@ -2,14 +2,14 @@
 Empirical evaluation of the tiered harmonisation rule for IMF GFS COFOG data.
 
 Replication script for the harmonisation study (manuscript under review). Run from the repository root:
-    python replication/sjiaos/evaluate_harmonisation.py
+    python replication/harmonisation/evaluate_harmonisation.py
 Another IMF release (Excel or CSV) is evaluated with --source FILE --out DIR (see compare_vintages.py).
 
 Inputs : data/gfs_raw_data.xlsx (IMF GFS_COFOG 11.0.0, published 2026-02-03)
          data/country_codes.xlsx
-         replication/sjiaos/data_ext/eurostat_gov10a_exp_S13_TE_pcgdp.tsv  (Eurostat gov_10a_exp)
-         replication/sjiaos/data_ext/wb_NY.GDP.PCAP.PP.KD.json, wb_countries.json (World Bank WDI)
-Outputs: replication/sjiaos/output/table*.csv (manuscript tables), supp_*.csv (supplementary tables),
+         replication/harmonisation/data_ext/eurostat_gov10a_exp_S13_TE_pcgdp.tsv  (Eurostat gov_10a_exp)
+         replication/harmonisation/data_ext/wb_NY.GDP.PCAP.PP.KD.json, wb_countries.json (World Bank WDI)
+Outputs: replication/harmonisation/output/table*.csv (manuscript tables), supp_*.csv (supplementary tables),
          fig*.png, harmonised_all_divisions.csv, results.json
 """
 import argparse
@@ -64,7 +64,7 @@ INK, INK2, GRID = "#0b0b0b", "#52514e", "#e4e3df"
 def check_raw():
     if not RAW.exists():
         sys.exit(f"Missing {RAW}: download the GFS COFOG extract from https://data.imf.org/en/datasets/IMF.STA:GFS_COFOG "
-                 "(see replication/sjiaos/README.md).")
+                 "(see replication/harmonisation/README.md).")
     digest = hashlib.sha256(RAW.read_bytes()).hexdigest()
     if digest != RAW_SHA256:
         print(f"WARNING: {RAW.name} differs from the extract used in the article (SHA-256 {digest[:12]}..., "
