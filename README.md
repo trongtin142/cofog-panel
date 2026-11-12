@@ -14,8 +14,9 @@ The DOI badge points to all versions of the software. Each release also has its 
 For users who prefer a graphical interface (a browser page, no command line options to remember):
 
 1. Install Python 3.10 or later from [python.org](https://www.python.org/) (on Windows, tick "Add Python to PATH").
-2. Start the application: on macOS or Linux run `bash run_gui.sh`, on Windows double-click `run_gui.bat`. The script creates a `.venv` folder, installs the package with the `gui` extra (`pip install -e ".[gui]"`, which adds Streamlit 1.49 or later) and opens the page.
-3. In the page, upload the IMF file, choose the COFOG function, method and transformation in the sidebar, and click **Run Pipeline**. Download the master when it finishes. The page shows the reports and warnings of the stages (the same text the command line prints) in a run log, and the reason when a stage fails.
+2. Get the repository: on GitHub, **Code** > **Download ZIP**, or the archive of a release on Zenodo, and unzip it. On Windows, unzip it to a short path such as `C:\cofog-panel` (see the note on long paths below).
+3. Start the application from that folder: on macOS or Linux run `bash run_gui.sh`, on Windows double-click `run_gui.bat`. The script creates a `.venv` folder, installs the package with the `gui` extra (`pip install -e ".[gui]"`, which adds Streamlit 1.49 or later) and opens the page.
+4. In the page, upload the IMF file, choose the COFOG function, method and transformation in the sidebar, and click **Run Pipeline**. Download the master when it finishes. The page shows the reports and warnings of the stages (the same text the command line prints) in a run log, and the reason when a stage fails.
 
 The GUI runs the same five stages as `cofog-panel run` for one COFOG function from the built-in list, with the default column names. It does not offer `--zero-as-missing`, `--check-ranges`, several functions, `--split-dir` or a country lookup in another format than `.xlsx`; use the command line for those. Each run builds a new master with one indicator: uploaded files and the result live in a temporary folder that is deleted when the run ends, so download the master from the page. To collect several indicators in one master, use `cofog-panel run` (Section 3).
 
@@ -118,7 +119,7 @@ pip install -e ".[replication]"   # adds statsmodels, scipy, matplotlib, linearm
 
 `cofog-panel --version` prints the installed version.
 
-The command-line tool is also on PyPI: `pip install cofog-panel`. The browser interface, the tests and `replication/` come with the repository.
+The command-line tool of a tagged release also installs without a clone, from the tag (`pip install "git+https://github.com/trongtin142/cofog-panel@v1.1.2"`) or from PyPI (`pip install cofog-panel`). The browser interface, the tests and `replication/` come with the repository.
 
 ### Windows (PowerShell)
 
@@ -148,7 +149,7 @@ Options:
 
 * `--cofog` takes a division or group code (`05`, `07.3`) or a label used in the file, in any letter case (`"Environmental protection"` or `"environmental protection"`). A value that is neither is rejected at once, with the closest codes or labels. `cofog-panel list-cofog` lists the codes and labels in the file with two counts (it reads the whole file: seconds for the CSV download, about a minute for the Excel one). `Countries` counts the countries with at least one value for the code, and `Listed` the countries with a series for it, with or without values. A well-formed code that is not in the built-in list (for example `07.99`) is also looked up in the file before the scan and rejected, with the nearest codes, if the file has no series for it; for an Excel download this takes under a second, for a CSV download a few seconds.
 * `--filter-type` is one of `"Percent of GDP"`, `"Domestic currency"` and `"Percent of total outlays"`, in any letter case. Any other value is rejected at once.
-* `--sector` selects the method described in Section 1; `cofog-panel list-sectors` lists the accepted values.
+* `--sector` selects the method described in Section 1, in any letter case; `cofog-panel list-sectors` lists the accepted values.
 
 These checks run before the extract is read, so a mistake is reported within seconds rather than after the scan of the whole file.
 
@@ -212,7 +213,7 @@ The country lookup (`data/country_codes.xlsx`, also bundled in the package as `c
 
 ## 7. Feedback and testing
 
-Reports from users help improve the tool. After a run, please open a short [test report](https://github.com/trongtin142/cofog-panel/issues/new?template=test_report.yml) (version, operating system, command, outcome and what was unclear). Problems go in a [bug report](https://github.com/trongtin142/cofog-panel/issues/new?template=bug_report.yml), and questions or ideas in [Discussions](https://github.com/trongtin142/cofog-panel/discussions).
+Reports from users help improve the tool. After a run, please open a short [test report](https://github.com/trongtin142/cofog-panel/issues/new?template=test_report.yml) (version, operating system, command, outcome and what was unclear). Problems go in a [bug report](https://github.com/trongtin142/cofog-panel/issues/new?template=bug_report.yml), and questions or ideas in [Discussions](https://github.com/trongtin142/cofog-panel/discussions). `CONTRIBUTING.md` describes the development setup, pull requests and releases.
 
 ## 8. Citation
 
