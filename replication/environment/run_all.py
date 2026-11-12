@@ -2,10 +2,10 @@
 Runs the replication of the environmental-spending study (manuscript under review; the reference will be added
 on publication) and of its Online Resource 1, in order. Run from the repository root, after the
 harmonisation replication and fetch_data.py:
-    python replication/sjiaos/evaluate_harmonisation.py
-    python replication/eeps/fetch_data.py
-    python replication/eeps/run_all.py
-Each step writes its console output to replication/eeps/output/run_<step>_log.txt and the run stops at the first
+    python replication/harmonisation/evaluate_harmonisation.py
+    python replication/environment/fetch_data.py
+    python replication/environment/run_all.py
+Each step writes its console output to replication/environment/output/run_<step>_log.txt and the run stops at the first
 step that fails. The event study (paperC_ext_es.py, 999 bootstrap samples) takes a few minutes.
 """
 import subprocess
@@ -17,7 +17,7 @@ REPO = HERE.parents[1]
 OUT = "output"
 GBDMAPS = "data_ext/lab/gbdmaps/41467_2021_23853_MOESM4_ESM.xlsx"
 
-# (log name, script, arguments, isolated mode); arguments are relative to replication/eeps
+# (log name, script, arguments, isolated mode); arguments are relative to replication/environment
 STEPS = [
     ("run_log.txt", "env_federalism.py", [], False),
     ("run_esm_wofi_log.txt", "paperC_esm_wofi.py",
@@ -54,15 +54,15 @@ NEEDED = ["data_ext/lab/RAI_country-april-2021.xlsx", "data_ext/lab/rugged/rugge
           "data_ext/lab/ceds/BC_CEDS_estimates_by_country_sector_v_2025_03_18.csv",
           "data_ext/lab/r3c/ceds/SO2_CEDS_estimates_by_country_sector_v_2025_03_18.csv",
           str(REPO / "data" / "gfs_raw_data.xlsx"),
-          str(REPO / "replication" / "sjiaos" / "output" / "harmonised_all_divisions.csv")]
+          str(REPO / "replication" / "harmonisation" / "output" / "harmonised_all_divisions.csv")]
 
 
 def main() -> int:
     missing = [f for f in NEEDED if not (HERE / f).exists()]
     if missing:
         print("Missing input files:\n  " + "\n  ".join(missing))
-        print("Run replication/sjiaos/evaluate_harmonisation.py and replication/eeps/fetch_data.py first "
-              "(see replication/eeps/README.md).")
+        print("Run replication/harmonisation/evaluate_harmonisation.py and replication/environment/fetch_data.py first "
+              "(see replication/environment/README.md).")
         return 1
     (HERE / OUT).mkdir(exist_ok=True)
     for log, script, args, isolated in STEPS:

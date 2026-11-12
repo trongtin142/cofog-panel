@@ -37,7 +37,7 @@ Conventions to keep:
 
 `gui.py` (optional extra `gui`, Streamlit) calls the same stage functions as `run` for one built-in COFOG function with default column names, in a new temporary folder per run (always a new master; no `--zero-as-missing`, `--check-ranges`, `--split-dir`, several functions or non-xlsx lookup); `tests/test_gui.py` drives it with Streamlit's AppTest.
 
-`replication/` (`sjiaos/`, `eeps/`) holds scripts reproducing published analyses, each with own README; `cofog.ipynb` is a notebook demo. IMF data is not MIT-licensed (`DATA_LICENSE.md`); the code licence is `LICENSE.txt`. IMF revises releases in place, so report `PUBLICATION_DATE`. Release process: update `CHANGELOG.md`, `CITATION.cff` (version, date, Zenodo DOIs), `__version__`, the `RELEASE` pin in `cofog.ipynb` and the version placeholder in `.github/ISSUE_TEMPLATE/test_report.yml`.
+`replication/` (`harmonisation/`, `environment/`) holds scripts reproducing published analyses, each with own README; `cofog.ipynb` is a notebook demo. IMF data is not MIT-licensed (`DATA_LICENSE.md`); the code licence is `LICENSE.txt`. IMF revises releases in place, so report `PUBLICATION_DATE`. Release process: update `CHANGELOG.md`, `CITATION.cff` (version, date, Zenodo DOIs), `__version__`, the `RELEASE` pin in `cofog.ipynb` and the version placeholder in `.github/ISSUE_TEMPLATE/test_report.yml`.
 
 ## Document map (read before editing)
 

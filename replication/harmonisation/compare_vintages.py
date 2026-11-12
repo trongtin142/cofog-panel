@@ -1,14 +1,14 @@
 """
-Robustness of the SJIAOS results to the IMF release (Supplementary Table S13).
+Robustness of the results of the harmonisation study to the IMF release (Supplementary Table S13).
 
 Runs evaluate_harmonisation.py on a second IMF GFS COFOG extract and compares its main statistics with
 the outputs for the article extract. Run from the repository root, after evaluate_harmonisation.py:
-    python replication/sjiaos/compare_vintages.py --source data/gfs_raw_data_2026-10-21.csv
+    python replication/harmonisation/compare_vintages.py --source data/gfs_raw_data_2026-10-21.csv
 
-Inputs : replication/sjiaos/output/ (article extract, published 2026-02-03)
+Inputs : replication/harmonisation/output/ (article extract, published 2026-02-03)
          --source: the second extract (Excel or CSV), e.g. the release published 2026-10-21
-Outputs: replication/sjiaos/output_vintage/ (all tables for the second extract)
-         replication/sjiaos/output/supp_vintage.csv (Supplementary Table S13)
+Outputs: replication/harmonisation/output_vintage/ (all tables for the second extract)
+         replication/harmonisation/output/supp_vintage.csv (Supplementary Table S13)
 """
 import argparse
 import json
@@ -71,7 +71,7 @@ def main():
     ap.add_argument("--new-label", default="Release of 21 October 2026")
     args = ap.parse_args()
     if not (BASE / "results.json").exists():
-        sys.exit(f"Missing {BASE / 'results.json'}: run replication/sjiaos/evaluate_harmonisation.py first.")
+        sys.exit(f"Missing {BASE / 'results.json'}: run replication/harmonisation/evaluate_harmonisation.py first.")
     subprocess.run([sys.executable, str(HERE / "evaluate_harmonisation.py"), "--source", str(args.source),
                     "--out", str(args.out)], check=True, stdout=subprocess.DEVNULL)
 

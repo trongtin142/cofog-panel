@@ -35,11 +35,11 @@ replication/*/output_*/
 data/gfs_raw_data*.xlsx
 data/gfs_raw_data*.csv
 
-# Third-party data of replication/eeps that the repository does not distribute
-# (downloaded by replication/eeps/fetch_data.py; see replication/eeps/data_ext/SOURCES.md)
-replication/eeps/data_ext/lab/_downloads/
-replication/eeps/data_ext/lab/RAI_country-april-2021.xlsx
-replication/eeps/data_ext/lab/rugged/
-replication/eeps/data_ext/lab/ceds/
-replication/eeps/data_ext/lab/r3c/ceds/
-replication/eeps/data_ext/lab/sngwofi/
+# Third-party data of replication/environment that the repository does not distribute
+# (downloaded by replication/environment/fetch_data.py; see replication/environment/data_ext/SOURCES.md)
+replication/environment/data_ext/lab/_downloads/
+replication/environment/data_ext/lab/RAI_country-april-2021.xlsx
+replication/environment/data_ext/lab/rugged/
+replication/environment/data_ext/lab/ceds/
+replication/environment/data_ext/lab/r3c/ceds/
+replication/environment/data_ext/lab/sngwofi/

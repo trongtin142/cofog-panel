@@ -7,9 +7,9 @@ country reports in some year but not in this year makes the share missing.
 Usage (from any folder):
     python -I paperC_esm_wofi.py <repository_root> <sng_wofi_cofog_csv> <out_dir>
 
-<repository_root>     the repository root (reads replication/eeps/output/paperC_panel.csv,
-                      replication/sjiaos/output/harmonised_all_divisions.csv,
-                      replication/sjiaos/output/table4_overlap.csv, data/country_codes.xlsx)
+<repository_root>     the repository root (reads replication/environment/output/paperC_panel.csv,
+                      replication/harmonisation/output/harmonised_all_divisions.csv,
+                      replication/harmonisation/output/table4_overlap.csv, data/country_codes.xlsx)
 <sng_wofi_cofog_csv>  OECD SDMX download of OECD.CFE.RDG,DSD_SNG_WOFI@DF_COFOG,1.0 (csvfilewithlabels)
 <out_dir>             where the CSV and JSON outputs are written
 """
@@ -30,7 +30,7 @@ SG, LG = "state government", "local government"
 BASE_NEEDED = ["lnPM", "lnENV", "lnY", "IND", "URB", "TRADE", "lnDENS", "GE", "SUBREGION"]
 
 # ---------------------------------------------------------------- estimation sample (Table 2, col. 3)
-p = pd.read_csv(ROOT / "replication/eeps/output/paperC_panel.csv")
+p = pd.read_csv(ROOT / "replication/environment/output/paperC_panel.csv")
 s = p[p["COMPLETE_L1"]].dropna(subset=BASE_NEEDED + ["SUB"]).copy()
 # The harmonised panel with coverage gaps coded as zero (108 countries): the country list covers all of it
 s0 = p[p["COMPLETE_L1"]].dropna(subset=BASE_NEEDED + ["SUB0"]).copy()
@@ -66,7 +66,7 @@ print("obs", tab["Obs"].sum(), "central-only", tab["Central_only"].sum(),
 tab.to_csv(OUT / "ESM1_TableS1_countries.csv", index=False, encoding="utf-8")
 
 # ---------------------------------------------------------------- subnational share in a given year
-h = pd.read_csv(ROOT / "replication/sjiaos/output/harmonised_all_divisions.csv", dtype={"DIV": str})
+h = pd.read_csv(ROOT / "replication/harmonisation/output/harmonised_all_divisions.csv", dtype={"DIV": str})
 e = h[h["DIV"] == "05"].copy()
 sub = e[[SG, LG]].fillna(0).sum(axis=1)
 central = e[CGSS].fillna(e[[CGXSS, SSF]].sum(axis=1, min_count=1).where(e[CGXSS].notna()))
@@ -162,7 +162,7 @@ res["central_only"] = {
 }
 
 # ---------------------------------------------------------------- gap between subsector sums and GG (COFOG 05)
-ov = pd.read_csv(ROOT / "replication/sjiaos/output/table4_overlap.csv", dtype={"DIV": str})
+ov = pd.read_csv(ROOT / "replication/harmonisation/output/table4_overlap.csv", dtype={"DIV": str})
 ov = ov[ov["DIV"] == "05"]
 ov.to_csv(OUT / "ESM1_TableS2_gap_GG_05.csv", index=False, encoding="utf-8")
 res["gap_GG_05"] = ov.drop(columns=["DIV", "Function"]).to_dict(orient="records")

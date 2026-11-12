@@ -3,13 +3,13 @@ Two extensions of the harmonisation study: consequences of the filling choice on
 (Analysis A) and the recording of consolidation in COFOG group 01.8 (Analysis B).
 
 Run from the repository root, after or instead of evaluate_harmonisation.py:
-    python replication/sjiaos/evaluate_extensions.py [--source FILE] [--out DIR]
+    python replication/harmonisation/evaluate_extensions.py [--source FILE] [--out DIR]
 
 Inputs : data/gfs_raw_data.xlsx (IMF GFS_COFOG 11.0.0, published 2026-02-03; SHA-256 checked)
          data/country_codes.xlsx (UN M49 regions)
-         replication/sjiaos/data_ext/wb_NY.GDP.PCAP.PP.KD.json (World Bank WDI)
-         replication/sjiaos/data_ext/eurostat_gov10a_exp_S13_TE_pcgdp.tsv (Eurostat gov_10a_exp)
-Outputs: ext_*.csv and fig1_coverage_09.png in --out (default replication/sjiaos/output_ext)
+         replication/harmonisation/data_ext/wb_NY.GDP.PCAP.PP.KD.json (World Bank WDI)
+         replication/harmonisation/data_ext/eurostat_gov10a_exp_S13_TE_pcgdp.tsv (Eurostat gov_10a_exp)
+Outputs: ext_*.csv and fig1_coverage_09.png in --out (default replication/harmonisation/output_ext)
 
 Every tier, sum and completeness flag comes from evaluate_harmonisation.harmonise, which calls
 cofog_panel.resolve_value and cofog_panel.aggregate.is_complete. The script is deterministic:
@@ -694,7 +694,7 @@ def checks(h: pd.DataFrame, a1: pd.DataFrame, c: pd.DataFrame) -> pd.DataFrame:
             rows.append({"DIV": dv, "Table S4 estimator": est, "S4 N": t["N"], "Here N": a["N"],
                          "S4 median ratio": t["Median ratio"], "Here median ratio": round(a["Median ratio"], 3),
                          "Match": bool(t["N"] == a["N"] and abs(t["Median ratio"] - round(a["Median ratio"], 3)) < 1e-9)})
-    published = REPO / "replication" / "sjiaos" / "output" / "table4_overlap.csv"
+    published = REPO / "replication" / "harmonisation" / "output" / "table4_overlap.csv"
     if published.exists():
         norm = lambda s: s.replace("\r\n", "\n").strip()  # noqa: E731
         same = norm(published.read_text(encoding="utf8")) == norm(t4.to_csv(index=False))
@@ -711,7 +711,7 @@ def checks(h: pd.DataFrame, a1: pd.DataFrame, c: pd.DataFrame) -> pd.DataFrame:
                      "S4 N": len(x), "Here N": int(x[f"SPL{d}"].notna().sum()),
                      "Match": bool(x[f"SPL{d}"].notna().all() and diff <= 1e-12)})
     # Coverage table and figure: the division-05 versions reproduce the published Table 3 and Figure 1
-    out = REPO / "replication" / "sjiaos" / "output"
+    out = REPO / "replication" / "harmonisation" / "output"
     if (out / "table3_region_05.csv").exists():
         norm = lambda s: s.replace("\r\n", "\n").strip()  # noqa: E731
         same = norm((out / "table3_region_05.csv").read_text(encoding="utf8")) == norm(
