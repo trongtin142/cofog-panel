@@ -45,11 +45,14 @@ Stage numbers follow the `[Stage n/5]` log lines and module docstrings. `AGENTS.
 | `etl.py` | Filter by transformation + COFOG; write per-country files; split marker; list countries missing from the lookup; `IMF_TO_ISO` (from `data/imf_country_codes.csv`) | `source`, `options`, `checks` |
 | `aggregate.py` | Selection rule, completeness flag, write master | `etl` (`COUNTRY_FILE_PATTERN`), `messages` |
 | `messages.py` | `print_error` two-line format, shared hints | none |
+| `provenance.py` | `record_run`: the sheet `Provenance` of the master (one row per function and run: version, source SHA-256 and size, `PUBLICATION_DATE`, command and options, UTC time, columns created); `read_provenance` | `aggregate` (column names) |
+| `api.py` | `build_panel`: the five stages in a temporary folder, the master returned as a tidy DataFrame with the provenance columns and `attrs["provenance"]` | the stage modules, `provenance` |
+| `gui.py` | Streamlit page (`main()`), started by `cofog-panel gui` or the root shim `gui.py` | the stage modules, `provenance`, streamlit |
 
 ## Data model
 
 - **Extract**: ~372k rows, one per series. Used columns: `SERIES_CODE` (country = first dot-field, kept only if three letters, COFOG = 4th dot field, e.g. `GF0510_T` -> `05.1`; the extract also carries series of other indicators, total outlays `TOA_T`/`TOTOUT_T` and a liability series, with an empty `COFOG` label, which `split` skips without counting them as rows without a function), `TYPE_OF_TRANSFORMATION`, `COFOG` (label), `SECTOR`, year columns 1972+.
-- **Master**: sheet `MasterData`, key `SortKey = ISO3 + year` (`ARM2019`). Default years 1972-2025. IMF codes `KOS`, `WBG` map to `XKX`, `PSE` (`IMF_TO_ISO`).
+- **Master**: sheet `MasterData`, key `SortKey = ISO3 + year` (`ARM2019`); `run`, the GUI and `build_panel` add the sheet `Provenance` (`provenance.record_run`) after stage 5, and keep its rows from earlier runs. Default years 1972-2025. IMF codes `KOS`, `WBG` map to `XKX`, `PSE` (`IMF_TO_ISO`).
 - **Split directory**: `AAA.csv` per country (UTF-8 with BOM; `etl.country_files` also finds `AAA.xlsx` from splits made up to 1.0.5, CSV preferred), plus `.cofog_panel_split` recording `cofog=`, `transformation=`, `publication_date=` (selected series, comma-separated if several) and `years=FIRST-LAST`. `etl` deletes country files only in a directory that has the marker (or is empty). `aggregate` reads the marker to name the data column.
 - **Output columns** per indicator, suffix from the COFOG code (`DATA_05`, `DATA_07_3`): data, `SOURCE_TIER_<s>`, `SOURCE_SECTORS_<s>`, `SOURCE_COMPLETE_<s>`. `DATA_NEW` keeps unsuffixed names. Naming lives in `aggregate._suffix`, `tier_column`, `provenance_columns`, and `options.data_column_for`.
 
@@ -103,4 +106,4 @@ Per country: `_read_country_file` (first series per sector, warns when later ser
 
 ## Outside the package
 
-`replication/harmonisation/`, `replication/environment/`: scripts reproducing published analyses, each with its own README. Selection-rule changes alter their numbers; rerun and state whether outputs changed. `cofog.ipynb`: notebook demo. `gui.py`: optional Streamlit page (extra `gui`, Streamlit 1.49 or later) that calls the same stage functions as `cli.run` for one built-in function with the default column names; each run works in a new temporary folder, so it always builds a new master (no `--overwrite-master` to offer). Launched by `run_gui.sh` / `run_gui.bat`. The code is MIT-licensed (`LICENSE.txt`); IMF data is not (`DATA_LICENSE.md`).
+`replication/harmonisation/`, `replication/environment/`: scripts reproducing published analyses, each with its own README. Selection-rule changes alter their numbers; rerun and state whether outputs changed. `cofog.ipynb`: notebook demo. `cofog_panel/gui.py` (root `gui.py` is a shim for `streamlit run gui.py` and the launchers): optional Streamlit page (extra `gui`, Streamlit 1.49 or later) that calls the same stage functions as `cli.run` for one built-in function with the default column names; each run works in a new temporary folder, so it always builds a new master (no `--overwrite-master` to offer). Launched by `run_gui.sh` / `run_gui.bat`. The code is MIT-licensed (`LICENSE.txt`); IMF data is not (`DATA_LICENSE.md`).

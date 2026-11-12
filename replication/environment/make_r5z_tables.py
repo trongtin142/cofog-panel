@@ -1,4 +1,4 @@
-"""Markdown for the paper (Table 5) and Online Resource 1 (rows of Table S7, panel B of Table S5) from r5z outputs."""
+"""Markdown for the paper (Table 5) and the supplementary material (rows of Table S7, panel B of Table S5) from r5z outputs."""
 import re
 from pathlib import Path
 
@@ -44,7 +44,7 @@ S7 = [("Adds tier indicators", "Adds tier indicators"),
        "ln ENV as the unconsolidated sum of central, state and local government")]
 head = ["| Specification | N | Countries | SUB | SUB × GE | 25 pp at GE = −0.355 (%) |", "|---|---|---|---|---|---|"]
 out = ["## Table 5 (main text)", ""] + head + [line(a, b) for a, b in T5]
-out += ["", "## Rows for Table S7 (Online Resource 1)", ""] + head + [line(a, b) for a, b in S7]
+out += ["", "## Rows for Table S7 (supplementary material)", ""] + head + [line(a, b) for a, b in S7]
 
 NAMES = {"PAK": "Pakistan", "BGD": "Bangladesh", "ARE": "United Arab Emirates", "BIH": "Bosnia and Herzegovina", "CAN": "Canada", "COM": "Comoros",
          "ETH": "Ethiopia", "IND": "India", "KNA": "Saint Kitts and Nevis", "MEX": "Mexico", "MYS": "Malaysia",
@@ -56,7 +56,7 @@ WHY = {"coverage gap: COFOG data for central government alone, share coded as mi
        "general government values only, without subsector values": "General government values without subsector values, so the share cannot be computed",
        "no complete value": "Subsector values only, none complete",
        "missing in the years with a share: TRADE": "Trade openness missing in its one year with a complete value"}
-out += ["", "## Panel B of Table S5 (Online Resource 1)", "",
+out += ["", "## Panel B of Table S5 (supplementary material)", "",
         "| ISO3 | Country | Among the ten most populous | Years with a COFOG 05 value | Of these, positive and complete | Reason |",
         "|---|---|---|---|---|---|"]
 for _, x in fed[fed["Reason"] != "in sample"].iterrows():

@@ -1,7 +1,7 @@
 """
 Environmental-spending study: further estimates (central-only countries, other functions, diversity of local conditions, influence of single countries).
 
-    python paperC_ext_r2.py [--main PATH_TO_env_federalism.py] [--ext DIR_WITH_PROXIES] [--out DIR]
+    python ext_r2.py [--main PATH_TO_env_federalism.py] [--ext DIR_WITH_PROXIES] [--out DIR]
 
 (1) Table 2, column (4): without the 36 countries that report central data alone.
 (2) Placebo shares (education, recreation/culture/religion) without those countries, with Wald tests.

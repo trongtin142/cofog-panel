@@ -2,7 +2,7 @@
 Environmental-spending study, instrumental-variable estimates of the association between the subnational share of environmental
 spending (SUB) and ln PM2.5 exposure.
 
-    python paperC_ext_iv.py [OUT_DIR]
+    python ext_iv.py [OUT_DIR]
 
 Reads the panel of env_federalism.py (build_panel, _sample, FEDERAL, CONTROLS) and the Regional
 Authority Index (Hooghe et al. 2016), country file of April 2021:

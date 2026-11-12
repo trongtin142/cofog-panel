@@ -1,7 +1,7 @@
 """
-Environmental-spending study: counts cited in the text that no table of the paper shows (Online Resource 1).
+Environmental-spending study: counts cited in the text that no table of the paper shows (supplementary material).
 
-    python paperC_ext_r3_counts.py [--out DIR]
+    python ext_r3_counts.py [--out DIR]
 
 Reads paperC_panel.csv, sample_composition.json, extensions.json and anthro_results.json in DIR and writes tab_counts.csv and tab_counts_markdown.md there.
 """

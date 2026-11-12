@@ -1,11 +1,11 @@
 """
-Online Resource 1 of the environmental-spending study: country table, comparison of the subnational share with SNG-WOFI,
+Supplementary material of the environmental-spending study: country table, comparison of the subnational share with SNG-WOFI,
 and the gap between subsector sums and general government values for environmental protection.
 The subnational share follows the rule of env_federalism.subnational_share: a subnational level that the
 country reports in some year but not in this year makes the share missing.
 
 Usage (from any folder):
-    python -I paperC_esm_wofi.py <repository_root> <sng_wofi_cofog_csv> <out_dir>
+    python -I esm_wofi.py <repository_root> <sng_wofi_cofog_csv> <out_dir>
 
 <repository_root>     the repository root (reads replication/environment/output/paperC_panel.csv,
                       replication/harmonisation/output/harmonised_all_divisions.csv,

@@ -1,6 +1,6 @@
 """Environmental-spending study: is the association specific to environmental spending?
 
-    python paperC_ext_r5f.py [--main PATH_TO_env_federalism.py] [--out DIR]
+    python ext_r5f.py [--main PATH_TO_env_federalism.py] [--out DIR]
 
 (1) Subnational share of each COFOG division 01-10 in place of the environmental share (Table 2, column 3).
 (2) The baseline on the same observations.

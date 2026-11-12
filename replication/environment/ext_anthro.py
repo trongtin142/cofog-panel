@@ -5,7 +5,7 @@ Uses the 2017 source contributions of GBD-MAPS (McDuffie et al. 2021, Nat Commun
 to remove windblown dust and the remaining natural sources (sea salt, biogenic, volcanic, lightning, soil NOx)
 from population-weighted PM2.5.
 
-    python paperC_ext_anthro.py --main <path to env_federalism.py> --gbdmaps <MOESM4 xlsx> --out <dir>
+    python ext_anthro.py --main <path to env_federalism.py> --gbdmaps <MOESM4 xlsx> --out <dir>
 """
 import argparse
 import hashlib

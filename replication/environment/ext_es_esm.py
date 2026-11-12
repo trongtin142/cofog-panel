@@ -1,4 +1,4 @@
-"""Write the Online Resource section S6 (event study) from the outputs of paperC_ext_es.py."""
+"""Write section S6 (event study) of the supplementary material from the outputs of ext_es.py."""
 import json
 import sys
 from pathlib import Path

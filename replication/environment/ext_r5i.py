@@ -1,9 +1,9 @@
 """Environmental-spending study, further estimates on the moderator, functional form, omitted variables, the
 sources of exposure, structural controls and inference.
 
-    python paperC_ext_r5i.py [--main PATH_TO_env_federalism.py] [--data DATA_EXT] [--out DIR]
+    python ext_r5i.py [--main PATH_TO_env_federalism.py] [--data DATA_EXT] [--out DIR]
 
-Reads the panel of env_federalism.py and the GBD-MAPS reader of paperC_ext_anthro.py (same folder as --main).
+Reads the panel of env_federalism.py and the GBD-MAPS reader of ext_anthro.py (same folder as --main).
 Additional World Bank series (WDI and WGI, World Bank API, 3 November 2026) are in data_ext/ (--data), with
 SHA-256 in data_ext/CHECKSUMS_r5i.sha256. Writes r5i_* files to --out (default output).
 """
@@ -41,7 +41,7 @@ def load(path: Path, name: str):
 
 
 pc = load(ANALYSIS / "env_federalism.py", "pc")
-an = load(ANALYSIS / "paperC_ext_anthro.py", "an")
+an = load(ANALYSIS / "ext_anthro.py", "an")
 CTRL = pc.CONTROLS
 
 
