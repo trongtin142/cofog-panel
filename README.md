@@ -59,7 +59,7 @@ The panel is written to `output/COFOG_MASTER_SCHEMA.xlsx` (sheet `MasterData`). 
 
 Values are in per cent of GDP (rounded here; the file keeps all digits). They come from the release published on 3 February 2026; a later download gives revised values.
 
-To reproduce these rows, run the command on the Excel download of the release of 3 February 2026 (SHA-256 `91e3db1bdb838f322dcbe648b133f511f3efe1921e50c8bc0d7621f512668cfe`, recorded in `replication/sjiaos/README.md`). The IMF has since replaced that release with revised values, so the portal now serves a different file. That README says how to obtain the February extract.
+To reproduce these rows, run the command on the Excel download of the release of 3 February 2026 (SHA-256 `91e3db1bdb838f322dcbe648b133f511f3efe1921e50c8bc0d7621f512668cfe`, recorded in `replication/harmonisation/README.md`). The IMF has since replaced that release with revised values, so the portal now serves a different file. That README says how to obtain the February extract.
 
 * **T1**: general government (GG) as reported. **T2**: central government including social security (CGSS) plus the state and local levels that are reported. **T3**: the central government components (budgetary BCG, extrabudgetary EBCG, social security funds SSF) plus state (SG) and local (LG) government, when neither GG nor CGSS is reported.
 * **Y / N**: `Y` when the value covers every level of government that the country reports in its series; `N` when a level is missing (Armenia 2014 lacks the local level it reports in other years), so the value understates spending.
