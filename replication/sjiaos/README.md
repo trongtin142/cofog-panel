@@ -36,3 +36,20 @@ python replication/sjiaos/compare_vintages.py --source data/gfs_raw_data_2026-10
 ```
 
 The script evaluates the second extract into `replication/sjiaos/output_vintage/` and writes `supp_vintage.csv` (Supplementary Table S13) to `replication/sjiaos/output/`: the main statistics of Tables 2, 4, 5 and 7 for both releases and their difference. The release used for S13 was published on 21 October 2026 (SHA-256 of the CSV download `886911700a5ff2a7076935b96d4d40a2751ae3a5003ea40dfbd24329c589ef36`). Runtime is about three minutes.
+
+## Further analyses (`evaluate_extensions.py`)
+
+The script imports `evaluate_harmonisation.py` from this folder and calls the package unchanged. It runs after or instead of that script, from the repository root:
+
+```bash
+python replication/sjiaos/evaluate_extensions.py [--source FILE] [--out DIR]
+```
+
+Requirements and inputs are those of `evaluate_harmonisation.py`: the February 2026 extract `data/gfs_raw_data.xlsx` (its SHA-256 is checked at the start, with a warning if it differs), `data/country_codes.xlsx` and `data_ext/`. Outputs go to `replication/sjiaos/output_ext/` by default:
+
+- `ext_a1_*`, `ext_a2_*`, `ext_a3_*`: general government values against CGSS alone, complete T2 and T3 sums and spliced values on fixed samples for health, education, social protection and their sums, central against tiered values without general government by region, and the shortfall of health and education spending in percentage points of GDP.
+- `ext_b0_*` to `ext_b4_*`: coverage of groups 01.7 and 01.8 by subsector, the gap in division 01 against the gap in group 01.8, group 01.8 where general government equals the subsector sum, recording practices by country, and checks of alternative readings. `ext_b_country_years.csv` holds the country-year detail.
+- `ext_table3_region_09.csv`, `ext_fig1_coverage_09_counts.csv`, `fig1_coverage_09.png`: Table 3 and Figure 1 for education (COFOG 09).
+- `ext_checks.csv`: agreement with Tables 3, 4 and 5 and Figure 1 of `evaluate_harmonisation.py`.
+
+The script is deterministic: the country-cluster bootstrap uses 1,000 replications and seed 20260203. The first run takes about 90 seconds, most of it to read the Excel extract. Later runs take about 15 seconds, from a cache of the extract (`_ext_long_<sha>.pkl`) in the output folder, which `.gitignore` keeps out of the repository.
