@@ -134,10 +134,13 @@ def _guarded(command):
 
 
 def _valid_sector(sector: str) -> str:
-    if sector not in VALID_SECTORS:
-        _stop(f"Invalid --sector '{sector}'. Choose one of: {VALID_SECTORS}",
-              "Run 'cofog-panel list-sectors' for the accepted values (letter case matters).")
-    return sector
+    """Returns the --sector value as spelt in VALID_SECTORS, letter case ignored, as for --filter-type."""
+    spelling = {name.casefold(): name for name in VALID_SECTORS}.get(sector.strip().casefold())
+    if spelling is None:
+        _stop(f"Invalid --sector '{sector}'.",
+              "Choose one of: " + ", ".join(f"'{name}'" for name in VALID_SECTORS)
+              + " (letter case does not matter); 'cofog-panel list-sectors' describes them.")
+    return spelling
 
 
 def _require_source(source_file: Path) -> None:
@@ -151,7 +154,7 @@ def _require_source(source_file: Path) -> None:
 @_guarded
 def list_sectors() -> None:
     """Lists the accepted values of --sector and --filter-type."""
-    typer.echo("--sector (aggregation method):")
+    typer.echo("--sector (aggregation method, letter case ignored):")
     for name in VALID_SECTORS:
         method = SECTOR_METHODS.get(name, "this sector only (tier D)" if name in DIRECT_SECTORS else "")
         typer.echo(f"  {name:<46} {method}")
@@ -271,7 +274,7 @@ def aggregate(
     check_ranges: CheckRanges = False,
 ) -> None:
     """Applies the tiered selection rule and writes values and provenance to the Master file."""
-    _valid_sector(sector)
+    sector = _valid_sector(sector)
     if data_col is None:
         recorded = read_split_marker(folder_path).get("cofog", "")
         data_col = data_column_for(recorded) if recorded and "," not in recorded else DEFAULT_DATA_COL
@@ -311,7 +314,7 @@ def run(
 ) -> None:
     """Runs the full pipeline sequentially (stages 1 -> 5) using local files."""
     source_file = source_file or default_source()
-    _valid_sector(sector)
+    sector = _valid_sector(sector)
     transformation = normalise_transformation(filter_type)
     selectors = [check_cofog(value, source_file) for value in cofog]
     several = len(selectors) > 1

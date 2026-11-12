@@ -175,7 +175,23 @@ def test_wrong_cofog(project):
 
 
 def test_wrong_sector(project):
-    _assert_friendly(runner.invoke(cli.app, ["run", "--cofog", "05", "--sector", "general government"]))
+    result = runner.invoke(cli.app, ["run", "--cofog", "05", "--sector", "general govt"])
+    _assert_friendly(result)
+    assert "'Local Government'" in result.output and "list-sectors" in result.output
+
+
+def test_sector_ignores_letter_case(project):
+    result = runner.invoke(cli.app, ["run", "--cofog", "05", "--sector", "general government"])
+    assert result.exit_code == 0, result.output
+    master = _master(project / "output" / "COFOG_MASTER_SCHEMA.xlsx")
+    assert master.loc["ARM2013", "SOURCE_TIER_05"] == "T1"
+    assert master.loc["ARM2014", "SOURCE_TIER_05"] == "T3"
+    result = runner.invoke(cli.app, ["aggregate", "--master-file", "output/COFOG_MASTER_SCHEMA.xlsx",
+                                     "--folder-path", "intermediate_splits", "--sector", "BUDGETARY central government",
+                                     "--data-col", "DATA_BCG"])
+    assert result.exit_code == 0, result.output
+    master = _master(project / "output" / "COFOG_MASTER_SCHEMA.xlsx")
+    assert master.loc["ARM2014", "SOURCE_TIER_BCG"] == "D"
 
 
 def test_foreign_split_directory(project):
