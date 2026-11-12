@@ -7,5 +7,6 @@ replication/environment/data_ext/lab/** -text
 replication/environment/data_ext/*.json -text
 replication/environment/data_ext/CHECKSUMS_r5i.sha256 -text
 
-# Distributed data whose SHA-256 is recorded (replication/harmonisation/data_ext/SOURCES.md)
+# Distributed data whose SHA-256 is recorded (data/sample/README.md, replication/harmonisation/data_ext/SOURCES.md)
+data/sample/*.csv -text
 replication/harmonisation/data_ext/*.csv -text

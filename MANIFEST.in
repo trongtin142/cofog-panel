@@ -2,4 +2,6 @@
 include CITATION.cff CHANGELOG.md DATA_LICENSE.md requirements.txt requirements-dev.txt
 include gui.py run_gui.sh run_gui.bat .streamlit/config.toml
 include data/country_codes.xlsx
+# Sample extract (COFOG 07.3, IMF release of 3 February 2026) for the quick start and tests/test_sample.py
+include data/sample/gfs_cofog_073_sample.csv data/sample/README.md data/sample/make_sample.py
 recursive-include tests *.py
