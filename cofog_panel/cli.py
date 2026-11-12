@@ -422,7 +422,7 @@ def gui(
     port: Annotated[Optional[int], typer.Option("--port", help="Port of the local server (Streamlit's default, 8501, if not given).")] = None,
     headless: Annotated[bool, typer.Option("--headless", help="Start the server without opening a browser window.")] = False,
 ) -> None:
-    """Starts the browser interface in the default browser (needs the gui extra: pip install "cofog-panel[gui]")."""
+    """Starts the browser interface in the default browser (needs Streamlit, from the gui extra of the package)."""
     if not _has_streamlit():
         _stop("Streamlit is not installed, so the browser interface cannot start.",
               'Install the gui extra: pip install "cofog-panel[gui]" (in a clone: pip install -e ".[gui]").')
