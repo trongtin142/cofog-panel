@@ -3,7 +3,7 @@
 `gfs_cofog_073_sample.csv` holds the rows of the IMF GFS COFOG download of 3 February 2026 for COFOG group 07.3 (hospital services) in per cent of GDP: every country and sector, with all 105 columns of the download. It lets you try COFOG-Panel in a minute, without the full download:
 
 ```bash
-cofog-panel run --cofog 07.3 --source-file data/sample/gfs_cofog_073_sample.csv
+cofog-panel run --cofog 07.3 --source-file data/sample/gfs_cofog_073_sample.csv --output-dir output/sample --split-dir output/sample/splits
 ```
 
 The sheet MasterData it gives is that of the full extract for this group, cell for cell: 2,437 filled country-years of 13,500 (T1 1,346, T2 300, T3 791; 633 flagged incomplete) in 135 countries. `tests/test_sample.py` checks these counts and six example rows with their provenance (one of each kind: T1, T2 and T3 values, complete and incomplete, a reported zero).
