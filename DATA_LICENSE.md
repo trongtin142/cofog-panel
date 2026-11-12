@@ -31,4 +31,4 @@ The Regional Authority Index, terrain ruggedness (Nunn and Puga 2012), CEDS emis
 
 ## Replication data (`replication/*/data_ext/`)
 
-See `SOURCES.md` in each replication folder. In `replication/harmonisation/data_ext/`, the Eurostat series are reused with acknowledgement of the source (Commission Decision 2011/833/EU), and the World Bank WDI series and `dist_inputs_wid_wdi.csv` (World Inequality Database through Our World in Data, and WDI) are distributed under CC BY 4.0 with attribution to their sources.
+See `SOURCES.md` in each replication folder. In `replication/harmonisation/data_ext/`, the Eurostat series are reused with acknowledgement of the source (Commission Decision 2011/833/EU), and the World Bank WDI series, `ext_benchmarks_wdi.csv` (WDI series from the WHO Global Health Expenditure Database and the UNESCO Institute for Statistics) and `dist_inputs_wid_wdi.csv` (World Inequality Database through Our World in Data, and WDI) are distributed under CC BY 4.0 with attribution to their sources.
