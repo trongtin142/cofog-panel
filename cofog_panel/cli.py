@@ -1,16 +1,18 @@
 """
-Command-line interface: `cofog-panel <command>`, one command per stage plus `run` for all five
-and two look-up commands (`list-cofog`, `list-sectors`).
+Command-line interface: `cofog-panel <command>`, one command per stage plus `run` for all five,
+two look-up commands (`list-cofog`, `list-sectors`) and `gui` for the browser interface.
 
 Options are validated before any file is read. Every error prints one line on what went wrong
 and one line on how to fix it; tracebacks are shown only with `cofog-panel --debug <command>`.
 Exit codes: 0 success, 1 data or option error, 2 command-line usage error.
 """
 import functools
+import importlib.util
 import re
+import subprocess
 import sys
 from pathlib import Path
-from typing import Annotated, List, Optional
+from typing import Annotated, List, Mapping, Optional
 
 import typer
 
@@ -28,10 +30,14 @@ from cofog_panel.etl import list_cofog, read_split_marker, split_data  # noqa: E
 from cofog_panel.master_seed import (  # noqa: E402
     DEFAULT_END_YEAR, DEFAULT_FILE_NAME, DEFAULT_START_YEAR, PACKAGED_LOOKUP, prepare_master, seed_master,
 )
-from cofog_panel.messages import DOWNLOAD_HINT, print_error  # noqa: E402
+from cofog_panel.messages import DOWNLOAD_HINT, hint_for_write_error, print_error  # noqa: E402
 from cofog_panel.source import default_source  # noqa: E402
 from cofog_panel.options import (  # noqa: E402
-    COFOG_LABELS, OptionError, TRANSFORMATIONS, check_cofog, data_column_for, normalise_transformation,
+    COFOG_LABELS, OptionError, TRANSFORMATIONS, VALID_SECTORS, check_cofog, data_column_for, normalise_sector,
+    normalise_transformation,
+)
+from cofog_panel.provenance import (  # noqa: E402
+    PROVENANCE_SHEET, format_options, function_row, output_columns, record_run, sha256_of,
 )
 
 app = typer.Typer(help="COFOG-Panel: Tool for harmonizing IMF GFS COFOG data into reproducible panel datasets.",
@@ -41,9 +47,12 @@ DEFAULT_MASTER_FILE_NAME = DEFAULT_FILE_NAME
 DEFAULT_OUTPUT_DIR = Path("./output")
 DEFAULT_SPLIT_DIR = Path("./intermediate_splits")
 DEFAULT_TRANSFORMATION = "Percent of GDP"
+# The browser interface, a Streamlit script inside the package (started by `cofog-panel gui`)
+GUI_SCRIPT = Path(__file__).resolve().parent / "gui.py"
+GUI_MAX_UPLOAD_MB = 1000  # the CSV download is about 530 MB; Streamlit's default limit is 200 MB
 
-# Single sectors, plus the two aggregation methods ("General government" is the three-tier rule T1/T2/T3)
-VALID_SECTORS = sorted([*DIRECT_SECTORS, "General government", "Central government including social security"])
+# VALID_SECTORS (options.py): single sectors, plus the two aggregation methods ("General government" is
+# the three-tier rule T1/T2/T3)
 SECTOR_METHODS = {
     "General government": "three-tier rule: T1 GG, T2 CGSS + state + local, T3 central components + SSF + state + local",
     "Central government including social security": "C1 CGSS, C2 central core + social security funds",
@@ -135,17 +144,30 @@ def _guarded(command):
 
 def _valid_sector(sector: str) -> str:
     """Returns the --sector value as spelt in VALID_SECTORS, letter case ignored, as for --filter-type."""
-    spelling = {name.casefold(): name for name in VALID_SECTORS}.get(sector.strip().casefold())
-    if spelling is None:
-        _stop(f"Invalid --sector '{sector}'.",
-              "Choose one of: " + ", ".join(f"'{name}'" for name in VALID_SECTORS)
-              + " (letter case does not matter); 'cofog-panel list-sectors' describes them.")
-    return spelling
+    try:
+        return normalise_sector(sector)
+    except OptionError as exc:
+        _stop(exc.what, exc.hint)
 
 
 def _require_source(source_file: Path) -> None:
     if not source_file.exists():
         _stop(f"Source file not found: {source_file}", DOWNLOAD_HINT)
+
+
+def _quote(arg: str) -> str:
+    """An argument as it would be typed: in double quotes when it is empty or holds a space or quote."""
+    return f'"{arg}"' if not arg or any(c in arg for c in " \t'\"&|<>;") else arg
+
+
+def _command_line(command: str, options: Mapping[str, object]) -> str:
+    """
+    The command as typed when the process is the cofog-panel program, for the Provenance sheet;
+    otherwise (tests, other callers) the command with every option value.
+    """
+    if Path(sys.argv[0]).stem.lower() in ("cofog-panel", "cofog_panel") and len(sys.argv) > 1:
+        return " ".join(["cofog-panel", *(_quote(arg) for arg in sys.argv[1:])])
+    return f"cofog-panel {command} {format_options(options)}"
 
 
 # --- Look-up commands ---
@@ -312,7 +334,12 @@ def run(
         "--overwrite-master", help="Rebuild the master from the lookup file, deleting its indicator columns. "
                                    "By default an existing master is kept and the new indicator is added to it.")] = False,
 ) -> None:
-    """Runs the full pipeline sequentially (stages 1 -> 5) using local files."""
+    """
+    Runs the full pipeline sequentially (stages 1 -> 5) using local files.
+
+    The master also gets a sheet 'Provenance' (version, source file and its SHA-256, PUBLICATION_DATE,
+    command and options, time in UTC, columns created); its sheet MasterData is as in earlier versions.
+    """
     source_file = source_file or default_source()
     sector = _valid_sector(sector)
     transformation = normalise_transformation(filter_type)
@@ -326,8 +353,19 @@ def run(
         if data_cols.count(column) > 1:
             raise OptionError(f"Several --cofog values give the same data column {column}.", "Give each COFOG function once.")
     _require_source(source_file)
+    options = {
+        "--cofog": selectors, "--source-file": source_file,
+        "--lookup-file": "(bundled country_codes.xlsx)" if lookup_file == PACKAGED_LOOKUP else lookup_file,
+        "--filter-type": transformation, "--sector": sector, "--output-dir": output_dir, "--split-dir": split_dir,
+        **{name: value for name, value in (("--data-col", data_col), ("--tier-col", tier_col),
+                                           ("--sectors-col", sectors_col), ("--complete-col", complete_col)) if value},
+        "--zero-as-missing": zero_as_missing, "--check-ranges": check_ranges,
+        "--start-year": start_year, "--end-year": end_year, "--overwrite-master": overwrite_master,
+    }
 
     typer.echo("--- Starting FULL LOCAL COFOG Pipeline Orchestration ---")
+    source_sha256 = sha256_of(source_file)
+    typer.echo(f"Source file {source_file.name}, SHA-256 {source_sha256}")
     for selector, column in zip(selectors, data_cols):
         typer.echo(f"COFOG {selector}, {transformation}, method '{sector}', data column {column}")
     typer.echo("\n[Stage 1/5] Checking COFOG Format...")
@@ -344,6 +382,7 @@ def run(
         raise typer.Exit(code=1)
     typer.echo(f"Master Path Established: {master_path}")
 
+    functions = []
     for selector, column in zip(selectors, data_cols):
         # one split directory per function, so that each aggregation reads only its own country files
         target = split_dir / column.removeprefix("DATA_") if several else split_dir
@@ -357,8 +396,48 @@ def run(
         if not run_aggregation(master_path, folder, column, sector, tier_col, zero_as_missing,
                                sectors_col, complete_col, check_ranges):
             raise typer.Exit(code=1)
+        functions.append(function_row(selector, transformation, sector,
+                                      output_columns(column, tier_col, sectors_col, complete_col),
+                                      read_split_marker(folder).get("publication_date", "")))
+    try:
+        record_run(master_path, source_file, source_sha256, _command_line("run", options), options, functions)
+    except Exception as exc:
+        _stop(f"Cannot write the sheet '{PROVENANCE_SHEET}' of {master_path} ({exc}).", hint_for_write_error(exc))
+    typer.echo(f"\nProvenance: {len(functions)} row(s) added to the sheet '{PROVENANCE_SHEET}' "
+               f"(source SHA-256 {source_sha256}).")
     typer.echo("\n🎉 FULL PIPELINE COMPLETED SUCCESSFULLY! 🎉")
     typer.echo(f"Final Master XLSX available at: {master_path}")
+
+
+# --- Browser interface ---
+
+def _has_streamlit() -> bool:
+    """True when the optional dependency of the browser interface (gui extra) is installed."""
+    return importlib.util.find_spec("streamlit") is not None
+
+
+@app.command("gui")
+@_guarded
+def gui(
+    port: Annotated[Optional[int], typer.Option("--port", help="Port of the local server (Streamlit's default, 8501, if not given).")] = None,
+    headless: Annotated[bool, typer.Option("--headless", help="Start the server without opening a browser window.")] = False,
+) -> None:
+    """Starts the browser interface in the default browser (needs the gui extra: pip install "cofog-panel[gui]")."""
+    if not _has_streamlit():
+        _stop("Streamlit is not installed, so the browser interface cannot start.",
+              'Install the gui extra: pip install "cofog-panel[gui]" (in a clone: pip install -e ".[gui]").')
+    command = [sys.executable, "-m", "streamlit", "run", str(GUI_SCRIPT),
+               "--server.maxUploadSize", str(GUI_MAX_UPLOAD_MB)]
+    if port is not None:
+        command += ["--server.port", str(port)]
+    if headless:
+        command += ["--server.headless", "true"]
+    typer.echo(f"Starting the browser interface ({GUI_SCRIPT.name}); press Ctrl+C here to stop it.")
+    try:
+        code = subprocess.call(command)
+    except KeyboardInterrupt:
+        code = 0
+    raise typer.Exit(code=code)
 
 
 if __name__ == "__main__":
