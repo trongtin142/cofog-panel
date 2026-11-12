@@ -3,11 +3,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/trongtin142/cofog-panel/blob/main/LICENSE.txt)
 [![tests](https://github.com/trongtin142/cofog-panel/actions/workflows/tests.yml/badge.svg)](https://github.com/trongtin142/cofog-panel/actions/workflows/tests.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23511907.svg)](https://doi.org/10.5281/zenodo.23511907)
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/trongtin142/cofog-panel/blob/v1.1.2/cofog.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/trongtin142/cofog-panel/blob/v1.2.0/cofog.ipynb)
 
-COFOG-Panel builds a country-year panel for any COFOG division or group from a raw download (CSV or Excel) of the IMF Government Finance Statistics (GFS) dataset on expenditure by function of government. Countries report these data for different sets of government subsectors. The tool selects one value per country-year with a documented three-tier rule and records, next to every value, the tier, the sectors that entered it and whether it covers every level of government.
+COFOG-Panel builds a country-year panel for any COFOG division or group from a raw download (CSV or Excel) of the IMF Government Finance Statistics (GFS) dataset on expenditure by function of government. Countries report these data for different sets of government subsectors. The tool selects one value per country-year with a documented three-tier rule and records, next to every value, the tier, the sectors that entered it and whether it covers every level of government. A sheet `Provenance` in the output records the source file and its SHA-256, the IMF release date, the version and the command. The tool runs from the command line, in a browser page or from Python (`cofog_panel.build_panel`).
 
-The DOI badge points to all versions of the software. Each release also has its own DOI, listed on the Zenodo page and in `CITATION.cff`. The Colab badge opens the notebook `cofog.ipynb` of release 1.1.2 in Google Colab, and the notebook installs that same tagged release.
+The DOI badge points to all versions of the software. Each release also has its own DOI, listed on the Zenodo page and in `CITATION.cff`. The Colab badge opens the notebook `cofog.ipynb` of release 1.2.0 in Google Colab, and the notebook installs that same tagged release.
 
 ## Quickstart (GUI)
 
@@ -16,11 +16,13 @@ For users who prefer a graphical interface (a browser page, no command line opti
 1. Install Python 3.10 or later from [python.org](https://www.python.org/) (on Windows, tick "Add Python to PATH").
 2. Get the repository: on GitHub, **Code** > **Download ZIP**, or the archive of a release on Zenodo, and unzip it. On Windows, unzip it to a short path such as `C:\cofog-panel` (see the note on long paths below).
 3. Start the application from that folder: on macOS or Linux run `bash run_gui.sh`, on Windows double-click `run_gui.bat`. The script creates a `.venv` folder, installs the package with the `gui` extra (`pip install -e ".[gui]"`, which adds Streamlit 1.49 or later) and opens the page.
-4. In the page, upload the IMF file, choose the COFOG function, method and transformation in the sidebar, and click **Run Pipeline**. Download the master when it finishes. The page shows the reports and warnings of the stages (the same text the command line prints) in a run log, and the reason when a stage fails.
+4. In the page, upload the IMF file (or the sample `data/sample/gfs_cofog_073_sample.csv`, with COFOG 07.3), choose the COFOG function, method and transformation in the sidebar, and click **Run Pipeline**. Download the master when it finishes. The page shows the reports and warnings of the stages (the same text the command line prints) in a run log, and the reason when a stage fails.
 
-The GUI runs the same five stages as `cofog-panel run` for one COFOG function from the built-in list, with the default column names. It does not offer `--zero-as-missing`, `--check-ranges`, several functions, `--split-dir` or a country lookup in another format than `.xlsx`; use the command line for those. Each run builds a new master with one indicator: uploaded files and the result live in a temporary folder that is deleted when the run ends, so download the master from the page. To collect several indicators in one master, use `cofog-panel run` (Section 3).
+With the package installed (`pip install "cofog-panel[gui]"`, or `pip install -e ".[gui]"` in a clone), `cofog-panel gui` starts the same page, from any folder; `--port` and `--headless` set the port and keep the browser closed. The page is part of the package (`cofog_panel/gui.py`); `gui.py` at the root of the repository starts it for `streamlit run gui.py` and the launch scripts.
 
-## Quickstart in 3 steps
+The GUI runs the same five stages as `cofog-panel run` for one COFOG function from the built-in list, with the default column names, and writes the same `Provenance` sheet. It does not offer `--zero-as-missing`, `--check-ranges`, several functions, `--split-dir` or a country lookup in another format than `.xlsx`; use the command line for those. Each run builds a new master with one indicator: uploaded files and the result live in a temporary folder that is deleted when the run ends, so download the master from the page. To collect several indicators in one master, use `cofog-panel run` (Section 3).
+
+## Quickstart (command line)
 
 **1. Install** (Python 3.10 or later):
 
@@ -32,7 +34,15 @@ pip install -e .
 
 On Windows, clone into a short path such as `C:\cofog-panel`, because Windows limits paths to 260 characters unless long paths are enabled.
 
-**2. Download the IMF data** (once, a CSV file of about 530 MB for the release of 21 October 2026):
+**2. Try it on the sample** (seconds, no download):
+
+```bash
+cofog-panel run --cofog 07.3 --source-file data/sample/gfs_cofog_073_sample.csv --output-dir output/sample --split-dir output/sample/splits
+```
+
+`data/sample/gfs_cofog_073_sample.csv` (2.2 MB) holds the rows of the IMF release of 3 February 2026 for COFOG group 07.3 (hospital services) in per cent of GDP, for every country and sector, in the format of the IMF download. The command prints the SHA-256 of the file and writes `output/sample/COFOG_MASTER_SCHEMA.xlsx` (a folder of its own, so that the sample does not end up in the master of your own data): 2,437 filled country-years (T1 1,346, T2 300, T3 791; 633 flagged incomplete), the same as from the full February extract. `data/sample/README.md` gives its source, checksum and terms of use. Without a clone, download that one file from the repository (or from the archive of the release) and give its path.
+
+**3. Download the IMF data** (once, a CSV file of about 530 MB for the release of 21 October 2026):
 
 1. Open the dataset page <https://data.imf.org/en/datasets/IMF.STA:GFS_COFOG> ("GFS Government Expenditures by Function").
 2. Click **DOWNLOAD** (top right). A "Download Dataset" window opens.
@@ -41,13 +51,13 @@ On Windows, clone into a short path such as `C:\cofog-panel`, because Windows li
 
 An Excel download (`data/gfs_raw_data.xlsx`) works as well and is used when both files exist; the CSV file is read much faster.
 
-**3. Run** one command, here for environmental protection (COFOG 05):
+**4. Run** one command, here for environmental protection (COFOG 05):
 
 ```bash
 cofog-panel run --cofog 05
 ```
 
-The panel is written to `output/COFOG_MASTER_SCHEMA.xlsx` (sheet `MasterData`). Five rows of the result:
+The panel is written to `output/COFOG_MASTER_SCHEMA.xlsx` (sheet `MasterData`, with the sheet `Provenance` next to it). Five rows of the result:
 
 | SortKey | Country | Year | DATA_05 | SOURCE_TIER_05 | SOURCE_SECTORS_05 | SOURCE_COMPLETE_05 |
 | :--- | :--- | ---: | ---: | :--- | :--- | :--- |
@@ -104,6 +114,22 @@ Completeness: a T2, T3 or C2 sum is `N` when it leaves out a level (state, local
 
 Further rules: reported zeros are kept unless `--zero-as-missing` is given; `--check-ranges` (`aggregate`, `run`) lists selected values that are negative, or above 100 for percentage transformations, and keeps them; shares of total outlays are never summed, so they only give T1 values; the IMF codes KOS and WBG are mapped to the ISO codes XKX and PSE. Values in domestic currency are added only when the series of a country agree in `SCALE`, `UNIT` and `CURRENCY` (letter case ignored); otherwise the country gets reported values only (T1, C1, D) and `aggregate` prints a warning.
 
+### Provenance sheet
+
+`run` (and the browser interface and `build_panel`) adds a sheet `Provenance` to the master, next to `MasterData`. Each run adds one row per COFOG function, and the rows of earlier runs on the same master are kept:
+
+| Column | Content |
+| :--- | :--- |
+| `Run`, `Time (UTC)` | Run number in this master and time of the run, e.g. `2026-11-12T20:15:03Z` |
+| `cofog-panel version` | Version of the package that wrote the columns |
+| `Command`, `Options` | The command as typed, and the value of every option, defaults included (paths as given) |
+| `Source file`, `Source SHA-256`, `Source size (bytes)` | Name, SHA-256 checksum (computed by the tool) and size of the IMF file that was read |
+| `PUBLICATION_DATE` | The IMF release date of the selected series, read from the file |
+| `COFOG`, `Transformation`, `Method (--sector)` | The function, transformation and method of the row |
+| `Columns created` | The data, tier, sectors and completeness columns written for it |
+
+`run` also prints the SHA-256 of the source file. Report it with the `PUBLICATION_DATE` when you cite the data: the IMF revises the dataset in place (Section 5). `MasterData` is the same as without the sheet, cell for cell. `cofog_panel.read_provenance(path)` reads the sheet into a DataFrame.
+
 ## 2. Installation
 
 ```bash
@@ -113,13 +139,13 @@ python -m venv venv
 source venv/bin/activate          # macOS and Linux
 pip install -e .                  # the command-line tool
 pip install -e ".[dev,gui]"       # adds pytest and Streamlit, to run all the tests (Section 4)
-pip install -e ".[gui]"           # adds Streamlit, for the browser interface (streamlit run gui.py)
+pip install -e ".[gui]"           # adds Streamlit, for the browser interface (cofog-panel gui)
 pip install -e ".[replication]"   # adds statsmodels, scipy, matplotlib, linearmodels and tabulate, for replication/
 ```
 
 `cofog-panel --version` prints the installed version.
 
-The command-line tool of a tagged release also installs without a clone, from the tag (`pip install "git+https://github.com/trongtin142/cofog-panel@v1.1.2"`) or from PyPI (`pip install cofog-panel`). The browser interface, the tests and `replication/` come with the repository.
+A tagged release also installs without a clone, from the tag (`pip install "git+https://github.com/trongtin142/cofog-panel@v1.2.0"`) or from PyPI (`pip install cofog-panel`); add the `gui` extra for the browser interface (`pip install "cofog-panel[gui]"`, then `cofog-panel gui`). The sample extract, the tests and `replication/` come with the repository.
 
 ### Windows (PowerShell)
 
@@ -178,7 +204,21 @@ Unexpected errors are reported in the same form; `cofog-panel --debug <command> 
 
 ### Python
 
-The selection rule can be called from Python:
+`build_panel` runs the five stages of `cofog-panel run` in a temporary folder and returns the panel as a pandas DataFrame in tidy form: one row per country, year and function with a value, with the provenance of each value. Its values are those of the master that `run` writes for the same file and options.
+
+```python
+from cofog_panel import build_panel
+
+panel = build_panel("data/sample/gfs_cofog_073_sample.csv", "07.3")
+panel.head()
+#   iso3  country  year cofog     value tier sectors complete
+panel["tier"].value_counts()          # T1 1346, T3 791, T2 300
+panel.attrs["provenance"][0]["Source SHA-256"]
+```
+
+Signature: `build_panel(source, cofog, *, start_year=1972, end_year=2025, zero_as_missing=False, filter_type="Percent of GDP", sector="General government", lookup_file=None, keep_empty=False, verbose=False)`. `cofog` is a code or label, or a list of them (one block of rows each); the other arguments mean what the options of `run` mean. Columns: `iso3`, `country`, `year`, `cofog`, `value`, `tier`, `sectors`, `complete`. `keep_empty=True` keeps the country-years without a value (every row of the master). `panel.attrs["provenance"]` holds the rows of the `Provenance` sheet (version, source file and SHA-256, `PUBLICATION_DATE`, options). An invalid option raises `cofog_panel.options.OptionError` (a `ValueError`, with the same message as the command line), a missing file `FileNotFoundError`, and a stage that fails `cofog_panel.PipelineError`, whose `log` attribute holds the reports of the stages; `verbose=True` prints them.
+
+The selection rule itself can also be called from Python:
 
 ```python
 from decimal import Decimal
@@ -199,17 +239,19 @@ pip install -e ".[dev,gui]"
 python -m pytest
 ```
 
-Run the tests from the repository root. The `gui` extra adds Streamlit, which the tests of the browser interface (`tests/test_gui.py`) need. Without it, these tests are skipped.
+Run the tests from the repository root. The `gui` extra adds Streamlit, which the tests of the browser interface (`tests/test_gui.py`) need. Without it, these tests are skipped. `tests/test_sample.py` runs the pipeline on the sample extract and checks example rows and tier counts against the full February 2026 extract.
 
 ## 5. Data
 
 The source file can be the CSV or the Excel download of IMF.STA:GFS_COFOG; both have the same columns and give the same panel. The IMF revises the dataset in place: a download made on 21 October 2026 still carries the version number 11.0.0 but has a new `PUBLICATION_DATE` and revised values. Keep the downloaded file with your results and report its `PUBLICATION_DATE` (a column of the file) when you cite the data. `split` warns if the selected series carry several dates, and `aggregate` prints the date it recorded.
 
+`data/sample/gfs_cofog_073_sample.csv` is a small extract of the release of 3 February 2026 (COFOG group 07.3 in per cent of GDP, all countries and sectors), distributed under the IMF terms with its checksum and source in `data/sample/README.md`, for trying the tool and for the tests.
+
 The country lookup (`data/country_codes.xlsx`, also bundled in the package as `cofog_panel/data/country_codes.xlsx`) is an ISO 3166 lookup with Kosovo (XKX) added. The IMF GFS data are not covered by the MIT License: `DATA_LICENSE.md` gives the IMF terms, the required attribution and the notice on transformed data.
 
 ## 6. Replication
 
-`replication/` holds the scripts that reproduce the published analyses that use COFOG-Panel, each with its own README. They need the `[replication]` extra.
+`replication/` holds the scripts that reproduce the analyses that use COFOG-Panel, each with its own README listing commands, runtimes and outputs. They need the `[replication]` extra. `replication/harmonisation/` reproduces the harmonisation study, its further analyses (recording of consolidation, grant flows) and the redistributive effect of health and education spending; `replication/environment/` reproduces the environmental-spending study.
 
 ## 7. Feedback and testing
 
