@@ -15,7 +15,7 @@ The sheet MasterData it gives is that of the full extract for this group, cell f
 | Taken from | the Excel download of IMF.STA:GFS_COFOG 11.0.0, `PUBLICATION_DATE` 2026-02-03T08:39:08.886374500Z, SHA-256 `91e3db1bdb838f322dcbe648b133f511f3efe1921e50c8bc0d7621f512668cfe` |
 | Rows kept | `SERIES_CODE` with function `GF073` and `TYPE_OF_TRANSFORMATION` "Percent of GDP" |
 | Format | the layout of the portal's CSV download: UTF-8 with BOM, every field quoted, LF line ends |
-| Made by | `python data/sample/make_sample.py data/gfs_raw_data.xlsx` |
+| Made by | `python data/sample/make_sample.py data/gfs_raw_data.xlsx`, from the full download, which is archived at <https://doi.org/ZENODO_DATA_DOI> |
 
 No value is changed. Numbers are written as COFOG-Panel reads them from the Excel file, in the shortest form that gives the same number, so the full digits of the download are kept. The IMF has since replaced this release with revised values (21 October 2026, same version number), so a current download gives other values.
 
