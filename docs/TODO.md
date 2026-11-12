@@ -6,7 +6,7 @@ Working list, easy to hard. Status: `[x]` done, `[ ]` open. Numbers in published
 
 - [x] E1 `AGENTS.md`: stage numbering matches the code (5 stages: 2 checks, seed, split, aggregate).
 - [x] E2 `checks.py`: comment where `END_YEAR` and `COFOG_LABELS` must be updated for a new IMF release.
-- [x] E3 `cli.VALID_SECTORS` built from `aggregate.DIRECT_SECTORS` (one list less to keep in sync).
+- [x] E3 `VALID_SECTORS` built from `DIRECT_SECTORS`, both in `options.py` with `normalise_sector`, shared by the command line, the GUI and `build_panel` (one list less to keep in sync).
 - [x] E4 `aggregate.py`: top-level import of `COUNTRY_FILE_PATTERN` (the lazy import has no cycle to avoid).
 - [x] E5 `source.header_row`: one helper for the header-parsing line repeated in `etl.py` (x2) and `options.py`.
 - [ ] E6 Emoji in console output: left to the planned "no emoji / safe console" item in `CHANGELOG.md` (changes user-visible text).
@@ -43,8 +43,8 @@ Working list, easy to hard. Status: `[x]` done, `[ ]` open. Numbers in published
 
 ## Hard
 
-- [ ] H1 `build_panel(...)` Python API: stage functions return data, the CLI prints (planned).
-- [ ] H2 `<master>.provenance.json` (version, SHA-256 of source, command, time, columns) (planned).
+- [x] H1 `build_panel(...)` Python API (1.2.0): runs the stages in a temporary folder and returns a tidy DataFrame; the stage functions still print, `build_panel` captures their output. Stage functions that return data remain open.
+- [x] H2 File-level provenance (1.2.0): a sheet `Provenance` in the master (version, SHA-256 of source, `PUBLICATION_DATE`, command and options, time, columns), not a separate JSON file, so it travels with the master.
 - [ ] H3 Parquet cache keyed by SHA-256 of the source, `--no-cache` (planned).
 - [ ] H4 Opt-in consolidation adjustment for T2/T3 sums: changes numbers, rerun `replication/`.
 - [ ] H5 Warn when a master mixes IMF releases (`PUBLICATION_DATE`).

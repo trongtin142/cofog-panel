@@ -33,6 +33,6 @@ On Windows, clone into a short path such as `C:\cofog-panel`. Streamlit installs
 
 ## Releases
 
-1. Set the version in `cofog_panel/__init__.py` and the version and date in `CITATION.cff`, and add an entry to `CHANGELOG.md`.
+1. Set the version in `cofog_panel/__init__.py`, the version and date in `CITATION.cff`, the `RELEASE` pin and the Colab link in `cofog.ipynb`, the version placeholder in `.github/ISSUE_TEMPLATE/test_report.yml` and the version in the README (Colab badge, install from a tag), and add an entry to `CHANGELOG.md`.
 2. Tag the commit `vX.Y.Z` and publish a GitHub release. Zenodo archives the release and gives it a DOI, which goes into `CITATION.cff` and the changelog in the next commit.
 3. Build the wheel and the source distribution (`python -m build`), check them (`twine check dist/*`) and upload them to PyPI.

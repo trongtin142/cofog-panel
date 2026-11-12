@@ -1,4 +1,4 @@
-"""Markdown table for Online Resource 1 from the outputs of paperC_ext_r3c.py.
+"""Markdown table for the supplementary material from the outputs of ext_r3c.py.
 
     python make_esm_r3c.py OUTPUT_DIR
 """

@@ -1,9 +1,9 @@
-"""Environmental-spending study, Online Resource 1: tables rendered from the replication outputs.
+"""Environmental-spending study, supplementary material: tables rendered from the replication outputs.
 
 Writes output/esm_tables.md, one block per table, each headed by a line "<!-- key -->". The table
-numbers are left as "Table S?" and set when the blocks are placed in the Online Resource.
+numbers are left as "Table S?" and set when the blocks are placed in the supplementary material.
 
-    python paperC_esm_tables.py [OUT_DIR]
+    python esm_tables.py [OUT_DIR]
 """
 import json
 import sys

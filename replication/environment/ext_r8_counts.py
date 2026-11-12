@@ -5,7 +5,7 @@ sample, and r8_counts.json, the share of main-sample observations below the GE r
 whose mean GE lies below it, the association at the median GE of low- and middle-income countries in the main
 sample, the income groups of the main sample and the low-effectiveness counts of Section 1.
 
-    python paperC_ext_r8_counts.py [--out DIR]
+    python ext_r8_counts.py [--out DIR]
 """
 import argparse
 import importlib.util
@@ -22,9 +22,9 @@ OUT = Path(ap.parse_args().out)
 spec = importlib.util.spec_from_file_location("pc", HERE / "env_federalism.py")
 pc = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(pc)
-import paperC_samples as ps  # noqa: E402  (next to env_federalism.py, on sys.path after the import above)
+import env_samples as ps  # noqa: E402  (next to env_federalism.py, on sys.path after the import above)
 
-# Post-socialist countries, as in paperC_ext_r5z.py
+# Post-socialist countries, as in ext_r5z.py
 POST_SOCIALIST = ["ARM", "AZE", "BLR", "EST", "GEO", "KAZ", "KGZ", "LVA", "LTU", "MDA", "RUS", "TJK", "TKM",
                   "UKR", "UZB", "ALB", "BGR", "CZE", "HUN", "POL", "ROU", "SVK", "SVN", "HRV", "BIH", "SRB",
                   "MNE", "MKD", "XKX", "MNG"]

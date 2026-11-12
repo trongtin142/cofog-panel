@@ -8,7 +8,7 @@ for all ten functions in every year of its series: no state or local government 
 division. Its zero then reflects what the data cover, not what subnational governments spend. Countries without
 subnational government are the exception: their zero is a true zero, and they keep a share of zero.
 
-    import paperC_samples as ps
+    import env_samples as ps
     gaps = ps.coverage_gaps(pc, base)   # pc = env_federalism module, base = pc._sample(pc.gaps_as_zero(panel))
 
 The function re-derives the list from the data and checks it against COVERAGE_GAPS.

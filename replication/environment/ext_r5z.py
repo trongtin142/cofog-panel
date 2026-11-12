@@ -6,10 +6,10 @@ the central-only countries (on the construction with coverage gaps coded as zero
 single basis, and two descriptive tables (federal and populous countries outside the sample, countries by
 tercile of effectiveness).
 
-    python paperC_ext_r5z.py [--main PATH_TO_env_federalism.py] [--out DIR]
+    python ext_r5z.py [--main PATH_TO_env_federalism.py] [--out DIR]
 
 Reads the panel of env_federalism.py and output/ESM1_TableS4_central_only_in_sngwofi.csv (written by
-paperC_esm_wofi.py). Writes r5z_*.csv and r5z_details.json to --out (default output).
+esm_wofi.py). Writes r5z_*.csv and r5z_details.json to --out (default output).
 """
 import argparse
 import importlib.util
@@ -31,7 +31,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 spec = importlib.util.spec_from_file_location("pc", ANALYSIS / "env_federalism.py")
 pc = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(pc)
-import paperC_samples as ps  # noqa: E402  (next to env_federalism.py, on sys.path after the import above)
+import env_samples as ps  # noqa: E402  (next to env_federalism.py, on sys.path after the import above)
 
 POST_SOCIALIST = ["ARM", "AZE", "BLR", "EST", "GEO", "KAZ", "KGZ", "LVA", "LTU", "MDA", "RUS", "TJK", "TKM",
                   "UKR", "UZB", "ALB", "BGR", "CZE", "HUN", "POL", "ROU", "SVK", "SVN", "HRV", "BIH", "SRB",
@@ -46,7 +46,7 @@ def env_rows() -> pd.DataFrame:
 
 
 def classes(e: pd.DataFrame) -> pd.DataFrame:
-    """Reported zeros (as in paperC_ext_r4.classes) and the unconsolidated sum central + state + local, keyed by
+    """Reported zeros (as in ext_r4.classes) and the unconsolidated sum central + state + local, keyed by
     estimation year (spending year + 1)."""
     ever = e[["EVER_SG", "EVER_LG"]].astype(bool)
     sub = e[[pc.SG, pc.LG]].fillna(0).sum(axis=1)
@@ -126,7 +126,7 @@ def main():
     reg_mean = rep.groupby("REGION")["SUB"].mean()
     b2 = b1.copy()
     # every central-only country without an observed share of total outlays or a World Observatory value
-    # Countries without subnational government keep their true zero (paperC_samples.NO_SUBNATIONAL_GOVERNMENT)
+    # Countries without subnational government keep their true zero (env_samples.NO_SUBNATIONAL_GOVERNMENT)
     rest = (b2["ISO"].isin(set(nosub) - (set(with_tot) - set(no_tot)) - set(wofi) - set(ps.NO_SUBNATIONAL_GOVERNMENT))
             & b2["SUB"].notna())
     b2.loc[rest, "SUB"] = b2.loc[rest, "REGION"].map(reg_mean)

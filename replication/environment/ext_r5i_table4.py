@@ -1,15 +1,15 @@
-"""Companion to paperC_ext_r5i.py: rows in the format of Table 4 (uncentred SUB, SUB x GE, 25 pp at GE = -0.355),
+"""Companion to ext_r5i.py: rows in the format of Table 4 (uncentred SUB, SUB x GE, 25 pp at GE = -0.355),
 the plausibility arithmetic for the sources of exposure, and a two-panel Fig. S1 (linear, binning and kernel
 estimates, and common support).
 
-    python paperC_ext_r5i_table4.py [--main ...] [--data ...] [--out DIR]   (after paperC_ext_r5i.py, same options)
+    python ext_r5i_table4.py [--main ...] [--data ...] [--out DIR]   (after ext_r5i.py, same options)
 """
 import json
 
 import numpy as np
 import pandas as pd
 
-import paperC_ext_r5i as r5
+import ext_r5i as r5
 
 OUT, pc = r5.OUT, r5.pc
 

@@ -1,7 +1,7 @@
 """
 Environmental-spending study: columns (4) and (5) of Table 2, with every coefficient of the table.
 
-    python paperC_ext_r3_table2.py [--main PATH_TO_env_federalism.py] [--out DIR]
+    python ext_r3_table2.py [--main PATH_TO_env_federalism.py] [--out DIR]
 
 (4) coverage gaps coded as zero (the construction with 108 countries), (5) general government (GG, tier T1)
 values only, and (4x, for the text and Table 5) without the countries in which only central government reports

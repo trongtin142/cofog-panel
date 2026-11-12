@@ -1,9 +1,9 @@
-"""Environmental-spending study, variants of the subnational share (Online Resource).
+"""Environmental-spending study, variants of the subnational share (supplementary material).
 
 B1 drops reported zeros of state and local government, F uses the consolidated financing share 1 - central/GG
 for general government years. Both start from the baseline rule of env_federalism.subnational_share.
 
-    python paperC_ext_r4.py [--out DIR]
+    python ext_r4.py [--out DIR]
 """
 import argparse
 import importlib.util

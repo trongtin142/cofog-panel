@@ -1,6 +1,6 @@
-"""Markdown for the IV table of Online Resource 1, from tabIV_results.csv in OUT_DIR (default output).
+"""Markdown for the IV table of the supplementary material, from tabIV_results.csv in OUT_DIR (default output).
 
-    python paperC_ext_iv_esm.py [OUT_DIR]
+    python ext_iv_esm.py [OUT_DIR]
 """
 import json
 import sys

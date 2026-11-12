@@ -2,7 +2,7 @@
 Mechanism test for the environmental-spending study: carbonaceous aerosol emissions by sector (CEDS) and waste
 collection (What a Waste).
 
-    python paperC_ext_mech.py [--main PATH_TO_env_federalism.py] [--ext DATA_DIR] [--out OUTPUT_DIR]
+    python ext_mech.py [--main PATH_TO_env_federalism.py] [--ext DATA_DIR] [--out OUTPUT_DIR]
 
 DATA_DIR must hold, besides the World Bank files used by the main script:
     ceds/BC_CEDS_estimates_by_country_sector_v_2025_03_18.csv

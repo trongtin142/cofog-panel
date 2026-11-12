@@ -2,7 +2,7 @@
 Controls for the main sources of PM2.5, a binning estimator of the interaction and equal country weights for
 the environmental-spending study.
 
-    python paperC_ext_r3c.py --main PATH_TO_env_federalism.py --anthro PATH_TO_paperC_ext_anthro.py
+    python ext_r3c.py --main PATH_TO_env_federalism.py --anthro PATH_TO_ext_anthro.py
                              --dl DATA_DIR --gbdmaps GBDMAPS_XLSX --out OUTPUT_DIR [--coverage]
 
 DATA_DIR holds the files downloaded on 1 November 2026 (URLs in data_ext/SOURCES.md, SHA-256 in fetch_data.py):
@@ -10,7 +10,7 @@ DATA_DIR holds the files downloaded on 1 November 2026 (URLs in data_ext/SOURCES
     cckp_tas_cru408.json, cckp_pr_cru408.json             World Bank CCKP, CRU TS 4.08 country means
     owid_burnt.csv                                        Our World in Data, area burnt by wildfires (GWIS)
     ceds/{SO2,NOx,NH3}_CEDS_estimates_by_country_sector_v_2025_03_18.csv   CEDS (Zenodo 15059443, CC BY 4.0)
-BC and OC by sector are read from the CEDS files used by paperC_ext_mech.py (--ceds-bcoc).
+BC and OC by sector are read from the CEDS files used by ext_mech.py (--ceds-bcoc).
 With --coverage the script reports the coverage of the new controls and estimates nothing.
 """
 import argparse

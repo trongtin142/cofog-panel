@@ -7,7 +7,7 @@ ln PM2.5 exposure (reduced form). Estimator: imputation estimator of Borusyak, J
 with a country cluster bootstrap.
 
 Run after env_federalism.py:
-    python replication/environment/paperC_ext_es.py [--out DIR] [--rai FILE] [--reps 999]
+    python replication/environment/ext_es.py [--out DIR] [--rai FILE] [--reps 999]
 Outputs (prefix es_): es_events.csv, es_results.json, es_eventtime.csv, es_figure.png/.pdf
 """
 import argparse

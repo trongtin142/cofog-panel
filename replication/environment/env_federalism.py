@@ -5,7 +5,7 @@ publication).
 Uses the harmonised COFOG 05 panel produced by COFOG-Panel (via the replication in replication/harmonisation, which
 calls cofog_panel.resolve_value / is_complete) and World Bank WDI / WGI indicators.
 The main sample codes the subnational share as missing for coverage gaps, the countries whose COFOG data cover
-central government alone for all ten functions in every year (see build_panel and paperC_samples.py);
+central government alone for all ten functions in every year (see build_panel and env_samples.py);
 gaps_as_zero() gives the construction with these zeros (108 countries).
 The specificity tests also read total outlays by subsector from the IMF extract and harmonise
 them with the same functions.
@@ -29,7 +29,7 @@ import pandas as pd
 import statsmodels.formula.api as smf
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from paperC_samples import NO_SUBNATIONAL_GOVERNMENT  # noqa: E402
+from env_samples import NO_SUBNATIONAL_GOVERNMENT  # noqa: E402
 
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
@@ -96,7 +96,7 @@ def build_panel() -> pd.DataFrame:
     # zero by construction (only central government reports), not a measured zero
     e["NOSUB"] = (~(e["EVER_SG"].astype(bool) | e["EVER_LG"].astype(bool))).astype(int)
     # Coverage gaps: countries whose COFOG data cover central government alone for all ten functions in every
-    # year, except countries without subnational government (paperC_samples.NO_SUBNATIONAL_GOVERNMENT). Their
+    # year, except countries without subnational government (env_samples.NO_SUBNATIONAL_GOVERNMENT). Their
     # zero reflects what the data cover, so the main construction codes their share as missing. SUBSHARE0 keeps
     # the construction with these zeros (coverage gaps coded as zero), used for one robustness row.
     other = h[h["DIV"] != "05"].groupby("ISO")[["EVER_SG", "EVER_LG"]].any().any(axis=1)
@@ -723,7 +723,7 @@ def federal_numbers(p: pd.DataFrame) -> dict:
 
 
 # Post-socialist countries (note to Table 5 of the paper): the successor states of the Soviet Union and of Yugoslavia,
-# Albania, Bulgaria, Czechia, Hungary, Poland, Romania, Slovakia and Mongolia, as in paperC_ext_r5z.py
+# Albania, Bulgaria, Czechia, Hungary, Poland, Romania, Slovakia and Mongolia, as in ext_r5z.py
 POST_SOCIALIST = ["ARM", "AZE", "BLR", "EST", "GEO", "KAZ", "KGZ", "LVA", "LTU", "MDA", "RUS", "TJK", "TKM",
                   "UKR", "UZB", "ALB", "BGR", "CZE", "HUN", "POL", "ROU", "SVK", "SVN", "HRV", "BIH", "SRB",
                   "MNE", "MKD", "XKX", "MNG"]
@@ -1162,7 +1162,7 @@ def main():
 
     fig_marginal(fits, OUT / "figC1_marginal_subshare.png", ge_ref["LMIC"])
     fig_ge_by_source(p, comp, OUT / "figC2_ge_by_source.png")
-    # Fig. 2 of the paper (figC2_ge_by_source.png is Fig. S2 of Online Resource 1)
+    # Fig. 2 of the paper (figC2_ge_by_source.png is Fig. S2 of the supplementary material)
     binned = fig_binned_by_ge(p, OUT / "figC3_binned_by_ge.png")
     (OUT / "figC3_binned_by_ge.json").write_text(json.dumps(binned, indent=1), encoding="utf8")
 

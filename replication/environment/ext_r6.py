@@ -1,9 +1,9 @@
 """Environmental-spending study, central and subnational spending in place of the share, and the panel
 model on the countries covered by both this paper and the World Observatory.
 
-    python paperC_ext_r6.py [--main PATH_TO_env_federalism.py] [--out DIR] [--sample-rule baseline|gaps]
+    python ext_r6.py [--main PATH_TO_env_federalism.py] [--out DIR] [--sample-rule baseline|gaps]
 
---sample-rule gaps codes the coverage gaps of paperC_samples.py as missing before estimation. Writes
+--sample-rule gaps codes the coverage gaps of env_samples.py as missing before estimation. Writes
 r6_split.csv, r6_wofi_panel.csv and r6_results.json to --out.
 """
 import argparse
@@ -30,7 +30,7 @@ spec = importlib.util.spec_from_file_location("pc", ANALYSIS / "env_federalism.p
 pc = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(pc)
 sys.path.insert(0, str(HERE))
-import paperC_samples as ps  # noqa: E402
+import env_samples as ps  # noqa: E402
 
 CTRL = pc.CONTROLS
 

@@ -5,7 +5,7 @@ B. Agreement with SNG-WOFI by source group, and the ordering of the two shares i
 C. Spending share, financing share and their wedge on identical general government observations.
 D. Decision authority: Regional Authority Index self-rule components against the share (descriptive).
 
-    python -I paperC_ext_r5w.py [--main PATH_TO_env_federalism.py] [--data DATA_EXT_LAB] [--out DIR]
+    python -I ext_r5w.py [--main PATH_TO_env_federalism.py] [--data DATA_EXT_LAB] [--out DIR]
 
 Reads the panel functions of env_federalism.py, the SNG-WOFI COFOG file (data_ext/lab/sngwofi/
 oecd_sng_wofi_cofog.csv) and the Regional Authority Index country file (data_ext/lab/RAI_country-april-2021.xlsx).

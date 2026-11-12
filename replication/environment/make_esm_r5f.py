@@ -1,4 +1,4 @@
-"""Markdown for Online Resource 1 from the outputs of paperC_ext_r5f.py.
+"""Markdown for the supplementary material from the outputs of ext_r5f.py.
 
     python make_esm_r5f.py OUTPUT_DIR
 """
