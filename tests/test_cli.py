@@ -426,15 +426,49 @@ def test_one_bad_cofog_value_stops_the_run_before_any_file_is_written(extract):
     assert not (tmp / "out").exists() and not (tmp / "splits").exists()
 
 
-def test_gui_only_imports_names_that_exist():
-    """gui.py needs Streamlit, which is optional; check its cofog_panel imports without running it."""
+@pytest.mark.parametrize("script", ["cofog_panel/gui.py", "gui.py"])
+def test_gui_only_imports_names_that_exist(script):
+    """
+    The interface (cofog_panel/gui.py) and the launcher shim (gui.py) need Streamlit, which is optional;
+    check their cofog_panel imports without running them.
+    """
     import ast
     import importlib
     from pathlib import Path
-    tree = ast.parse((Path(__file__).parent.parent / "gui.py").read_text(encoding="utf-8"))
+    repo = Path(__file__).parent.parent
+    page = ast.parse((repo / "cofog_panel" / "gui.py").read_text(encoding="utf-8"))
+    defined_in_page = {node.name for node in page.body if isinstance(node, ast.FunctionDef)}
+    tree = ast.parse((repo / script).read_text(encoding="utf-8"))
     imports = [node for node in ast.walk(tree) if isinstance(node, ast.ImportFrom) and node.module.startswith("cofog_panel")]
     assert imports
     for node in imports:
+        if node.module == "cofog_panel.gui":  # imports Streamlit itself
+            assert {alias.name for alias in node.names} <= defined_in_page
+            continue
         module = importlib.import_module(node.module)
         for alias in node.names:
             assert hasattr(module, alias.name), f"{node.module}.{alias.name}"
+
+
+def test_gui_command_starts_streamlit_on_the_packaged_page(monkeypatch):
+    import subprocess
+    import cofog_panel.cli as cli
+    calls = []
+    monkeypatch.setattr(cli, "_has_streamlit", lambda: True)
+    monkeypatch.setattr(subprocess, "call", lambda command: calls.append(command) or 0)
+    result = runner.invoke(app, ["gui", "--headless", "--port", "8599"])
+    assert result.exit_code == 0, result.output
+    command = calls[0]
+    assert command[1:4] == ["-m", "streamlit", "run"] and command[4] == str(cli.GUI_SCRIPT)
+    assert cli.GUI_SCRIPT.name == "gui.py" and cli.GUI_SCRIPT.parent.name == "cofog_panel" and cli.GUI_SCRIPT.exists()
+    assert command[command.index("--server.maxUploadSize") + 1] == "1000"
+    assert command[command.index("--server.port") + 1] == "8599"
+    assert command[command.index("--server.headless") + 1] == "true"
+
+
+def test_gui_command_without_streamlit_says_how_to_install_it(monkeypatch):
+    import cofog_panel.cli as cli
+    monkeypatch.setattr(cli, "_has_streamlit", lambda: False)
+    result = runner.invoke(app, ["gui"])
+    assert result.exit_code == 1
+    assert "Streamlit is not installed" in result.output and 'cofog-panel[gui]' in result.output

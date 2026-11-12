@@ -124,6 +124,26 @@ def normalise_transformation(value: str) -> str:
     raise OptionError(f"Invalid --filter-type '{value}'.", f"Choose one of: {accepted} (letter case does not matter).")
 
 
+# Sector names accepted by --sector for a single-sector panel (tier D), as spelt in the IMF file
+DIRECT_SECTORS = [
+    "Budgetary central government", "Extrabudgetary central government",
+    "Local Government", "Social security funds", "State Government",
+    "Central government excluding social security",
+]
+# Values of --sector: the single sectors plus the two aggregation methods ("General government" is the three-tier rule)
+VALID_SECTORS = sorted([*DIRECT_SECTORS, "General government", "Central government including social security"])
+
+
+def normalise_sector(value: str) -> str:
+    """Return the --sector value as spelt in VALID_SECTORS, letter case ignored, as for --filter-type."""
+    spelling = {name.casefold(): name for name in VALID_SECTORS}.get(str(value).strip().casefold())
+    if spelling is None:
+        raise OptionError(f"Invalid --sector '{value}'.",
+                          "Choose one of: " + ", ".join(f"'{name}'" for name in VALID_SECTORS)
+                          + " (letter case does not matter); 'cofog-panel list-sectors' describes them.")
+    return spelling
+
+
 def workbook_strings(path: Path) -> Optional[Set[str]]:
     """
     Distinct text values of an .xlsx workbook, read from its shared-strings part.

@@ -15,6 +15,8 @@ import pandas as pd
 
 from .etl import COUNTRY_FILE_ENCODING, IMF_TO_ISO, country_files, read_split_marker
 from .messages import hint_for_write_error, print_error
+# Sector names accepted by --sector for a single-sector panel (tier D); defined with the option checks
+from .options import DIRECT_SECTORS  # noqa: F401
 
 # --- Sector names, normalised to lower case as they appear in IMF GFS COFOG ---
 GG = "general government"
@@ -32,13 +34,6 @@ T3_SECTORS = [BCG, EBCG, SSF, SG, LG]  # with CGXSS in place of BCG + EBCG when 
 C2_SECTORS = [BCG, EBCG, SSF]
 # Levels whose omission makes a fallback sum incomplete (see is_complete)
 COVERAGE_LEVELS = [EBCG, SSF, SG, LG]
-
-# Sector names accepted by --sector for a single-sector panel (tier D)
-DIRECT_SECTORS = [
-    "Budgetary central government", "Extrabudgetary central government",
-    "Local Government", "Social security funds", "State Government",
-    "Central government excluding social security",
-]
 
 # Transformations whose values can be added across subsectors. Shares of total outlays
 # have a different denominator in each subsector and are never summed.
