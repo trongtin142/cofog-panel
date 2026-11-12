@@ -1,3 +1,7 @@
+# Launch scripts keep the line endings of their platform in every checkout (a CRLF in run_gui.sh stops bash)
+*.sh text eol=lf
+*.bat text eol=crlf
+
 # Third-party data of replication/eeps are stored byte for byte: fetch_data.py checks them against SHA-256
 replication/eeps/data_ext/lab/** -text
 replication/eeps/data_ext/*.json -text
