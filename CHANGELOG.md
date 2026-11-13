@@ -8,6 +8,13 @@
 - `--format xlsx|csv|parquet` and a `--long` option for long-format output.
 - Stage functions that return data instead of printing, so that `build_panel` needs no temporary folder.
 
+## 1.2.1 (2026-11-13)
+
+Authors and metadata only. The code, the selection rule and every output are the same as in 1.2.0.
+
+- Authors: Quoc Khanh Nguyen (University of Economics Ho Chi Minh City) joins Trong Tin Nguyen and Thanh-Tung Pham as an author of the software (`CITATION.cff`, `pyproject.toml`, README). He contributed to the validation of the outputs and reviewed the documentation.
+- `CITATION.cff` lists the DOI of release 1.2.0 (10.5281/zenodo.24193180). The README, the notebook and the issue template point to the tag v1.2.1.
+
 ## 1.2.0 (2026-11-13)
 
 The selection rule and every existing output are unchanged: `resolve_value`, `is_complete` and the writing of the sheet `MasterData` are untouched. On the IMF extract of 3 February 2026 and on the release of 21 October 2026, `run --cofog 07.3` gives the same `MasterData` as 1.1.1, cell for cell; the master gains the sheet `Provenance`. The replication scripts reproduce the outputs of both studies byte for byte. This release includes the fixes prepared as 1.1.2, which was not published.
