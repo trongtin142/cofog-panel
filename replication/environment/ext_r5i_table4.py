@@ -19,9 +19,7 @@ def table4_rows(s, ge):
     add = ["MANF", "lnEI", "FUEL", "COAL", "RENTS", "VA", "POSTSOC"]
     specs = [("Adds structural controls", pc.BASE.replace(f" + {r5.CTRL}", f" + {r5.CTRL} + " + " + ".join(add)), s,
               add),
-             ("Excl. post-socialist countries", pc.BASE, s[s["POSTSOC"] == 0], []),
-             ("GE interacted with every control", pc.BASE + " + " + " + ".join(
-                 f"GE:{v}" for v in ["lnENV", "lnY", "lnY2", "IND", "URB", "TRADE", "lnDENS"]), s, [])]
+             ("Excl. post-socialist countries", pc.BASE, s[s["POSTSOC"] == 0], [])]
     # rows for Table S7: single structural controls, without China, short specification, free ln anthropogenic share
     for lab, a in [("Adds manufacturing value added", ["MANF"]), ("Adds ln energy intensity", ["lnEI"]),
                    ("Adds fuel exports", ["FUEL"]), ("Adds coal share of electricity and resource rents", ["COAL", "RENTS"]),

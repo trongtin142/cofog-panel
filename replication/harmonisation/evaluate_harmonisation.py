@@ -552,7 +552,7 @@ def fig_overlap(h: pd.DataFrame, path: Path):
     import matplotlib.pyplot as plt
     g = h[h[GG].notna() & (h[GG] > 0) & (h["COMPLETE"] == True)]
     order = list(DIVISIONS)[::-1]
-    panels = [("EST_CG", "IDENT_CG", g["EST_CG"].notna(), "CGSS alone", INK2),
+    panels = [("EST_CG", "IDENT_CG", g["EST_CG"].notna(), "Central government data", INK2),
               ("EST_T2", "IDENT_T2", g["T2_COMPLETE"], "T2 sum, complete", TIER_COLORS["T2"]),
               ("EST_T3", "IDENT_T3", g["T3_COMPLETE"], "T3 sum, complete", TIER_COLORS["T3"]),
               ("EST_T3", "IDENT_T3", g["EST_T3"].notna() & ~g["T3_COMPLETE"], "T3 sum, incomplete", TIER_COLORS["T3"])]
@@ -582,7 +582,7 @@ def fig_overlap(h: pd.DataFrame, path: Path):
         else:
             ax.set_yticks(range(1, len(order) + 1), [d for d in order], fontsize=10)
         if k >= 2:
-            ax.set_xlabel("log(estimate / GG)", fontsize=10, color=INK2)
+            ax.set_xlabel("log(substitute / GG)", fontsize=10, color=INK2)
     fig.tight_layout()
     fig.savefig(path, dpi=300)
     plt.close(fig)

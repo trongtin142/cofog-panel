@@ -18,7 +18,7 @@ For users who prefer a graphical interface (a browser page, no command line opti
 3. Start the application from that folder: on macOS or Linux run `bash run_gui.sh`, on Windows double-click `run_gui.bat`. The script creates a `.venv` folder, installs the package with the `gui` extra (`pip install -e ".[gui]"`, which adds Streamlit 1.49 or later) and opens the page.
 4. In the page, upload the IMF file (or the sample `data/sample/gfs_cofog_073_sample.csv`, with COFOG 07.3), choose the COFOG function, method and transformation in the sidebar, and click **Run Pipeline**. Download the master when it finishes. The page shows the reports and warnings of the stages (the same text the command line prints) in a run log, and the reason when a stage fails.
 
-With the package installed (`pip install "cofog-panel[gui]"`, or `pip install -e ".[gui]"` in a clone), `cofog-panel gui` starts the same page, from any folder; `--port` and `--headless` set the port and keep the browser closed. The page is part of the package (`cofog_panel/gui.py`); `gui.py` at the root of the repository starts it for `streamlit run gui.py` and the launch scripts.
+With the package installed (`pip install "cofog-panel[gui] @ git+https://github.com/trongtin142/cofog-panel@v1.2.0"`, or `pip install -e ".[gui]"` in a clone), `cofog-panel gui` starts the same page, from any folder; `--port` and `--headless` set the port and keep the browser closed. The page is part of the package (`cofog_panel/gui.py`); `gui.py` at the root of the repository starts it for `streamlit run gui.py` and the launch scripts.
 
 The GUI runs the same five stages as `cofog-panel run` for one COFOG function from the built-in list, with the default column names, and writes the same `Provenance` sheet. It does not offer `--zero-as-missing`, `--check-ranges`, several functions, `--split-dir` or a country lookup in another format than `.xlsx`; use the command line for those. Each run builds a new master with one indicator: uploaded files and the result live in a temporary folder that is deleted when the run ends, so download the master from the page. To collect several indicators in one master, use `cofog-panel run` (Section 3).
 
@@ -147,7 +147,7 @@ pip install -e ".[replication]"   # adds statsmodels, scipy, matplotlib, linearm
 
 `cofog-panel --version` prints the installed version.
 
-A tagged release also installs without a clone, from the tag (`pip install "git+https://github.com/trongtin142/cofog-panel@v1.2.0"`) or from PyPI (`pip install cofog-panel`); add the `gui` extra for the browser interface (`pip install "cofog-panel[gui]"`, then `cofog-panel gui`). The sample extract, the tests and `replication/` come with the repository.
+A tagged release also installs without a clone, from the tag (`pip install "git+https://github.com/trongtin142/cofog-panel@v1.2.0"`); add the `gui` extra for the browser interface (`pip install "cofog-panel[gui] @ git+https://github.com/trongtin142/cofog-panel@v1.2.0"`, then `cofog-panel gui`). The sample extract, the tests and `replication/` come with the repository.
 
 ### Windows (PowerShell)
 
