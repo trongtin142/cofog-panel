@@ -4,7 +4,7 @@ Reproduces all tables and figures of the harmonisation study (manuscript under r
 
 ## Requirements
 
-`pip install -e .[replication]` from the repository root (adds `statsmodels`, `scipy` and `matplotlib`). Tested with Python 3.14, pandas 3.0, statsmodels 0.14, matplotlib 3.10 and 3.11.
+`pip install -e .[replication]` from the repository root (adds `statsmodels`, `scipy`, `matplotlib`, `linearmodels` and `tabulate`). Tested with Python 3.14, pandas 3.0, statsmodels 0.14, matplotlib 3.10 and 3.11.
 
 ## Data
 
@@ -38,17 +38,17 @@ python -I replication/harmonisation/evaluate_extensions_r6.py --vintage data/gfs
 
 | Script | Outputs | Runtime |
 | :--- | :--- | :--- |
-| `evaluate_harmonisation.py` | `output/`: `table1`–`table7` (Tables 1–7 of the article), `supp_*` (supplementary tables), `fig1`–`fig4` (Figures 1–4), `harmonised_all_divisions.csv`, `results.json` | about 1.5 minutes |
+| `evaluate_harmonisation.py` | `output/`: `table1`–`table7` (the main tables of the harmonisation study; an article that uses them numbers its tables in its own order and lists the output file of each table), `supp_*` (supplementary tables), `fig1`–`fig4` (Figures 1–4), `harmonised_all_divisions.csv`, `results.json` | about 1.5 minutes |
 | `evaluate_extensions.py` | `output_ext/`: `ext_*.csv`, `ext_fig_*.png`, `fig1_coverage_09.png` (see below) | about 1.5 minutes, 15 seconds from the cache |
 | `dist_exhibit.py` | `output_ext/`: `ext_d1_*.csv`, `ext_fig_d1_redistribution_he.png` | under 10 seconds after `evaluate_extensions.py` |
-| `compare_vintages.py` | `output_vintage/` (all tables for the October release) and `output/supp_vintage.csv` (supplementary Table S13) | under a minute for the CSV download |
+| `compare_vintages.py` | `output_vintage/` (all tables for the October release) and `output/supp_vintage.csv` (comparison of the two releases) | under a minute for the CSV download |
 | `evaluate_extensions.py --source <October CSV> --out .../output_ext_oct` | `output_ext_oct/`: the further analyses on the October release | under a minute |
 | `vintage_headline.py` | `output_ext/ext_vintage_headline.csv`: headline statistics of the further analyses for both releases and their difference | seconds |
 | `evaluate_extensions_r6.py` | `output_r6/`: `ext_r6_*.csv` and `ext_fig_classification_r6.png` (see below) | about 1.5 minutes |
 
 The scripts call `cofog_panel.resolve_value` and `cofog_panel.aggregate.is_complete`, the same functions used by the command-line tool. Each takes `--source FILE` (Excel or CSV) and `--out DIR` to evaluate another extract or write elsewhere. Output folders (`output*/`) and the caches in them (`_gfs_long_*.pkl`, `_ext_long_<sha>.pkl`) are regenerated and kept out of the repository by `.gitignore`.
 
-## Robustness to the IMF release (supplementary Table S13)
+## Robustness to the IMF release
 
 Save the CSV download of the release of 21 October 2026 as `data/gfs_raw_data_2026-10-21.csv` and run `compare_vintages.py` after `evaluate_harmonisation.py`, as above. The script evaluates the second extract into `output_vintage/` and writes `supp_vintage.csv` (supplementary Table S13) to `output/`: the main statistics of Tables 2, 4, 5 and 7 for both releases and their difference. The release used for S13 was published on 21 October 2026 (SHA-256 of the CSV download `886911700a5ff2a7076935b96d4d40a2751ae3a5003ea40dfbd24329c589ef36`). The IMF portal serves only its latest release, so a later download can differ from that file. Compare its SHA-256 with the value above before running the comparison. `evaluate_extensions.py --source data/gfs_raw_data_2026-10-21.csv --out replication/harmonisation/output_ext_oct` runs the further analyses on the same release.
 
@@ -101,4 +101,4 @@ The World Bank updates these series, so a new download can differ from the copy 
 
 ## Reproducibility
 
-On the IMF extract of 3 February 2026 (and the release of 21 October 2026 for `compare_vintages.py`), the CSV and JSON outputs of these scripts are identical, byte for byte, to those of the study. PNG files depend on the matplotlib and Pillow versions as well: with the versions used for the study they are identical too (Figures 1–4 of `evaluate_harmonisation.py`: matplotlib 3.11.2 and Pillow 13.0.0; the figures of `evaluate_extensions.py`, `dist_exhibit.py`, `evaluate_extensions_r6.py` and `output_vintage/`: matplotlib 3.10.9 and Pillow 12.2.0), and other versions draw the same figures with different bytes.
+On the IMF extract of 3 February 2026 (and the release of 21 October 2026 for `compare_vintages.py`), the CSV and JSON outputs of these scripts are identical, byte for byte, to those of the study. PNG files depend on the matplotlib and Pillow versions as well: with the versions used for the study they are identical too (Figures 1, 3 and 4 of `evaluate_harmonisation.py`: matplotlib 3.11.2 and Pillow 13.0.0; Figure 2 of `evaluate_harmonisation.py` and the figures of `evaluate_extensions.py`, `dist_exhibit.py`, `evaluate_extensions_r6.py` and `output_vintage/`: matplotlib 3.10.9 and Pillow 12.2.0), and other versions draw the same figures with different bytes.

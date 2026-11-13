@@ -8,6 +8,15 @@
 - `--format xlsx|csv|parquet` and a `--long` option for long-format output.
 - Stage functions that return data instead of printing, so that `build_panel` needs no temporary folder.
 
+## 1.2.2 (2026-11-13)
+
+The package code, the selection rule and the outputs that the articles report are the same as in 1.2.1.
+
+- `replication/environment/ext_r6.py` no longer fits the model with central and subnational spending in place of the share, which no article reports, and no longer writes `r6_split.csv`. It keeps the panel model on the countries covered by the World Observatory (`r6_wofi_panel.csv`, `r6_results.json`).
+- `replication/environment/ext_r3_counts.py`: the row on reversals of large changes of the share names its rule (a change followed within two years by an opposite change larger than 0.1).
+- `replication/harmonisation/README.md`: the output tables are no longer numbered after one article (each article lists the output file of its tables), the `replication` extra lists `linearmodels` and `tabulate`, and the matplotlib and Pillow versions are given per figure.
+- README: on Windows, create the virtual environment inside a short path as well, since Streamlit installs long paths. `CITATION.cff` lists the DOIs of 1.1.0 and 1.2.1. The notebook, the install lines and the issue template point to the tag v1.2.2.
+
 ## 1.2.1 (2026-11-13)
 
 Authors and metadata only. The code, the selection rule and every output are the same as in 1.2.0.
