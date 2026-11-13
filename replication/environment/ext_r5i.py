@@ -118,9 +118,6 @@ def moderators(s, med):
                       ("A5 + SUB x ln GDP per capita, industry and urban shares", " + SUB:lnYc + SUB:INDc + SUB:URBc")]:
         r, d = fit(BASEC + add, s, NEED)
         rows.append(rec(name, r, d, ["SUB:GEc", "SUB:lnYc", "SUB:INDc", "SUB:URBc"]))
-    gex = " + ".join(f"GEc:{v}" for v in ["lnENV", "lnY", "lnY2", "IND", "URB", "TRADE", "lnDENS"])
-    r, d = fit(BASEC + " + " + gex, s, NEED)
-    rows.append(rec("A6 + GE x every control and ln ENV", r, d, ["SUB:GEc"]))
     for k, lab in [("VA", "voice and accountability"), ("RQ", "regulatory quality"), ("RL", "rule of law"),
                    ("CC", "control of corruption")]:
         f = BASEC.replace("SUB:GEc + GEc", f"SUB:{k}c + {k}c")
