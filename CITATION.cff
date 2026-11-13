@@ -10,7 +10,9 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.23511907
     description: "All versions (concept DOI); resolves to the latest release"
-  # Version 1.2.2: add its DOI here once Zenodo has assigned it
+  - type: doi
+    value: 10.5281/zenodo.24206253
+    description: "Version 1.2.2"
   - type: doi
     value: 10.5281/zenodo.24194115
     description: "Version 1.2.1"
