@@ -37,7 +37,7 @@ python replication/environment/run_all.py                    # runs the scripts 
 | 20 | `make_esm_r5f.py` | `r5f_esm.md` |
 | 21 | `ext_r5i.py` | `r5i_moderators.csv`, `r5i_sensitivity.csv`, `r5i_structural.csv`, `r5i_inference.csv`, `r5i_channel.csv`, `r5i_kernel.csv`, `r5i_support.csv`, `r5i_results.json`, `r5i_fig_kernel` and `r5i_fig_support` (PNG and PDF): other governance indicators as moderator, functional form, omitted variables, the sources of exposure, structural controls (manufacturing, energy intensity, fuel exports) and inference |
 | 22 | `ext_r5i_table4.py` | `r5i_table4_rows.csv`, `r5i_plausibility.json`, `r5i_figS1_combined` (PNG and PDF): the rows of step 21 in the format of Table 4, the arithmetic for the sources of exposure, and a two-panel figure of the linear, binning and kernel estimates with their common support |
-| 23 | `ext_r6.py` (run with `-I`) | `r6_split.csv`, `r6_wofi_panel.csv`, `r6_results.json`: central and subnational spending in place of the share, and the panel model on the countries covered by both the share and SNG-WOFI |
+| 23 | `ext_r6.py` (run with `-I`) | `r6_wofi_panel.csv`, `r6_results.json`: the panel model on the countries covered by both the share and SNG-WOFI |
 | 24 | `ext_r8_counts.py` | `r8_sample_flow.csv` (countries and observations left at each step from the COFOG extract to the main sample), `r8_counts.json` (observations and countries below the reference value of government effectiveness, income groups of the main sample) |
 
 `env_samples.py` is a module, not a step: it defines the central-only countries, the coverage gaps and the countries without subnational government (see Sample).

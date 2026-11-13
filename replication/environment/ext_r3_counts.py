@@ -64,7 +64,7 @@ rows = [
      f"{tn['countries_sub_first3_last3_change_above_0.2']}", "sample_composition.json"),
     ("6", "Year-to-year changes of the share larger than 0.2 (countries)",
      f"{tn['yearly_changes_above_0.2']} ({tn['countries_with_such_changes']})", "sample_composition.json"),
-    ("6", "Of these changes, reversed within two years",
+    ("6", "Of these changes, followed within two years by an opposite change larger than 0.1",
      f"{tn['such_changes_reversed_within_2_years']}", "sample_composition.json"),
 ]
 t = pd.DataFrame(rows, columns=["Section", "Count", "Value", "Output file"])

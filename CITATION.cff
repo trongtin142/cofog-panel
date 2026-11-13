@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 title: "COFOG-Panel: harmonising IMF GFS COFOG data into reproducible panel datasets"
-version: 1.2.1
+version: 1.2.2
 date-released: 2026-11-13
 license: MIT
 repository-code: "https://github.com/trongtin142/cofog-panel"
@@ -10,6 +10,7 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.23511907
     description: "All versions (concept DOI); resolves to the latest release"
+  # Version 1.2.2: add its DOI here once Zenodo has assigned it
   - type: doi
     value: 10.5281/zenodo.24194115
     description: "Version 1.2.1"
@@ -19,6 +20,9 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.24144305
     description: "Version 1.1.1"
+  - type: doi
+    value: 10.5281/zenodo.23850246
+    description: "Version 1.1.0"
   - type: doi
     value: 10.5281/zenodo.23558078
     description: "Version 1.0.5"
