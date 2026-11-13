@@ -3,11 +3,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/trongtin142/cofog-panel/blob/main/LICENSE.txt)
 [![tests](https://github.com/trongtin142/cofog-panel/actions/workflows/tests.yml/badge.svg)](https://github.com/trongtin142/cofog-panel/actions/workflows/tests.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23511907.svg)](https://doi.org/10.5281/zenodo.23511907)
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/trongtin142/cofog-panel/blob/v1.2.0/cofog.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/trongtin142/cofog-panel/blob/v1.2.1/cofog.ipynb)
 
 COFOG-Panel builds a country-year panel for any COFOG division or group from a raw download (CSV or Excel) of the IMF Government Finance Statistics (GFS) dataset on expenditure by function of government. Countries report these data for different sets of government subsectors. The tool selects one value per country-year with a documented three-tier rule and records, next to every value, the tier, the sectors that entered it and whether it covers every level of government. A sheet `Provenance` in the output records the source file and its SHA-256, the IMF release date, the version and the command. The tool runs from the command line, in a browser page or from Python (`cofog_panel.build_panel`).
 
-The DOI badge points to all versions of the software. Each release also has its own DOI, listed on the Zenodo page and in `CITATION.cff`. The Colab badge opens the notebook `cofog.ipynb` of release 1.2.0 in Google Colab, and the notebook installs that same tagged release.
+The DOI badge points to all versions of the software. Each release also has its own DOI, listed on the Zenodo page and in `CITATION.cff`. The Colab badge opens the notebook `cofog.ipynb` of release 1.2.1 in Google Colab, and the notebook installs that same tagged release.
 
 ## Quickstart (GUI)
 
@@ -18,7 +18,7 @@ For users who prefer a graphical interface (a browser page, no command line opti
 3. Start the application from that folder: on macOS or Linux run `bash run_gui.sh`, on Windows double-click `run_gui.bat`. The script creates a `.venv` folder, installs the package with the `gui` extra (`pip install -e ".[gui]"`, which adds Streamlit 1.49 or later) and opens the page.
 4. In the page, upload the IMF file (or the sample `data/sample/gfs_cofog_073_sample.csv`, with COFOG 07.3), choose the COFOG function, method and transformation in the sidebar, and click **Run Pipeline**. Download the master when it finishes. The page shows the reports and warnings of the stages (the same text the command line prints) in a run log, and the reason when a stage fails.
 
-With the package installed (`pip install "cofog-panel[gui] @ git+https://github.com/trongtin142/cofog-panel@v1.2.0"`, or `pip install -e ".[gui]"` in a clone), `cofog-panel gui` starts the same page, from any folder; `--port` and `--headless` set the port and keep the browser closed. The page is part of the package (`cofog_panel/gui.py`); `gui.py` at the root of the repository starts it for `streamlit run gui.py` and the launch scripts.
+With the package installed (`pip install "cofog-panel[gui] @ git+https://github.com/trongtin142/cofog-panel@v1.2.1"`, or `pip install -e ".[gui]"` in a clone), `cofog-panel gui` starts the same page, from any folder; `--port` and `--headless` set the port and keep the browser closed. The page is part of the package (`cofog_panel/gui.py`); `gui.py` at the root of the repository starts it for `streamlit run gui.py` and the launch scripts.
 
 The GUI runs the same five stages as `cofog-panel run` for one COFOG function from the built-in list, with the default column names, and writes the same `Provenance` sheet. It does not offer `--zero-as-missing`, `--check-ranges`, several functions, `--split-dir` or a country lookup in another format than `.xlsx`; use the command line for those. Each run builds a new master with one indicator: uploaded files and the result live in a temporary folder that is deleted when the run ends, so download the master from the page. To collect several indicators in one master, use `cofog-panel run` (Section 3).
 
@@ -147,7 +147,7 @@ pip install -e ".[replication]"   # adds statsmodels, scipy, matplotlib, linearm
 
 `cofog-panel --version` prints the installed version.
 
-A tagged release also installs without a clone, from the tag (`pip install "git+https://github.com/trongtin142/cofog-panel@v1.2.0"`); add the `gui` extra for the browser interface (`pip install "cofog-panel[gui] @ git+https://github.com/trongtin142/cofog-panel@v1.2.0"`, then `cofog-panel gui`). The sample extract, the tests and `replication/` come with the repository.
+A tagged release also installs without a clone, from the tag (`pip install "git+https://github.com/trongtin142/cofog-panel@v1.2.1"`); add the `gui` extra for the browser interface (`pip install "cofog-panel[gui] @ git+https://github.com/trongtin142/cofog-panel@v1.2.1"`, then `cofog-panel gui`). The sample extract, the tests and `replication/` come with the repository.
 
 ### Windows (PowerShell)
 
@@ -265,4 +265,4 @@ See `CITATION.cff`. Please cite the DOI of the release you used.
 
 ## 9. Authors and acknowledgements
 
-COFOG-Panel is developed by Trong Tin Nguyen and Thanh-Tung Pham. Thanh-Tung Pham wrote the early prototype of the pipeline (March 2026), from which this repository grew, and, in version 1.1.0, the browser interface and the input validation. Cam Quyen Tran (GitHub `qynntrn`) contributed to an early version of the code (the `--sector` option and the notebook) and gave helpful comments.
+COFOG-Panel is developed by Trong Tin Nguyen, Thanh-Tung Pham and Quoc Khanh Nguyen. Thanh-Tung Pham wrote the early prototype of the pipeline (March 2026), from which this repository grew, and, in version 1.1.0, the browser interface and the input validation. Quoc Khanh Nguyen contributed to the validation of the outputs and reviewed the documentation. Cam Quyen Tran (GitHub `qynntrn`) contributed to an early version of the code (the `--sector` option and the notebook) and gave helpful comments.

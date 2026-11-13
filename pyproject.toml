@@ -13,6 +13,7 @@ license-files = ["LICENSE.txt"]
 authors = [
     { name = "Trong Tin Nguyen" },
     { name = "Thanh-Tung Pham" },
+    { name = "Quoc Khanh Nguyen" },
 ]
 keywords = ["COFOG", "IMF GFS", "government expenditure", "panel data", "harmonisation"]
 classifiers = [

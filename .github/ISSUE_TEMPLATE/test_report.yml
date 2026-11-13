@@ -12,7 +12,7 @@ body:
     attributes:
       label: COFOG-Panel version
       description: Output of `cofog-panel --version`
-      placeholder: "cofog-panel 1.2.0"
+      placeholder: "cofog-panel 1.2.1"
     validations:
       required: true
   - type: dropdown
