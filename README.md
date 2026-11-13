@@ -51,7 +51,7 @@ cofog-panel run --cofog 07.3 --source-file data/sample/gfs_cofog_073_sample.csv 
 
 An Excel download (`data/gfs_raw_data.xlsx`) works as well and is used when both files exist; the CSV file is read much faster.
 
-The portal serves the current release only. To work with the release of 3 February 2026, on which the published results and the examples below rest, download the archived copy `imf_gfs_cofog_2026-02-03.xlsx` from its Zenodo record, <https://doi.org/ZENODO_DATA_DOI> (an unaltered copy of the IMF Excel download under the IMF terms, 58,389,314 bytes, SHA-256 `91e3db1bdb838f322dcbe648b133f511f3efe1921e50c8bc0d7621f512668cfe`), and save it as `data/gfs_raw_data.xlsx`.
+The portal serves the current release only. To work with the release of 3 February 2026, on which the published results and the examples below rest, download the archived copy `imf_gfs_cofog_2026-02-03.xlsx` from its Zenodo record, <https://doi.org/10.5281/zenodo.24192043> (an unaltered copy of the IMF Excel download under the IMF terms, 58,389,314 bytes, SHA-256 `91e3db1bdb838f322dcbe648b133f511f3efe1921e50c8bc0d7621f512668cfe`), and save it as `data/gfs_raw_data.xlsx`.
 
 **4. Run** one command, here for environmental protection (COFOG 05):
 
@@ -71,7 +71,7 @@ The panel is written to `output/COFOG_MASTER_SCHEMA.xlsx` (sheet `MasterData`, w
 
 Values are in per cent of GDP (rounded here; the file keeps all digits). They come from the release published on 3 February 2026; a later download gives revised values.
 
-To reproduce these rows, run the command on the Excel download of the release of 3 February 2026 (SHA-256 `91e3db1bdb838f322dcbe648b133f511f3efe1921e50c8bc0d7621f512668cfe`, recorded in `replication/harmonisation/README.md`). The IMF has since replaced that release with revised values, so the portal now serves a different file; the February extract is archived at <https://doi.org/ZENODO_DATA_DOI> (step 3 above).
+To reproduce these rows, run the command on the Excel download of the release of 3 February 2026 (SHA-256 `91e3db1bdb838f322dcbe648b133f511f3efe1921e50c8bc0d7621f512668cfe`, recorded in `replication/harmonisation/README.md`). The IMF has since replaced that release with revised values, so the portal now serves a different file; the February extract is archived at <https://doi.org/10.5281/zenodo.24192043> (step 3 above).
 
 * **T1**: general government (GG) as reported. **T2**: central government including social security (CGSS) plus the state and local levels that are reported. **T3**: the central government components (budgetary BCG, extrabudgetary EBCG, social security funds SSF) plus state (SG) and local (LG) government, when neither GG nor CGSS is reported.
 * **Y / N**: `Y` when the value covers every level of government that the country reports in its series; `N` when a level is missing (Armenia 2014 lacks the local level it reports in other years), so the value understates spending.
@@ -245,7 +245,7 @@ Run the tests from the repository root. The `gui` extra adds Streamlit, which th
 
 ## 5. Data
 
-The source file can be the CSV or the Excel download of IMF.STA:GFS_COFOG; both have the same columns and give the same panel. The IMF revises the dataset in place: a download made on 21 October 2026 still carries the version number 11.0.0 but has a new `PUBLICATION_DATE` and revised values. Keep the downloaded file with your results and report its `PUBLICATION_DATE` (a column of the file) when you cite the data. An unaltered copy of the release of 3 February 2026 is archived at <https://doi.org/ZENODO_DATA_DOI> (file `imf_gfs_cofog_2026-02-03.xlsx`); save it as `data/gfs_raw_data.xlsx` to reproduce results based on that release. `split` warns if the selected series carry several dates, and `aggregate` prints the date it recorded.
+The source file can be the CSV or the Excel download of IMF.STA:GFS_COFOG; both have the same columns and give the same panel. The IMF revises the dataset in place: a download made on 21 October 2026 still carries the version number 11.0.0 but has a new `PUBLICATION_DATE` and revised values. Keep the downloaded file with your results and report its `PUBLICATION_DATE` (a column of the file) when you cite the data. An unaltered copy of the release of 3 February 2026 is archived at <https://doi.org/10.5281/zenodo.24192043> (file `imf_gfs_cofog_2026-02-03.xlsx`); save it as `data/gfs_raw_data.xlsx` to reproduce results based on that release. `split` warns if the selected series carry several dates, and `aggregate` prints the date it recorded.
 
 `data/sample/gfs_cofog_073_sample.csv` is a small extract of the release of 3 February 2026 (COFOG group 07.3 in per cent of GDP, all countries and sectors), distributed under the IMF terms with its checksum and source in `data/sample/README.md`, for trying the tool and for the tests.
 
