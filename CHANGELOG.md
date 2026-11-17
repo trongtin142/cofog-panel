@@ -8,6 +8,13 @@
 - `--format xlsx|csv|parquet` and a `--long` option for long-format output.
 - Stage functions that return data instead of printing, so that `build_panel` needs no temporary folder.
 
+## 1.2.3 (2026-11-17)
+
+The package code, the selection rule and every other output are the same as in 1.2.2.
+
+- `replication/environment/ext_r5i.py` again fits the model in which government effectiveness interacts with each continuous regressor of the baseline specification, as up to release 1.1.1, and writes it as row A6 of `r5i_moderators.csv`. The environment study reports this model. The other rows of `r5i_moderators.csv` and the other output files are unchanged.
+- The README, the notebook, the install lines and the issue template point to the tag v1.2.3.
+
 ## 1.2.2 (2026-11-13)
 
 The package code, the selection rule and the outputs that the articles report are the same as in 1.2.1.
