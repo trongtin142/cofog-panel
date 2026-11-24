@@ -8,6 +8,13 @@
 - `--format xlsx|csv|parquet` and a `--long` option for long-format output.
 - Stage functions that return data instead of printing, so that `build_panel` needs no temporary folder.
 
+## Unreleased
+
+The package code, the selection rule and every output of 1.2.4 are unchanged.
+
+- `replication/environment/ext_divisions.py` and `make_esm_divisions.py` print the location of their outputs relative to `replication/environment`, so their logs are the same wherever the repository is cloned.
+- The README and `docs/architecture.md` refer to the two studies without a publication status.
+
 ## 1.2.4 (2026-11-24)
 
 The package code and the selection rule are the same as in 1.2.3, and the replication scripts of 1.2.3 write the same numbers. The release gives files descriptive names, updates the documentation and adds two steps to the replication of the environment study.

@@ -287,4 +287,6 @@ print(json.dumps(summ, indent=1))
 
 
 figure(tab, OUT)
-print("wrote", OUT)
+# The log names the output folder relative to this folder, so that it is the same wherever the repository sits
+shown = OUT.resolve()
+print("wrote", shown.relative_to(HERE).as_posix() if shown.is_relative_to(HERE) else shown.name)

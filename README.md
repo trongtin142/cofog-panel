@@ -51,7 +51,7 @@ cofog-panel run --cofog 07.3 --source-file data/sample/gfs_cofog_073_sample.csv 
 
 An Excel download (`data/gfs_raw_data.xlsx`) works as well and is used when both files exist; the CSV file is read much faster.
 
-The portal serves the current release only. To work with the release of 3 February 2026, on which the published results and the examples below rest, download the archived copy `imf_gfs_cofog_2026-02-03.xlsx` from its Zenodo record, <https://doi.org/10.5281/zenodo.24192043> (an unaltered copy of the IMF Excel download under the IMF terms, 58,389,314 bytes, SHA-256 `91e3db1bdb838f322dcbe648b133f511f3efe1921e50c8bc0d7621f512668cfe`), and save it as `data/gfs_raw_data.xlsx`.
+The portal serves the current release only. To work with the release of 3 February 2026, on which the analyses of the two studies in `replication/` and the examples below rest, download the archived copy `imf_gfs_cofog_2026-02-03.xlsx` from its Zenodo record, <https://doi.org/10.5281/zenodo.24192043> (an unaltered copy of the IMF Excel download under the IMF terms, 58,389,314 bytes, SHA-256 `91e3db1bdb838f322dcbe648b133f511f3efe1921e50c8bc0d7621f512668cfe`), and save it as `data/gfs_raw_data.xlsx`.
 
 **4. Run** one command, here for environmental protection (COFOG 05):
 

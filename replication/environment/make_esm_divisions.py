@@ -118,7 +118,10 @@ def main():
     md = ["<!-- rows to append to Table S10, after row (14) -->", *rows10, "",
           "<!-- sentence to add to the note of Table S10 -->", note10, "", *lines]
     (out / "esm_divisions.md").write_text("\n".join(md), encoding="utf8")
-    print(f"wrote {out / 'esm_divisions.md'}")
+    # The log names the file relative to this folder, so that it is the same wherever the repository sits
+    here = Path(__file__).resolve().parent
+    shown = (out / "esm_divisions.md").resolve()
+    print(f"wrote {shown.relative_to(here).as_posix() if shown.is_relative_to(here) else shown.name}")
 
 
 if __name__ == "__main__":
