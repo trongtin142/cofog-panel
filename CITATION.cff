@@ -11,6 +11,9 @@ identifiers:
     value: 10.5281/zenodo.23511907
     description: "All versions (concept DOI); resolves to the latest release"
   - type: doi
+    value: 10.5281/zenodo.24499998
+    description: "Version 1.2.4"
+  - type: doi
     value: 10.5281/zenodo.24314366
     description: "Version 1.2.3"
   - type: doi
