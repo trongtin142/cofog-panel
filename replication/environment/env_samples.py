@@ -27,7 +27,7 @@ import pandas as pd
 # government in the GFS sense was not confirmed, so they stay coverage gaps.
 NO_SUBNATIONAL_GOVERNMENT = {"SGP": "Singapore, city-state without local government (CLGF country profile)"}
 
-# The 36 central-only countries of the 108-country baseline (r5z_details.json, 3 November 2026).
+# The 36 central-only countries of the 108-country baseline (zero_shares_details.json, 3 November 2026).
 CENTRAL_ONLY = ["AGO", "BFA", "BGD", "BHS", "BTN", "BWA", "CHL", "CIV", "COG", "DZA", "ECU", "EGY", "FJI", "GNQ",
                 "HND", "KWT", "LBN", "MDG", "MHL", "MOZ", "NIC", "OMN", "PAK", "PHL", "PLW", "PSE", "QAT", "SGP",
                 "SLB", "STP", "SYC", "TLS", "TON", "TUN", "TZA", "WSM"]

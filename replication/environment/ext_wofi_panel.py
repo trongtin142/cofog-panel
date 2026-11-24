@@ -1,10 +1,10 @@
 """Environmental-spending study, the panel model on the countries covered by both this paper and the World
 Observatory.
 
-    python ext_r6.py [--main PATH_TO_env_federalism.py] [--out DIR] [--sample-rule baseline|gaps]
+    python ext_wofi_panel.py [--main PATH_TO_env_federalism.py] [--out DIR] [--sample-rule baseline|gaps]
 
 --sample-rule gaps codes the coverage gaps of env_samples.py as missing before estimation. Writes
-r6_wofi_panel.csv and r6_results.json to --out.
+wofi_panel.csv and wofi_panel_results.json to --out.
 """
 import argparse
 import importlib.util
@@ -43,7 +43,7 @@ def main():
     need = pc.BASE_NEEDED + ["SUB"]
     res = {"ge_ref": ge, "sample_rule": args.sample_rule}
 
-    # R6b
+    # countries covered by SNG-WOFI in 2019 (esm_wofi.py)
     w = pd.read_csv(ANALYSIS / "output" / "ESM1_TableS3_sngwofi_comparison.csv")
     w = w[(w["In_sample"] == 1) & w["SUB_2019"].notna() & w["WOFI_share"].notna()]
     iso = sorted(w["ISO3"])
@@ -63,8 +63,8 @@ def main():
                     "GE_mean": round(float(dd["GE"].mean()), 2),
                     "countries_negative_mean_GE": int((dd.groupby("ISO")["GE"].mean() < 0).sum())})
     wp = pd.DataFrame(out)
-    wp.to_csv(OUT / "r6_wofi_panel.csv", index=False)
-    (OUT / "r6_results.json").write_text(json.dumps(res, indent=1), encoding="utf8")
+    wp.to_csv(OUT / "wofi_panel.csv", index=False)
+    (OUT / "wofi_panel_results.json").write_text(json.dumps(res, indent=1), encoding="utf8")
     pd.set_option("display.width", 250)
     print(wp.to_string(index=False))
     print(json.dumps(res, indent=1))

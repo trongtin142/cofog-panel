@@ -1,6 +1,6 @@
 # Replication: harmonisation study
 
-Reproduces all tables and figures of the harmonisation study (manuscript under review; the reference will be added on publication), its further analyses (`evaluate_extensions.py`, `evaluate_extensions_r6.py`), the redistributive effect of health and education spending under each filling choice (`dist_exhibit.py`) and the comparison of the two IMF releases (`compare_vintages.py`, `vintage_headline.py`).
+Reproduces all tables and figures of the harmonisation study (manuscript under review; the reference will be added on publication), its further analyses (`evaluate_extensions.py`, `evaluate_benchmarks.py`), the redistributive effect of health and education spending under each filling choice (`dist_exhibit.py`) and the comparison of the two IMF releases (`compare_vintages.py`, `vintage_headline.py`).
 
 ## Requirements
 
@@ -33,7 +33,7 @@ python replication/harmonisation/dist_exhibit.py
 python replication/harmonisation/compare_vintages.py --source data/gfs_raw_data_2026-10-21.csv
 python replication/harmonisation/evaluate_extensions.py --source data/gfs_raw_data_2026-10-21.csv --out replication/harmonisation/output_ext_oct
 python replication/harmonisation/vintage_headline.py replication/harmonisation/output_ext replication/harmonisation/output_ext_oct replication/harmonisation/output_ext/ext_vintage_headline.csv
-python -I replication/harmonisation/evaluate_extensions_r6.py --vintage data/gfs_raw_data_2026-10-21.csv --practice replication/harmonisation/output_ext/ext_b3_practice_countries.csv
+python -I replication/harmonisation/evaluate_benchmarks.py --vintage data/gfs_raw_data_2026-10-21.csv --practice replication/harmonisation/output_ext/ext_b3_practice_countries.csv
 ```
 
 | Script | Outputs | Runtime |
@@ -44,7 +44,9 @@ python -I replication/harmonisation/evaluate_extensions_r6.py --vintage data/gfs
 | `compare_vintages.py` | `output_vintage/` (all tables for the October release) and `output/supp_vintage.csv` (comparison of the two releases) | under a minute for the CSV download |
 | `evaluate_extensions.py --source <October CSV> --out .../output_ext_oct` | `output_ext_oct/`: the further analyses on the October release | under a minute |
 | `vintage_headline.py` | `output_ext/ext_vintage_headline.csv`: headline statistics of the further analyses for both releases and their difference | seconds |
-| `evaluate_extensions_r6.py` | `output_r6/`: `ext_r6_*.csv` and `ext_fig_classification_r6.png` (see below) | about 1.5 minutes |
+| `evaluate_benchmarks.py` | `output_bench/`: `ext_bench_*.csv` and `ext_fig_classification_bench.png` (see below) | about 1.5 minutes |
+
+Release 1.2.4 renamed `evaluate_benchmarks.py`, its output folder and its outputs; `docs/renamed_files.md` gives the names that earlier releases use.
 
 The scripts call `cofog_panel.resolve_value` and `cofog_panel.aggregate.is_complete`, the same functions used by the command-line tool. Each takes `--source FILE` (Excel or CSV) and `--out DIR` to evaluate another extract or write elsewhere. Output folders (`output*/`) and the caches in them (`_gfs_long_*.pkl`, `_ext_long_<sha>.pkl`) are regenerated and kept out of the repository by `.gitignore`.
 
@@ -80,15 +82,15 @@ python -I replication/harmonisation/fetch_inputs.py --dl downloads_dist --out di
 
 Our World in Data and the World Bank update their series, so a new download can differ from the copy in `data_ext/`, whose SHA-256 is recorded in `data_ext/SOURCES.md`.
 
-## External benchmarks, results by practice and classification variants (`evaluate_extensions_r6.py`, `ext_fetch_benchmarks.py`)
+## External benchmarks, results by practice and classification variants (`evaluate_benchmarks.py`, `ext_fetch_benchmarks.py`)
 
-`evaluate_extensions_r6.py` imports `evaluate_extensions.py` and `dist_exhibit.py` (same tiers, sums, splicing, samples and practice classification; both stay unchanged) and runs after them. Inputs: the extract, `data_ext/ext_benchmarks_wdi.csv` (`--benchmarks`), `data_ext/dist_inputs_wid_wdi.csv` (`--inputs`), the grant extract (`--grants`), the practice table written by `evaluate_extensions.py` (`--practice`, checked against a recomputation) and, optionally, the October release (`--vintage`) for the decomposition across releases. `--out DIR` (default `output_r6/`) and `--cache DIR` (default `--out`) set the folders. Outputs:
+`evaluate_benchmarks.py` imports `evaluate_extensions.py` and `dist_exhibit.py` (same tiers, sums, splicing, samples and practice classification; both stay unchanged) and runs after them. Inputs: the extract, `data_ext/ext_benchmarks_wdi.csv` (`--benchmarks`), `data_ext/dist_inputs_wid_wdi.csv` (`--inputs`), the grant extract (`--grants`), the practice table written by `evaluate_extensions.py` (`--practice`, checked against a recomputation) and, optionally, the October release (`--vintage`) for the decomposition across releases. `--out DIR` (default `output_bench/`) and `--cache DIR` (default `--out`) set the folders. Outputs:
 
-- `ext_r6_1_*`: IMF general government values, CGSS alone, complete sums, the tiered value and spliced values against the WHO GHED health and UNESCO UIS education series, in overlap years and in country-years without general government.
-- `ext_r6_2_cgss_by_practice.csv`: CGSS alone against general government by recording practice, with the accounting split of the ratio and the error in the redistributive effect.
-- `ext_r6_3_*`: pairwise samples with subnational spending for every alternative, with and without exact and near identities, the redistributive effect, the decomposition of the median ratio and the changes between the two releases (with `--vintage`).
-- `ext_r6_4_*`, `ext_fig_classification_r6.png`: the classification on T2 sums only and without divisions 07 and 10, grant test (a) for each variant, country details, the social security funds by year, and the classification figure with its data.
-- `ext_r6_5_traces.csv`: sample sizes quoted in the text; `ext_r6_checks.csv`: agreement with `evaluate_extensions.py`.
+- `ext_bench_1_*`: IMF general government values, CGSS alone, complete sums, the tiered value and spliced values against the WHO GHED health and UNESCO UIS education series, in overlap years and in country-years without general government.
+- `ext_bench_2_cgss_by_practice.csv`: CGSS alone against general government by recording practice, with the accounting split of the ratio and the error in the redistributive effect.
+- `ext_bench_3_*`: pairwise samples with subnational spending for every alternative, with and without exact and near identities, the redistributive effect, the decomposition of the median ratio and the changes between the two releases (with `--vintage`).
+- `ext_bench_4_*`, `ext_fig_classification_bench.png`: the classification on T2 sums only and without divisions 07 and 10, grant test (a) for each variant, country details, the social security funds by year, and the classification figure with its data.
+- `ext_bench_5_traces.csv`: sample sizes quoted in the text; `ext_bench_checks.csv`: agreement with `evaluate_extensions.py`.
 
 The script is deterministic (fixed seed of `evaluate_extensions.py`). `ext_fetch_benchmarks.py` rebuilds `data_ext/ext_benchmarks_wdi.csv` from the two WDI bulk CSV files, in the same way as `fetch_inputs.py` (no personal information is sent):
 
@@ -101,4 +103,4 @@ The World Bank updates these series, so a new download can differ from the copy 
 
 ## Reproducibility
 
-On the IMF extract of 3 February 2026 (and the release of 21 October 2026 for `compare_vintages.py`), the CSV and JSON outputs of these scripts are identical, byte for byte, to those of the study. PNG files depend on the matplotlib and Pillow versions as well: with the versions used for the study they are identical too (Figures 1, 3 and 4 of `evaluate_harmonisation.py`: matplotlib 3.11.2 and Pillow 13.0.0; Figure 2 of `evaluate_harmonisation.py` and the figures of `evaluate_extensions.py`, `dist_exhibit.py`, `evaluate_extensions_r6.py` and `output_vintage/`: matplotlib 3.10.9 and Pillow 12.2.0), and other versions draw the same figures with different bytes.
+On the IMF extract of 3 February 2026 (and the release of 21 October 2026 for `compare_vintages.py`), the CSV and JSON outputs of these scripts are identical, byte for byte, to those of the study. PNG files depend on the matplotlib and Pillow versions as well: with the versions used for the study they are identical too (Figures 1, 3 and 4 of `evaluate_harmonisation.py`: matplotlib 3.11.2 and Pillow 13.0.0; Figure 2 of `evaluate_harmonisation.py` and the figures of `evaluate_extensions.py`, `dist_exhibit.py`, `evaluate_benchmarks.py` and `output_vintage/`: matplotlib 3.10.9 and Pillow 12.2.0), and other versions draw the same figures with different bytes.

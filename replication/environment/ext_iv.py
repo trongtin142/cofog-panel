@@ -27,7 +27,7 @@ ROOT = Path(__file__).resolve().parent
 HERE = Path(__file__).resolve().parent
 OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else HERE / "output"
 OUT.mkdir(parents=True, exist_ok=True)
-RAI_FILE = ROOT / "data_ext" / "lab" / "RAI_country-april-2021.xlsx"
+RAI_FILE = ROOT / "data_ext" / "further" / "RAI_country-april-2021.xlsx"
 RAI_SHA256 = "4ae1860a62b23ee0f0adaf5f33beb648d878642a7c5829a1d0a04203ed60c610"
 
 spec = importlib.util.spec_from_file_location("pc", ROOT / "env_federalism.py")

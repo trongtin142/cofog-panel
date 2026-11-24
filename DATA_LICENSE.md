@@ -25,7 +25,7 @@ Results computed from them (sums across subsectors, ratios, tests) are not IMF f
 
 ISO 3166-1 country names and codes (alpha-2, alpha-3, numeric) with UN M49 regions, plus Kosovo (XKX, a user-assigned code used by the European Commission and others).
 
-## Third-party data of `replication/environment/data_ext/lab/`
+## Third-party data of `replication/environment/data_ext/further/`
 
 The Regional Authority Index, terrain ruggedness (Nunn and Puga 2012), CEDS emissions and the OECD SNG-WOFI functional data are not distributed: `replication/environment/fetch_data.py` downloads them from their sources. The other files of that folder are distributed under CC BY 4.0 or CC0 with attribution to their sources. Sources, URLs and licences: `replication/environment/data_ext/SOURCES.md`.
 

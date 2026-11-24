@@ -1,6 +1,6 @@
 """Environmental-spending study: is the association specific to environmental spending?
 
-    python ext_r5f.py [--main PATH_TO_env_federalism.py] [--out DIR]
+    python ext_divisions.py [--main PATH_TO_env_federalism.py] [--out DIR]
 
 (1) Subnational share of each COFOG division 01-10 in place of the environmental share (Table 2, column 3).
 (2) The baseline on the same observations.
@@ -121,12 +121,12 @@ def figure(tab: pd.DataFrame, out: Path):
                        label="Without central-only countries")
     fig.legend(handles=[h1, h2], loc="lower center", ncol=2, frameon=False, bbox_to_anchor=(0.6, -0.01))
     fig.tight_layout(rect=(0, 0.06, 1, 1))
-    fig.savefig(out / "r5f_fig_divisions.png", dpi=300)
-    fig.savefig(out / "r5f_fig_divisions.pdf")
+    fig.savefig(out / "divisions_fig.png", dpi=300)
+    fig.savefig(out / "divisions_fig.pdf")
 
 
 if args.figure_only:
-    figure(pd.read_csv(OUT / "r5f_divisions.csv", dtype={"Division": str}), OUT)
+    figure(pd.read_csv(OUT / "divisions_in_place.csv", dtype={"Division": str}), OUT)
     raise SystemExit(0)
 
 # ---------------------------------------------------------------------------------------------------------
@@ -196,8 +196,8 @@ for sname in S:
     tb.loc[mb, "p_diff_GE_holm9"] = holm(tb.loc[mb, "p_diff_GE"].tolist())
     tab.loc[m, "rank_ME25"] = tab.loc[m, "ME25"].rank(ascending=False).astype(int)
     tab.loc[m, "rank_bGE_most_negative"] = tab.loc[m, "bGE"].rank(ascending=True).astype(int)
-tab.to_csv(OUT / "r5f_divisions.csv", index=False)
-tb.to_csv(OUT / "r5f_both.csv", index=False)
+tab.to_csv(OUT / "divisions_in_place.csv", index=False)
+tb.to_csv(OUT / "divisions_both.csv", index=False)
 
 # (4) Excess environmental decentralisation ------------------------------------------------------------------
 ex = []
@@ -254,7 +254,7 @@ for sname, s in S.items():
                    "corr_SUB_breadth": round(float(b9["SUB"].corr(b9[z])), 3),
                    "pc1_variance_share": round(share_pc1, 3) if z == "PC1" else None})
 exdf = pd.DataFrame(ex)
-exdf.to_csv(OUT / "r5f_excess.csv", index=False)
+exdf.to_csv(OUT / "divisions_excess.csv", index=False)
 
 # summary -----------------------------------------------------------------------------------------------------
 summ = {"GE_reference": G}
@@ -277,7 +277,7 @@ for sname in S:
         "median_ME25_other": float(t.drop("05")["ME25"].median()),
         "median_bGE_other": float(t.drop("05")["bGE"].median()),
     }
-(OUT / "r5f_summary.json").write_text(json.dumps(summ, indent=1), encoding="utf8")
+(OUT / "divisions_summary.json").write_text(json.dumps(summ, indent=1), encoding="utf8")
 print(tab[["Sample", "Division", "N", "Countries", "Countries_never_subnational", "mean_share", "ME25", "p_ME25",
            "bGE", "p_bGE", "rank_ME25"]].to_string(index=False))
 print(tb[["Sample", "Division", "N", "ME25_SUB", "ME25_other", "diff_ME", "p_diff_ME", "diff_GE", "p_diff_GE",

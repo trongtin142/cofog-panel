@@ -21,7 +21,17 @@ python -m pytest
 
 On Windows, clone into a short path such as `C:\cofog-panel`. Streamlit installs files with long paths, and Windows limits paths to 260 characters unless long paths are enabled.
 
-`docs/architecture.md` maps the five stages to the modules, and `AGENTS.md` gives the working rules that coding assistants follow in this repository.
+`docs/architecture.md` maps the five stages to the modules. `pytest tests/test_aggregate.py -k <name>` runs a single test, and `cofog-panel --debug <command> ...` prints the full traceback of an error.
+
+## Code conventions
+
+- `README.md` documents the selection rule, the tiers, the options and the output columns. A change to any of them updates the README in the same pull request.
+- Every error prints a line `❌ Error:` and a line `Hint:` through `messages.print_error`, and exits with code 1 for a data or option error and 2 for a usage error. The CI checks that a missing source file gives exactly these two lines.
+- The package does not import `click`, because Typer 0.27 and later no longer install it. Typer's own exception classes are caught instead. The minimum Typer version is 0.18.0.
+- Output columns take their names from the COFOG code (`DATA_05`, `DATA_07_3`), and the provenance columns take the same suffix.
+- The selection rule computes with `Decimal`, and shares of total outlays are never summed (T1 values only).
+- The version is set in `cofog_panel/__init__.py` (`__version__`), which `pyproject.toml` reads.
+- New logic comes with a test in `tests/`, in the style of the existing tests (four-space indents, type hints, short docstrings).
 
 ## Pull requests
 

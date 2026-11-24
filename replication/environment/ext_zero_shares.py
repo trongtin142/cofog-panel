@@ -6,10 +6,10 @@ the central-only countries (on the construction with coverage gaps coded as zero
 single basis, and two descriptive tables (federal and populous countries outside the sample, countries by
 tercile of effectiveness).
 
-    python ext_r5z.py [--main PATH_TO_env_federalism.py] [--out DIR]
+    python ext_zero_shares.py [--main PATH_TO_env_federalism.py] [--out DIR]
 
 Reads the panel of env_federalism.py and output/ESM1_TableS4_central_only_in_sngwofi.csv (written by
-esm_wofi.py). Writes r5z_*.csv and r5z_details.json to --out (default output).
+esm_wofi.py). Writes zero_shares_*.csv and zero_shares_details.json to --out (default output).
 """
 import argparse
 import importlib.util
@@ -46,7 +46,7 @@ def env_rows() -> pd.DataFrame:
 
 
 def classes(e: pd.DataFrame) -> pd.DataFrame:
-    """Reported zeros (as in ext_r4.classes) and the unconsolidated sum central + state + local, keyed by
+    """Reported zeros (as in ext_share_variants.classes) and the unconsolidated sum central + state + local, keyed by
     estimation year (spending year + 1)."""
     ever = e[["EVER_SG", "EVER_LG"]].astype(bool)
     sub = e[[pc.SG, pc.LG]].fillna(0).sum(axis=1)
@@ -149,7 +149,7 @@ def main():
     rows.append(row("ln ENV as the unconsolidated sum of central, state and local government", "D",
                     F.replace("lnENV +", "lnENVU +"), d4, need + ["lnENVU"], ge_ref))
     res = pd.DataFrame(rows)
-    res.to_csv(OUT / "r5z_results.csv", index=False)
+    res.to_csv(OUT / "zero_shares_results.csv", index=False)
 
     # E1: federal and populous countries outside the sample
     raw_iso = set(e["ISO"])
@@ -189,7 +189,7 @@ def main():
                      "complete_positive_years": int(((ee["VALUE"] > 0) & (ee["COMPLETE"] == True)).sum()),
                      "tiers": ",".join(sorted(ee["TIER"].dropna().unique()))})
     fed = pd.DataFrame(recs)
-    fed.to_csv(OUT / "r5z_federations.csv", index=False)
+    fed.to_csv(OUT / "zero_shares_federations.csv", index=False)
 
     # E2: countries of the main sample by tercile of country-mean GE
     c = base.groupby("ISO").agg(GE=("GE", "mean"), SUB=("SUB", "mean"), NOSUB=("NOSUB", "max"))
@@ -200,7 +200,7 @@ def main():
         "Zero_mean_share_not_central_only": int(((g["SUB"] == 0) & (g["NOSUB"] == 0)).sum()),
         "Positive_mean_share": int((g["SUB"] > 0).sum()),
         "Post_socialist_positive": int(((g["SUB"] > 0) & g.index.isin(POST_SOCIALIST)).sum())}))
-    terc.to_csv(OUT / "r5z_terciles.csv")
+    terc.to_csv(OUT / "zero_shares_terciles.csv")
 
     zr = base[base["ZERO_REPORTED_L1"] == True]
     det = {"ge_ref": ge_ref, "central_only": nosub, "coverage_gaps": gaps, "other_function": other_fn,
@@ -216,7 +216,7 @@ def main():
            "post_socialist_in_sample": ps_in,
            "post_socialist_obs": int(base["ISO"].isin(POST_SOCIALIST).sum()),
            "gaps_obs_in_panel_with_gaps": int(base0["ISO"].isin(gaps).sum())}
-    (OUT / "r5z_details.json").write_text(json.dumps(det, indent=1), encoding="utf8")
+    (OUT / "zero_shares_details.json").write_text(json.dumps(det, indent=1), encoding="utf8")
     pd.set_option("display.width", 250)
     print(res.drop(columns=["Group"]).to_string(index=False))
     print(fed.to_string(index=False))

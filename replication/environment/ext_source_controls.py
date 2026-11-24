@@ -2,7 +2,7 @@
 Controls for the main sources of PM2.5, a binning estimator of the interaction and equal country weights for
 the environmental-spending study.
 
-    python ext_r3c.py --main PATH_TO_env_federalism.py --anthro PATH_TO_ext_anthro.py
+    python ext_source_controls.py --main PATH_TO_env_federalism.py --anthro PATH_TO_ext_anthro.py
                              --dl DATA_DIR --gbdmaps GBDMAPS_XLSX --out OUTPUT_DIR [--coverage]
 
 DATA_DIR holds the files downloaded on 1 November 2026 (URLs in data_ext/SOURCES.md, SHA-256 in fetch_data.py):
@@ -336,18 +336,18 @@ def main():
         print(json.dumps(coverage(x, pc), indent=1))
         return
     t1 = table_controls(x, pc, ge)
-    t1.to_csv(out / "r3c_source_controls.csv", index=False)
+    t1.to_csv(out / "source_controls.csv", index=False)
     t2 = burnt_sensitivity(x, pc, ge, a)
-    t2.to_csv(out / "r3c_burnt_area.csv", index=False)
+    t2.to_csv(out / "source_controls_burnt_area.csv", index=False)
     t3 = ceds_outcomes(x, pc, a)
-    t3.to_csv(out / "r3c_ceds_exploratory.csv", index=False)
+    t3.to_csv(out / "source_controls_ceds_exploratory.csv", index=False)
     tb, wald, fitobj = binning(x, pc, ge)
-    tb.to_csv(out / "r3c_binning.csv", index=False)
-    fig_binning(fitobj, out / "r3c_fig1_binning.png", pc)
+    tb.to_csv(out / "source_controls_binning.csv", index=False)
+    fig_binning(fitobj, out / "source_controls_fig1_binning.png", pc)
     t4 = equal_weights(x, pc, ge)
-    t4.to_csv(out / "r3c_equal_weights.csv", index=False)
+    t4.to_csv(out / "source_controls_equal_weights.csv", index=False)
     res = {"ge_reference_LMIC": ge, "coverage": coverage(x, pc), "binning_wald": wald}
-    (out / "r3c_results.json").write_text(json.dumps(res, indent=1), encoding="utf8")
+    (out / "source_controls_results.json").write_text(json.dumps(res, indent=1), encoding="utf8")
     pd.set_option("display.width", 250)
     pd.set_option("display.max_columns", 30)
     for name, t in (("SOURCE CONTROLS", t1), ("BURNT AREA", t2), ("CEDS EXPLORATORY", t3), ("BINNING", tb),

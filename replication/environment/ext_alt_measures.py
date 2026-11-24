@@ -5,11 +5,11 @@ B. Agreement with SNG-WOFI by source group, and the ordering of the two shares i
 C. Spending share, financing share and their wedge on identical general government observations.
 D. Decision authority: Regional Authority Index self-rule components against the share (descriptive).
 
-    python -I ext_r5w.py [--main PATH_TO_env_federalism.py] [--data DATA_EXT_LAB] [--out DIR]
+    python -I ext_alt_measures.py [--main PATH_TO_env_federalism.py] [--data DATA_EXT_FURTHER] [--out DIR]
 
-Reads the panel functions of env_federalism.py, the SNG-WOFI COFOG file (data_ext/lab/sngwofi/
-oecd_sng_wofi_cofog.csv) and the Regional Authority Index country file (data_ext/lab/RAI_country-april-2021.xlsx).
-Writes r5w_*.csv and r5w_results.json to --out (default output).
+Reads the panel functions of env_federalism.py, the SNG-WOFI COFOG file (data_ext/further/sngwofi/
+oecd_sng_wofi_cofog.csv) and the Regional Authority Index country file (data_ext/further/RAI_country-april-2021.xlsx).
+Writes alt_measures_*.csv and alt_measures_results.json to --out (default output).
 """
 import argparse
 import importlib.util
@@ -29,13 +29,13 @@ _ap.add_argument("--data", default=None)
 _ap.add_argument("--out", default=str(HERE / "output"))
 ARGS = _ap.parse_args()
 ANALYSIS = Path(ARGS.main).resolve().parent
-LAB = Path(ARGS.data) if ARGS.data else ANALYSIS / "data_ext" / "lab"
+FURTHER = Path(ARGS.data) if ARGS.data else ANALYSIS / "data_ext" / "further"
 spec = importlib.util.spec_from_file_location("pc", ANALYSIS / "env_federalism.py")
 pc = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(pc)
 
-WOFI_FILE = LAB / "sngwofi" / "oecd_sng_wofi_cofog.csv"
-RAI_FILE = LAB / "RAI_country-april-2021.xlsx"
+WOFI_FILE = FURTHER / "sngwofi" / "oecd_sng_wofi_cofog.csv"
+RAI_FILE = FURTHER / "RAI_country-april-2021.xlsx"
 GE_REF = -0.355
 REF_YEAR = 2019
 
@@ -162,7 +162,7 @@ def part_a(sample_iso, sample_ge):
                     "A1_WOFI_lowGE_mean": round(float(a1.loc[a1["GE"] < 0, "WOFI"].mean()), 3),
                     "A1_not_in_paper_sample": sorted(a1.loc[~a1["ISO"].isin(sample_iso), "ISO"].tolist()),
                     "WOFI_countries_with_share": int(w["WOFI"].notna().sum())}
-            a1.to_csv(OUT / "r5w_A_crosssection_data.csv", index=False)
+            a1.to_csv(OUT / "alt_measures_A_crosssection_data.csv", index=False)
     return pd.DataFrame(rows), pd.DataFrame(sens), info
 
 
@@ -207,7 +207,7 @@ def part_b(sample_iso, sample_ge):
     # where does the gap come from: compare level ratios
     order["Ratio_sub_IMF_to_WOFI"] = (order["IMF_sub_pctGDP"] / order["WOFI_sub_pctGDP"]).round(2)
     order["Ratio_total_IMF_to_WOFI"] = (order["IMF_total_pctGDP"] / order["WOFI_GG_pctGDP"]).round(2)
-    d.round(4).to_csv(OUT / "r5w_B_comparison_data.csv")
+    d.round(4).to_csv(OUT / "alt_measures_B_comparison_data.csv")
     return pd.DataFrame(groups), order.reset_index()
 
 
@@ -299,13 +299,13 @@ if __name__ == "__main__":
     b_groups, b_order = part_b(iso, ge_mean)
     c, c_desc = part_c(p0)
     dd = part_d(p0)
-    a.to_csv(OUT / "r5w_A_wofi_crosssection.csv", index=False)
-    a_sens.to_csv(OUT / "r5w_A_wofi_crosssection_sensitivity.csv", index=False)
-    b_groups.to_csv(OUT / "r5w_B_validation_groups.csv", index=False)
-    b_order.to_csv(OUT / "r5w_B_ordering.csv", index=False)
-    c.to_csv(OUT / "r5w_C_shares_T1.csv", index=False)
-    dd.to_csv(OUT / "r5w_D_rai.csv", index=False)
-    (OUT / "r5w_results.json").write_text(json.dumps({"A": a_info, "C": c_desc}, indent=1, default=str),
+    a.to_csv(OUT / "alt_measures_A_wofi_crosssection.csv", index=False)
+    a_sens.to_csv(OUT / "alt_measures_A_wofi_crosssection_sensitivity.csv", index=False)
+    b_groups.to_csv(OUT / "alt_measures_B_validation_groups.csv", index=False)
+    b_order.to_csv(OUT / "alt_measures_B_ordering.csv", index=False)
+    c.to_csv(OUT / "alt_measures_C_shares_T1.csv", index=False)
+    dd.to_csv(OUT / "alt_measures_D_rai.csv", index=False)
+    (OUT / "alt_measures_results.json").write_text(json.dumps({"A": a_info, "C": c_desc}, indent=1, default=str),
                                           encoding="utf8")
     pd.set_option("display.width", 250)
     pd.set_option("display.max_columns", 30)

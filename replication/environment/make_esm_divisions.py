@@ -1,6 +1,6 @@
-"""Markdown for the supplementary material from the outputs of ext_r5f.py.
+"""Markdown for the supplementary material from the outputs of ext_divisions.py.
 
-    python make_esm_r5f.py OUTPUT_DIR
+    python make_esm_divisions.py OUTPUT_DIR
 """
 import json
 import sys
@@ -31,10 +31,10 @@ def pv(p):
 
 def main():
     out = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent / "output"
-    t = pd.read_csv(out / "r5f_divisions.csv", dtype={"Division": str})
-    b = pd.read_csv(out / "r5f_both.csv", dtype={"Division": str})
-    e = pd.read_csv(out / "r5f_excess.csv")
-    summ = json.loads((out / "r5f_summary.json").read_text(encoding="utf8"))
+    t = pd.read_csv(out / "divisions_in_place.csv", dtype={"Division": str})
+    b = pd.read_csv(out / "divisions_both.csv", dtype={"Division": str})
+    e = pd.read_csv(out / "divisions_excess.csv")
+    summ = json.loads((out / "divisions_summary.json").read_text(encoding="utf8"))
 
     # rows to append to Table S10 -------------------------------------------------------------------------------
     lab = {"Reference: SUB, same sample": "Baseline, sample with share of total outlays",
@@ -117,8 +117,8 @@ def main():
               "\\*\\* p < 0.05, \\* p < 0.1.*", ""]
     md = ["<!-- rows to append to Table S10, after row (14) -->", *rows10, "",
           "<!-- sentence to add to the note of Table S10 -->", note10, "", *lines]
-    (out / "r5f_esm.md").write_text("\n".join(md), encoding="utf8")
-    print(f"wrote {out / 'r5f_esm.md'}")
+    (out / "esm_divisions.md").write_text("\n".join(md), encoding="utf8")
+    print(f"wrote {out / 'esm_divisions.md'}")
 
 
 if __name__ == "__main__":

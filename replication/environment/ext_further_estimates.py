@@ -1,7 +1,7 @@
 """
 Environmental-spending study: further estimates (central-only countries, other functions, diversity of local conditions, influence of single countries).
 
-    python ext_r2.py [--main PATH_TO_env_federalism.py] [--ext DIR_WITH_PROXIES] [--out DIR]
+    python ext_further_estimates.py [--main PATH_TO_env_federalism.py] [--ext DIR_WITH_PROXIES] [--out DIR]
 
 (1) Table 2, column (4): without the 36 countries that report central data alone.
 (2) Placebo shares (education, recreation/culture/religion) without those countries, with Wald tests.
@@ -28,7 +28,7 @@ from scipy import stats
 HERE = Path(__file__).resolve().parent
 ap = argparse.ArgumentParser()
 ap.add_argument("--main", default=str(HERE / "env_federalism.py"))
-ap.add_argument("--ext", default=str(HERE / "data_ext" / "lab"))
+ap.add_argument("--ext", default=str(HERE / "data_ext" / "further"))
 ap.add_argument("--esm", default=str(HERE / "output" / "ESM1_TableS3_sngwofi_comparison.csv"))
 ap.add_argument("--out", default=str(HERE / "output"))
 args = ap.parse_args()
@@ -197,7 +197,7 @@ for c in countries:
                  "DFB_SUBxGE": (r3.params["SUB:GE"] - r.params["SUB:GE"]) / r3.bse["SUB:GE"],
                  "DFB_ME": (me3["est"] - me["est"]) / me3["se"]})
 loco = pd.DataFrame(rows)
-loco.round(4).to_csv(OUT / "r2_leave_one_country_out.csv", index=False)
+loco.round(4).to_csv(OUT / "further_leave_one_country_out.csv", index=False)
 thr = 2 / np.sqrt(len(countries))
 infl = {"threshold": round(thr, 3),
         "SUBxGE_range": [round(loco["SUBxGE"].min(), 3), round(loco["SUBxGE"].max(), 3)],
@@ -238,5 +238,5 @@ res["6_asia_pacific_negative_ge"] = {"countries_negative_ge": int(len(negc)),
                                      "by_region": reg[negc].value_counts().to_dict(),
                                      "asia_plus_oceania": int(reg[negc].isin(["Asia", "Oceania"]).sum())}
 
-(OUT / "r2_results.json").write_text(json.dumps(res, indent=1, default=float), encoding="utf8")
+(OUT / "further_estimates.json").write_text(json.dumps(res, indent=1, default=float), encoding="utf8")
 print(json.dumps(res, indent=1, default=float))

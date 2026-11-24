@@ -1,5 +1,5 @@
 """
-Download the external benchmarks of evaluate_extensions_r6.py and build one filtered table from them.
+Download the external benchmarks of evaluate_benchmarks.py and build one filtered table from them.
 
     python -I ext_fetch_benchmarks.py --dl DIR --out FILE [--manifest FILE] [--offline]
 

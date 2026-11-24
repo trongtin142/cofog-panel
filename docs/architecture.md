@@ -31,7 +31,7 @@ flowchart LR
 
 Look-up commands `list-cofog` (`etl.list_cofog`) and `list-sectors` read nothing, or the extract once.
 
-Stage numbers follow the `[Stage n/5]` log lines and module docstrings. `AGENTS.md` numbers them differently (it merges the two checks into stage 1).
+Stage numbers follow the `[Stage n/5]` log lines and module docstrings.
 
 ## Modules
 

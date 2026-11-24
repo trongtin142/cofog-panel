@@ -1,6 +1,6 @@
-"""Markdown table for the supplementary material from the outputs of ext_r3c.py.
+"""Markdown table for the supplementary material from the outputs of ext_source_controls.py.
 
-    python make_esm_r3c.py OUTPUT_DIR
+    python make_esm_source_controls.py OUTPUT_DIR
 """
 import sys
 from pathlib import Path
@@ -23,10 +23,10 @@ def me(v, p):
 
 def main():
     out = Path(sys.argv[1])
-    t = pd.read_csv(out / "r3c_source_controls.csv")
-    b = pd.read_csv(out / "r3c_burnt_area.csv")
-    w = pd.read_csv(out / "r3c_equal_weights.csv")
-    c = pd.read_csv(out / "r3c_ceds_exploratory.csv")
+    t = pd.read_csv(out / "source_controls.csv")
+    b = pd.read_csv(out / "source_controls_burnt_area.csv")
+    w = pd.read_csv(out / "source_controls_equal_weights.csv")
+    c = pd.read_csv(out / "source_controls_ceds_exploratory.csv")
     lab = {"110": "All countries", "74": "Without central-only countries", "GG": "GG values only"}
     lines = ["**Table SX** Controls for sources of PM2.5, equal country weights and emission outcomes. "
              "Specification of Table 2, column 3", "",
@@ -58,7 +58,7 @@ def main():
               "combustion (sector 1A4b) for black and organic carbon, with the right-hand side of Table 2, column 3. "
               "Standard errors clustered by country in parentheses. \\*\\*\\* p < 0.01, \\*\\* p < 0.05, \\* p < 0.1.*",
               ""]
-    bn = pd.read_csv(out / "r3c_binning.csv")
+    bn = pd.read_csv(out / "source_controls_binning.csv")
     lines += ["**Table SY** Binning estimator of the marginal association of the subnational share, terciles of "
               "government effectiveness (Hainmueller et al. 2019). Specification of Table 2, column 3", "",
               "| Tercile | GE range | GE median | N | Countries | Binning estimate | Linear model at the median |",
@@ -73,8 +73,8 @@ def main():
               "effectiveness changes over time. The joint Wald test that the three binning estimates equal the "
               "linear model at the tercile medians gives χ²(3) = 5.04, p = 0.17. Standard errors clustered by "
               "country in parentheses. \\*\\*\\* p < 0.01, \\*\\* p < 0.05, \\* p < 0.1.*", ""]
-    (out / "esm_r3c.md").write_text("\n".join(lines), encoding="utf8")
-    print(f"wrote {out / 'esm_r3c.md'}")
+    (out / "esm_source_controls.md").write_text("\n".join(lines), encoding="utf8")
+    print(f"wrote {out / 'esm_source_controls.md'}")
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ Working list, easy to hard. Status: `[x]` done, `[ ]` open. Numbers in published
 
 ## Easy
 
-- [x] E1 `AGENTS.md`: stage numbering matches the code (5 stages: 2 checks, seed, split, aggregate).
+- [x] E1 Developer documentation: stage numbering matches the code (5 stages: 2 checks, seed, split, aggregate).
 - [x] E2 `checks.py`: comment where `END_YEAR` and `COFOG_LABELS` must be updated for a new IMF release.
 - [x] E3 `VALID_SECTORS` built from `DIRECT_SECTORS`, both in `options.py` with `normalise_sector`, shared by the command line, the GUI and `build_panel` (one list less to keep in sync).
 - [x] E4 `aggregate.py`: top-level import of `COUNTRY_FILE_PATTERN` (the lazy import has no cycle to avoid).
@@ -20,7 +20,7 @@ Working list, easy to hard. Status: `[x]` done, `[ ]` open. Numbers in published
 - [x] M3 Tests: `is_complete` edge cases (EBCG reported but only BCG used); `resolve_value` never returns sectors outside its input.
 - [ ] M4 Linter and type checker (ruff, mypy): needs a new dev dependency, ask first.
 - [x] M5 `run --cofog 05 --cofog 07`: stages 4-5 per function, one split subdirectory each (so the marker format is unchanged), same master as separate runs. The source is read once per function; a single scan for all functions is open.
-- [x] M6 Faster split to aggregate hand-off: one CSV per country instead of xlsx (stdlib, no new dependency). Older `.xlsx` splits are still read.
+- [x] M6 Faster passing of the split files to aggregate: one CSV per country instead of xlsx (stdlib, no new dependency). Older `.xlsx` splits are still read.
 - [ ] M7 CSV/Parquet master next to the xlsx (planned).
 
 ## Input validation (first batch done)

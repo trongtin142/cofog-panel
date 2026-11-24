@@ -1,11 +1,11 @@
 """Environmental-spending study, further estimates on the moderator, functional form, omitted variables, the
 sources of exposure, structural controls and inference.
 
-    python ext_r5i.py [--main PATH_TO_env_federalism.py] [--data DATA_EXT] [--out DIR]
+    python ext_specification.py [--main PATH_TO_env_federalism.py] [--data DATA_EXT] [--out DIR]
 
 Reads the panel of env_federalism.py and the GBD-MAPS reader of ext_anthro.py (same folder as --main).
 Additional World Bank series (WDI and WGI, World Bank API, 3 November 2026) are in data_ext/ (--data), with
-SHA-256 in data_ext/CHECKSUMS_r5i.sha256. Writes r5i_* files to --out (default output).
+SHA-256 in data_ext/CHECKSUMS_specification.sha256. Writes specification_* files to --out (default output).
 """
 import argparse
 import importlib.util
@@ -27,8 +27,8 @@ ANALYSIS = Path(ARGS.main).resolve().parent
 DATA = Path(ARGS.data) if ARGS.data else ANALYSIS / "data_ext"
 OUT = Path(ARGS.out)
 OUT.mkdir(parents=True, exist_ok=True)
-GBD = ANALYSIS / "data_ext" / "lab" / "gbdmaps" / "41467_2021_23853_MOESM4_ESM.xlsx"
-COAL = ANALYSIS / "data_ext" / "lab" / "r3c" / "wb_EG.ELC.COAL.ZS.json"
+GBD = ANALYSIS / "data_ext" / "further" / "gbdmaps" / "41467_2021_23853_MOESM4_ESM.xlsx"
+COAL = ANALYSIS / "data_ext" / "further" / "source_controls" / "wb_EG.ELC.COAL.ZS.json"
 EU_CEE = ["BGR", "HRV", "CZE", "EST", "HUN", "LVA", "LTU", "POL", "ROU", "SVK", "SVN"]
 LMIC = ["Low income", "Lower middle income", "Upper middle income"]
 
@@ -129,7 +129,7 @@ def moderators(s, med):
     r, d = fit(BASEC + " + SUB:VAc + VAc", s, NEED + ["VA"])
     rows.append(rec("A11 SUB x GE and SUB x voice and accountability", r, d, ["SUB:GEc", "SUB:VAc"]))
     t = pd.DataFrame(rows)
-    t.to_csv(OUT / "r5i_moderators.csv", index=False)
+    t.to_csv(OUT / "specification_moderators.csv", index=False)
     return t
 
 
@@ -148,7 +148,7 @@ def support(s):
                      "SUB > 0: p25": round(pos["SUB"].quantile(.25), 2), "p50": round(pos["SUB"].median(), 2),
                      "p75": round(pos["SUB"].quantile(.75), 2)})
     t = pd.DataFrame(rows)
-    t.to_csv(OUT / "r5i_support.csv", index=False)
+    t.to_csv(OUT / "specification_support.csv", index=False)
     plt = pc._plt()
     fig, ax = plt.subplots(figsize=(pc.WIDTH_IN, 3.0))
     a, b = s[s["NOSUB"] == 0], s[s["NOSUB"] == 1]
@@ -162,7 +162,7 @@ def support(s):
     ax.legend(fontsize=7, frameon=False, loc="upper left")
     pc._style(ax)
     fig.tight_layout()
-    pc._save(fig, OUT / "r5i_fig_support.png")
+    pc._save(fig, OUT / "specification_fig_support.png")
     return t, {"q1": round(float(q1), 3), "q2": round(float(q2), 3)}
 
 
@@ -185,7 +185,7 @@ def kernel(s, ge_ref):
                          "p": round(float(r.pvalues["SUB"]), 4), "ME25": pct(r.params["SUB"]),
                          "eff_n": round(float(w.sum() ** 2 / (w ** 2).sum()), 0)})
     t = pd.DataFrame(rows)
-    t.to_csv(OUT / "r5i_kernel.csv", index=False)
+    t.to_csv(OUT / "specification_kernel.csv", index=False)
     r, _ = pc._fit(pc.BASE, s, NEED)
     plt = pc._plt()
     fig, ax = plt.subplots(figsize=(pc.WIDTH_IN, 3.0))
@@ -203,7 +203,7 @@ def kernel(s, ge_ref):
     ax.legend(fontsize=7, frameon=False)
     pc._style(ax)
     fig.tight_layout()
-    pc._save(fig, OUT / "r5i_fig_kernel.png")
+    pc._save(fig, OUT / "specification_fig_kernel.png")
     return t, round(h0, 3)
 
 
@@ -266,7 +266,7 @@ def sensitivity(s):
                             "Adjusted ME25": pct(adj) if treat == "SUB" else None})
                 rows.append(row)
     t = pd.DataFrame(rows)
-    t.to_csv(OUT / "r5i_sensitivity.csv", index=False)
+    t.to_csv(OUT / "specification_sensitivity.csv", index=False)
     return t
 
 
@@ -326,7 +326,7 @@ def channel(s, ge):
             "mean_share_pct_all": {k: round(float(cm[f"S_{k}"].mean()), 1) for k in GROUPS},
             "local_sources_share_negative_GE_pct": round(float((neg["S_Waste"] + neg["S_Residential and commercial combustion"]
                                                                + neg["S_Fugitive combustion and industrial dust"]).mean()), 1)}
-    t.to_csv(OUT / "r5i_channel.csv", index=False)
+    t.to_csv(OUT / "specification_channel.csv", index=False)
     return t, info
 
 
@@ -348,7 +348,7 @@ def structural(s):
     r, d = fit(BASEC, s[s["ISO"] != "CHN"], NEED)
     rows.append(rec("F9 without China", r, d, ["SUB:GEc"]))
     t = pd.DataFrame(rows)
-    t.to_csv(OUT / "r5i_structural.csv", index=False)
+    t.to_csv(OUT / "specification_structural.csv", index=False)
     post = sorted(s.loc[s["POSTSOC"] == 1, "ISO"].unique())
     return t, {"postsocialist_in_sample": post, "n_postsocialist": len(post)}
 
@@ -403,7 +403,7 @@ def inference(s):
         info[f"G5_{v}"] = {"sd_total": round(float(s[v].std()), 3), "sd_within": round(float(within.std()), 3),
                            "sd_between_country_means": round(float(s.groupby("ISO")[v].mean().std()), 3)}
     t = pd.DataFrame(rows)
-    t.to_csv(OUT / "r5i_inference.csv", index=False)
+    t.to_csv(OUT / "specification_inference.csv", index=False)
     return t, info
 
 
@@ -427,7 +427,7 @@ def main():
     e, info["channel"] = channel(s, ge)
     f, info["structural"] = structural(s)
     g, info["inference"] = inference(s)
-    (OUT / "r5i_results.json").write_text(json.dumps(info, indent=1), encoding="utf8")
+    (OUT / "specification_results.json").write_text(json.dumps(info, indent=1), encoding="utf8")
     for name, t in [("A moderators", a), ("B support", b), ("C kernel", k), ("D sensitivity", dd), ("E channel", e),
                     ("F structural", f), ("G inference", g)]:
         print(f"\n=== {name} ===")

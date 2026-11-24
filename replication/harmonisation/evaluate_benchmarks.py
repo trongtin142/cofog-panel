@@ -3,7 +3,7 @@ Further extensions of the harmonisation study: an external benchmark, consequenc
 practice, pairwise main samples, classification variants and sample traces.
 
 Run from the repository root, after evaluate_extensions.py and dist_exhibit.py:
-    python -I replication/harmonisation/evaluate_extensions_r6.py [--source FILE] [--vintage FILE] [--out DIR]
+    python -I replication/harmonisation/evaluate_benchmarks.py [--source FILE] [--vintage FILE] [--out DIR]
         [--cache DIR] [--practice FILE] [--benchmarks FILE] [--inputs FILE] [--grants FILE]
 
 Inputs : data/gfs_raw_data.xlsx and data/country_codes.xlsx, read through evaluate_extensions.py
@@ -16,7 +16,7 @@ Inputs : data/gfs_raw_data.xlsx and data/country_codes.xlsx, read through evalua
          --practice: ext_b3_practice_countries.csv written by evaluate_extensions.py (checked against a
          recomputation here)
          --vintage (optional): the IMF release of 21 October 2026, for the common-sample decomposition
-Outputs: ext_r6_*.csv and ext_fig_classification_r6.png in --out
+Outputs: ext_bench_*.csv and ext_fig_classification_bench.png in --out
 
 Item 1  External benchmark: IMF GG, CGSS alone, complete sums, the tiered value and spliced values
         against WHO GHED (health, COFOG 07) and UNESCO UIS (education, COFOG 09), in overlap years and
@@ -518,7 +518,7 @@ def ssf_history(h: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def fig_classification_r6(ct_base: pd.DataFrame, ctry_pub: pd.DataFrame, path) -> pd.DataFrame:
+def fig_classification_bench(ct_base: pd.DataFrame, ctry_pub: pd.DataFrame, path) -> pd.DataFrame:
     """
     Panel (a) as in evaluate_extensions.fig_classification. Panel (b) in the unit of the classification:
     for each country, the share of its classified years in which F exceeds 0.10 and the share in which
@@ -672,7 +672,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n", 1)[0].strip())
     ap.add_argument("--source", type=Path, default=ext.RAW)
     ap.add_argument("--vintage", type=Path, help="IMF release of 21 October 2026 (CSV), for the decomposition")
-    ap.add_argument("--out", type=Path, default=HERE / "output_r6")
+    ap.add_argument("--out", type=Path, default=HERE / "output_bench")
     ap.add_argument("--cache", type=Path, help="folder of the extract caches _ext_long_*.pkl (default: --out)")
     ap.add_argument("--practice", type=Path, help="ext_b3_practice_countries.csv of evaluate_extensions.py")
     ap.add_argument("--benchmarks", type=Path, default=HERE / "data_ext" / "ext_benchmarks_wdi.csv")
@@ -699,31 +699,31 @@ def main():
 
     tables = {}
     # Item 1
-    tables["ext_r6_1a_benchmark_overlap"], tables["ext_r6_1b_benchmark_without_gg"], tables["ext_r6_1_headline"] = \
+    tables["ext_bench_1a_benchmark_overlap"], tables["ext_bench_1b_benchmark_without_gg"], tables["ext_bench_1_headline"] = \
         benchmark_tables(c, bm, reg)
     # Item 4 first: the classification gives the practices of item 2
     counts, tests, moves, ctabs, chk = variant_tables(h, gv, gr, reg, prac_pub)
-    tables.update({"ext_r6_4_variant_counts": counts, "ext_r6_4_variant_grant_test_a": tests,
-                   "ext_r6_4_variant_moves": moves, "ext_r6_4_country_details": country_details(ctabs, gr, grp),
-                   "ext_r6_4_ssf_history": ssf_history(h)})
+    tables.update({"ext_bench_4_variant_counts": counts, "ext_bench_4_variant_grant_test_a": tests,
+                   "ext_bench_4_variant_moves": moves, "ext_bench_4_country_details": country_details(ctabs, gr, grp),
+                   "ext_bench_4_ssf_history": ssf_history(h)})
     base_ct = ctabs["Baseline: complete sum (T2, otherwise T3), F over divisions 02-10"][1]
     prac = prac_pub if prac_pub is not None else base_ct["Practice"]
     if ctry_pub is not None:
-        tables["ext_r6_4_fig_classification_data"] = fig_classification_r6(base_ct, ctry_pub, out / "ext_fig_classification_r6.png")
+        tables["ext_bench_4_fig_classification_data"] = fig_classification_bench(base_ct, ctry_pub, out / "ext_fig_classification_bench.png")
     # Item 2
-    tables["ext_r6_2_cgss_by_practice"] = by_practice(ms, prac, inp)
+    tables["ext_bench_2_cgss_by_practice"] = by_practice(ms, prac, inp)
     # Item 3
-    tables["ext_r6_3_pairwise_main"] = pairwise_main(ms, inp)
+    tables["ext_bench_3_pairwise_main"] = pairwise_main(ms, inp)
     rel = {"February 2026": ms}
     if a.vintage is not None and a.vintage.exists():
         div_o, _, dig_o = ext.load_extract(a.vintage.resolve(), cache)
         ms_o = measures(ext.cell_table(eh.harmonise(eh.to_wide(div_o))), gdp, reg)
         rel["October 2026"] = ms_o
-        tables["ext_r6_3_release_changes"] = release_changes(ms, ms_o)
+        tables["ext_bench_3_release_changes"] = release_changes(ms, ms_o)
         print(f"Vintage SHA-256 {dig_o[:12]}...")
-    tables["ext_r6_3_decomposition"] = decomposition(rel)
+    tables["ext_bench_3_decomposition"] = decomposition(rel)
     # Item 5
-    tables["ext_r6_5_traces"] = traces(ms, c)
+    tables["ext_bench_5_traces"] = traces(ms, c)
     # checks
     chk_rows = list(chk.to_dict("records"))
     he = ms["HE"]
@@ -733,13 +733,13 @@ def main():
     nd = noid_sample(he)
     chk_rows.append({"Check": "HE fixed sample without identities: 184 country-years, 22 countries",
                      "Match": bool(len(nd) == 184 and nd["ISO"].nunique() == 22)})
-    tables["ext_r6_checks"] = pd.DataFrame(chk_rows)
+    tables["ext_bench_checks"] = pd.DataFrame(chk_rows)
 
     for name, t in tables.items():
         t.round(6).to_csv(out / f"{name}.csv", index=False)
     pd.set_option("display.width", 250)
     pd.set_option("display.max_columns", 40)
-    for name in ("ext_r6_1_headline", "ext_r6_4_variant_counts", "ext_r6_3_decomposition", "ext_r6_checks"):
+    for name in ("ext_bench_1_headline", "ext_bench_4_variant_counts", "ext_bench_3_decomposition", "ext_bench_checks"):
         print(f"\n=== {name} ===")
         print(tables[name].round(3).to_string(index=False))
     print(f"\nOutputs in {out}")

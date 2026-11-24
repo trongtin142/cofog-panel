@@ -1,4 +1,4 @@
-"""Markdown for the paper (Table 5) and the supplementary material (rows of Table S7, panel B of Table S5) from r5z outputs."""
+"""Markdown for the paper (Table 5) and the supplementary material (rows of Table S7, panel B of Table S5) from the outputs of ext_zero_shares.py."""
 import re
 from pathlib import Path
 
@@ -7,9 +7,9 @@ import pandas as pd
 import sys
 
 HERE = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent / "output"
-r = pd.read_csv(HERE / "r5z_results.csv").set_index("Row")
-fed = pd.read_csv(HERE / "r5z_federations.csv")
-terc = pd.read_csv(HERE / "r5z_terciles.csv")
+r = pd.read_csv(HERE / "zero_shares_results.csv").set_index("Row")
+fed = pd.read_csv(HERE / "zero_shares_federations.csv")
+terc = pd.read_csv(HERE / "zero_shares_terciles.csv")
 
 
 def stars(p):
@@ -65,5 +65,5 @@ for _, x in fed[fed["Reason"] != "in sample"].iterrows():
 inside = fed[(fed["Reason"] == "in sample") & (fed["Federal"] == 1)]["ISO3"].tolist()
 out += ["", f"Federal countries in the sample ({len(inside)}): {', '.join(inside)}"]
 out += ["", "## Terciles of country-mean GE (for the caption of Fig. S2)", "", terc.to_markdown(index=False)]
-(HERE / "r5z_tables.md").write_text("\n".join(out) + "\n", encoding="utf8")
-print("wrote r5z_tables.md")
+(HERE / "zero_shares_tables.md").write_text("\n".join(out) + "\n", encoding="utf8")
+print("wrote zero_shares_tables.md")

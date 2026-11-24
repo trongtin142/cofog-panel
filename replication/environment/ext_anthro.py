@@ -120,7 +120,7 @@ def main():
     keep = g[g["ISO"].isin(set(s["ISO"]))]
     unmatched = sorted(set(s["ISO"]) - set(keep["ISO"]))
     keep[["name", "ISO", "PM", "Windblown Dust", "Remaining Sources", "Other Open Fire", "ANTHRO", "CONTROL",
-          "LOCAL", "NATIONAL", "f_anthro", "f_control"]].to_csv(out / "r2b_gbdmaps_matched.csv", index=False)
+          "LOCAL", "NATIONAL", "f_anthro", "f_control"]].to_csv(out / "anthro_gbdmaps_matched.csv", index=False)
 
     rows, info = [], {"ge_ref_LMIC": ge, "unmatched_sample_iso": unmatched, "matched_countries": int(len(keep))}
 

@@ -1,6 +1,5 @@
 """
-Replication of the environmental-spending study (manuscript under review; the reference will be added on
-publication).
+Replication of the environmental-spending study (the reference will be added on publication).
 
 Uses the harmonised COFOG 05 panel produced by COFOG-Panel (via the replication in replication/harmonisation, which
 calls cofog_panel.resolve_value / is_complete) and World Bank WDI / WGI indicators.
@@ -723,7 +722,7 @@ def federal_numbers(p: pd.DataFrame) -> dict:
 
 
 # Post-socialist countries (note to Table 5 of the paper): the successor states of the Soviet Union and of Yugoslavia,
-# Albania, Bulgaria, Czechia, Hungary, Poland, Romania, Slovakia and Mongolia, as in ext_r5z.py
+# Albania, Bulgaria, Czechia, Hungary, Poland, Romania, Slovakia and Mongolia, as in ext_zero_shares.py
 POST_SOCIALIST = ["ARM", "AZE", "BLR", "EST", "GEO", "KAZ", "KGZ", "LVA", "LTU", "MDA", "RUS", "TJK", "TKM",
                   "UKR", "UZB", "ALB", "BGR", "CZE", "HUN", "POL", "ROU", "SVK", "SVN", "HRV", "BIH", "SRB",
                   "MNE", "MKD", "XKX", "MNG"]

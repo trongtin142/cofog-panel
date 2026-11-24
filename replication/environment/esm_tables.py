@@ -132,8 +132,8 @@ blocks["countries"] = (
       f"in {len(main)} countries.*")
 
 # ------------------------------------------------------------------ binning
-b = pd.read_csv(OUT / "r3c_binning.csv")
-wald = jload("r3c_results.json")["binning_wald"]
+b = pd.read_csv(OUT / "source_controls_binning.csv")
+wald = jload("source_controls_results.json")["binning_wald"]
 rows = [[str(r.bin), f"{num(r.GE_from, 2)} to {num(r.GE_to, 2)}", num(r.GE_median, 2), n(r.N), str(r.Countries),
          coef(r.bin_me, r.bin_se, r.bin_p), f"{num(r.linear_me)} ({num(r.linear_se)})"] for r in b.itertuples()]
 blocks["binning"] = (
@@ -183,16 +183,16 @@ blocks["anthro"] = (
 # ------------------------------------------------------------------ PM2.5 source controls and emission outcomes
 smap = {"110": "All countries", "74": "Without central-only countries", "GG": "GG values only"}
 rows = []
-for f in ("r3c_source_controls.csv", "r3c_equal_weights.csv"):
+for f in ("source_controls.csv", "source_controls_equal_weights.csv"):
     for _, r in pd.read_csv(OUT / f).iterrows():
         rows.append([smap[str(r["Sample"])], r["Model"], n(r["N"]), str(r["Countries"]),
                      coef(r["SUB"], r["se_SUB"], r["p_SUB"]), coef(r["SUB:GE"], r["se_SUB:GE"], r["p_SUB:GE"]),
                      pct(r["ME25_LMIC"], r["p_ME25_LMIC"])])
-for _, r in pd.read_csv(OUT / "r3c_burnt_area.csv").iterrows():
+for _, r in pd.read_csv(OUT / "source_controls_burnt_area.csv").iterrows():
     rows.append(["All countries, 2012–2023", r["Model"], n(r["N"]), str(r["Countries"]),
                  coef(r["SUB"], r["se_SUB"], r["p_SUB"]), coef(r["SUB:GE"], r["se_SUB:GE"], r["p_SUB:GE"]),
                  pct(r["ME25_LMIC"], r["p_ME25_LMIC"])])
-for _, r in pd.read_csv(OUT / "r3c_ceds_exploratory.csv").iterrows():
+for _, r in pd.read_csv(OUT / "source_controls_ceds_exploratory.csv").iterrows():
     rows.append(["All countries", f"Outcome: {r['Model']} (exploratory)", n(r["N"]), str(r["Countries"]),
                  coef(r["SUB"], r["se_SUB"], r["p_SUB"]), coef(r["SUB:GE"], r["se_SUB:GE"], r["p_SUB:GE"]),
                  pct(r["ME25_LMIC"], r["p_ME25_LMIC"])])
@@ -215,7 +215,7 @@ blocks["sources"] = (
 
 # ------------------------------------------------------------------ other functions
 t5 = pd.read_csv(OUT / "tabC5_specificity.csv")
-r2 = jload("r2_results.json")
+further = jload("further_estimates.json")
 ft = jload("further_tests.json")
 ext = jload("extensions.json")
 
@@ -243,7 +243,7 @@ for i, (_, r) in enumerate(t5.iterrows()):
     me = pct(r["ME25_SUB"], r["p_ME25_SUB"]) if pd.notna(r["ME25_SUB"]) else ""
     ome = pct(r[f"ME25_{v}"], np.nan) if v and pd.notna(r.get(f"ME25_{v}")) else ""
     rows.append([lab5[i], n(r["N"]), str(r["Countries"]), sub, sge, o, oge, me, ome])
-pe = r2["2_placebo_excl_central_only"]
+pe = further["2_placebo_excl_central_only"]
 
 
 def c2(d, k):
@@ -387,7 +387,7 @@ blocks["ceds"] = (
       f"higher at {REF}. Standard errors clustered by country in parentheses (rows 1–6)." + STARS + "*")
 
 # ------------------------------------------------------------------ diversity of local conditions
-d = r2["3_prop2iii"]
+d = further["3_prop2iii"]
 rows = []
 for key, lab_ in (("primary_ruggedness", "Terrain ruggedness"), ("secondary_ethnic_fractionalisation",
                                                                    "Ethnic fractionalisation")):
@@ -440,8 +440,8 @@ blocks["groups"] = (
 
 # ------------------------------------------------------------------ further variations of Table 2, column 3
 t4 = pd.read_csv(OUT / "tabC4_robustness.csv").set_index("Model")
-var = pd.read_csv(OUT / "r4_share_variants.csv").set_index("Variant")
-infl = r2["4_influence"]
+var = pd.read_csv(OUT / "share_variants.csv").set_index("Variant")
+infl = further["4_influence"]
 cc_me = ft["cc_row_effect_25pp_at_cc_median_lmic"]
 moved = [("GE at start of period in the interaction", "GE at start of period in the interaction"),
          ("Control of corruption in place of GE", "Control of corruption instead of GE"),

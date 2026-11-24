@@ -3,7 +3,7 @@
 B1 drops reported zeros of state and local government, F uses the consolidated financing share 1 - central/GG
 for general government years. Both start from the baseline rule of env_federalism.subnational_share.
 
-    python ext_r4.py [--out DIR]
+    python ext_share_variants.py [--out DIR]
 """
 import argparse
 import importlib.util
@@ -69,7 +69,7 @@ def main():
             table2_row(b1, "B1: reported zeros of state and local government excluded", ge_ref),
             table2_row(f, "F: consolidated financing share for general government years", ge_ref)]
     t = pd.DataFrame(rows)
-    t.to_csv(OUT / "r4_share_variants.csv", index=False)
+    t.to_csv(OUT / "share_variants.csv", index=False)
 
     print(t.to_string(index=False))
 

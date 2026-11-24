@@ -1,11 +1,11 @@
 """Environmental-spending study, sample construction and the position of the reference point (Table 1, panel A).
 
-Writes r8_sample_flow.csv, the countries and observations left at each step from the COFOG extract to the main
-sample, and r8_counts.json, the share of main-sample observations below the GE reference point, the countries
+Writes sample_flow.csv, the countries and observations left at each step from the COFOG extract to the main
+sample, and sample_flow_counts.json, the share of main-sample observations below the GE reference point, the countries
 whose mean GE lies below it, the association at the median GE of low- and middle-income countries in the main
 sample, the income groups of the main sample and the low-effectiveness counts of Section 1.
 
-    python ext_r8_counts.py [--out DIR]
+    python ext_sample_flow.py [--out DIR]
 """
 import argparse
 import importlib.util
@@ -24,7 +24,7 @@ pc = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(pc)
 import env_samples as ps  # noqa: E402  (next to env_federalism.py, on sys.path after the import above)
 
-# Post-socialist countries, as in ext_r5z.py
+# Post-socialist countries, as in ext_zero_shares.py
 POST_SOCIALIST = ["ARM", "AZE", "BLR", "EST", "GEO", "KAZ", "KGZ", "LVA", "LTU", "MDA", "RUS", "TJK", "TKM",
                   "UKR", "UZB", "ALB", "BGR", "CZE", "HUN", "POL", "ROU", "SVK", "SVN", "HRV", "BIH", "SRB",
                   "MNE", "MKD", "XKX", "MNG"]
@@ -57,7 +57,7 @@ def main():
     p = pc.build_panel()
     ge = pc.ge_reference(p)["LMIC"]
     f = flow(p)
-    f.to_csv(OUT / "r8_sample_flow.csv", index=False)
+    f.to_csv(OUT / "sample_flow.csv", index=False)
     s = pc._sample(p)
     s0 = pc._sample(pc.gaps_as_zero(p))
     inc = pc.income_groups()
@@ -84,7 +84,7 @@ def main():
         "negative_mean_ge_main": int((cm < 0).sum()),
         "ge_quantiles_main": {str(q): round(float(s["GE"].quantile(q)), 2) for q in (0.1, 0.25, 0.5, 0.75)},
     }
-    (OUT / "r8_counts.json").write_text(json.dumps(out, indent=1), encoding="utf8")
+    (OUT / "sample_flow_counts.json").write_text(json.dumps(out, indent=1), encoding="utf8")
     print(f.to_string(index=False))
     print(json.dumps(out, indent=1))
 

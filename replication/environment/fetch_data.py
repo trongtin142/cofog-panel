@@ -4,7 +4,7 @@ distribute, checks each file against the SHA-256 of the copy used in the study, 
 files that the repository includes. Run from any folder:
     python replication/environment/fetch_data.py            # download what is missing, then check every file
     python replication/environment/fetch_data.py --check    # check only, download nothing
-Files are written below replication/environment/data_ext/lab/. When a download fails, the script prints the URL and
+Files are written below replication/environment/data_ext/further/. When a download fails, the script prints the URL and
 the place to save the file by hand. A file that differs from the checksum gives a warning: the provider may
 have revised it, and results can then differ from those of the study. Sources and licences:
 replication/environment/data_ext/SOURCES.md.
@@ -18,8 +18,8 @@ import zipfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-LAB = HERE / "data_ext" / "lab"
-CACHE = LAB / "_downloads"
+FURTHER = HERE / "data_ext" / "further"
+CACHE = FURTHER / "_downloads"
 UA = {"User-Agent": "cofog-panel replication script (https://github.com/trongtin142/cofog-panel)"}
 CEDS = "CEDS_v_2025_03_18_aggregate"
 
@@ -46,13 +46,13 @@ DOWNLOAD = [
                   "ceds/OC_CEDS_estimates_by_country_sector_v_2025_03_18.csv",
                   "22ccfcd973cb00b4f99450d025b75f12e117f087514a06cbad0a31a47ecade33"),
                  (f"{CEDS}/SO2_CEDS_estimates_by_country_sector_v_2025_03_18.csv",
-                  "r3c/ceds/SO2_CEDS_estimates_by_country_sector_v_2025_03_18.csv",
+                  "source_controls/ceds/SO2_CEDS_estimates_by_country_sector_v_2025_03_18.csv",
                   "ab4e0eefeb16badf5d8e5a02b03e2d364d38f95b591cba00fa769a86bb2c6998"),
                  (f"{CEDS}/NOx_CEDS_estimates_by_country_sector_v_2025_03_18.csv",
-                  "r3c/ceds/NOx_CEDS_estimates_by_country_sector_v_2025_03_18.csv",
+                  "source_controls/ceds/NOx_CEDS_estimates_by_country_sector_v_2025_03_18.csv",
                   "39ef971597cd76068137ed85898ccf8af7b88e3cb138b364aa47b5231046dfa9"),
                  (f"{CEDS}/NH3_CEDS_estimates_by_country_sector_v_2025_03_18.csv",
-                  "r3c/ceds/NH3_CEDS_estimates_by_country_sector_v_2025_03_18.csv",
+                  "source_controls/ceds/NH3_CEDS_estimates_by_country_sector_v_2025_03_18.csv",
                   "4b2a33f4202ef54a74cd2f2ab23d23b69edc6ab6dbfbdb71895c47454806021a")]},
     {"name": "OECD SNG-WOFI, subnational government functional expenditure (COFOG)",
      "url": "https://sdmx.oecd.org/public/rest/data/OECD.CFE.RDG,DSD_SNG_WOFI@DF_COFOG,1.0/all"
@@ -65,11 +65,11 @@ INCLUDED = [
     ("what_a_waste_country_level_data.csv", "ea41e5b5f577b29df94a963519e70bd82e17efea4cfec3a33b0e9a6bd881cc04"),
     ("HIEF_data.csv", "273f31955e24154f63b8e831008558d8531dfc3775e72067f0782fcc949e77fe"),
     ("gbdmaps/41467_2021_23853_MOESM4_ESM.xlsx", "81a563fe2662bb81931efa0bcab204c7818410a80cd3c41f3e65c3b5ab7aed13"),
-    ("r3c/wb_EG.CFT.ACCS.ZS.json", "04fada5fe68dbaefc4cd3ed9b4fcf29692ec737cbea8b977a9fb1d75d36e2743"),
-    ("r3c/wb_EG.ELC.COAL.ZS.json", "0cd116de60c04b94fbff71084939fb61e9d82f0506170ce2ed8ade0eec4acdbc"),
-    ("r3c/cckp_tas_cru408.json", "3fc826239259ef827271320965ebfade8153bbce9578783b6eb9cdee94dc5ff5"),
-    ("r3c/cckp_pr_cru408.json", "bf067095784ffad87d884cd4987e8e9057f14c96616474b5b9015a0e39067a1d"),
-    ("r3c/owid_burnt.csv", "040991afbf3a929ac26029bc6ae440f7929a9b30878daa664692cf060b1aaee7"),
+    ("source_controls/wb_EG.CFT.ACCS.ZS.json", "04fada5fe68dbaefc4cd3ed9b4fcf29692ec737cbea8b977a9fb1d75d36e2743"),
+    ("source_controls/wb_EG.ELC.COAL.ZS.json", "0cd116de60c04b94fbff71084939fb61e9d82f0506170ce2ed8ade0eec4acdbc"),
+    ("source_controls/cckp_tas_cru408.json", "3fc826239259ef827271320965ebfade8153bbce9578783b6eb9cdee94dc5ff5"),
+    ("source_controls/cckp_pr_cru408.json", "bf067095784ffad87d884cd4987e8e9057f14c96616474b5b9015a0e39067a1d"),
+    ("source_controls/owid_burnt.csv", "040991afbf3a929ac26029bc6ae440f7929a9b30878daa664692cf060b1aaee7"),
 ]
 
 
@@ -90,7 +90,7 @@ def check(p: Path, expected: str) -> bool:
 
 
 def download(src: dict) -> bool:
-    target = LAB / src["file"]
+    target = FURTHER / src["file"]
     target.parent.mkdir(parents=True, exist_ok=True)
     print(f"Downloading {src['name']} ...")
     tmp = target.with_name(target.name + ".part")
@@ -111,24 +111,24 @@ def main() -> int:
     ok = True
     for src in DOWNLOAD:
         members = src.get("extract", [])
-        have = all((LAB / t).exists() for _, t, _ in members) if members else (LAB / src["file"]).exists()
+        have = all((FURTHER / t).exists() for _, t, _ in members) if members else (FURTHER / src["file"]).exists()
         if not have and not a.check:
-            if not (LAB / src["file"]).exists() and not download(src):
+            if not (FURTHER / src["file"]).exists() and not download(src):
                 ok = False
                 continue
             if members:
-                check(LAB / src["file"], src["sha256"])
-                with zipfile.ZipFile(LAB / src["file"]) as z:
+                check(FURTHER / src["file"], src["sha256"])
+                with zipfile.ZipFile(FURTHER / src["file"]) as z:
                     for m, t, _ in members:
-                        (LAB / t).parent.mkdir(parents=True, exist_ok=True)
-                        (LAB / t).write_bytes(z.read(m))
+                        (FURTHER / t).parent.mkdir(parents=True, exist_ok=True)
+                        (FURTHER / t).write_bytes(z.read(m))
     print("Downloaded files:")
     for src in DOWNLOAD:
         for _, t, h in src.get("extract", []) or [(None, src["file"], src["sha256"])]:
-            ok = check(LAB / t, h) and ok
+            ok = check(FURTHER / t, h) and ok
     print("Files included in the repository:")
     for f, h in INCLUDED:
-        ok = check(LAB / f, h) and ok
+        ok = check(FURTHER / f, h) and ok
     return 0 if ok else 1
 
 

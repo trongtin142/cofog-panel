@@ -1,6 +1,6 @@
 """
-Runs the replication of the environmental-spending study (manuscript under review; the reference will be added
-on publication) and of its supplementary material, in order. Run from the repository root, after the
+Runs the replication of the environmental-spending study (the reference will be added on publication) and of its
+supplementary material, in order. Run from the repository root, after the
 harmonisation replication and fetch_data.py:
     python replication/harmonisation/evaluate_harmonisation.py
     python replication/environment/fetch_data.py
@@ -15,44 +15,46 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
 OUT = "output"
-GBDMAPS = "data_ext/lab/gbdmaps/41467_2021_23853_MOESM4_ESM.xlsx"
+GBDMAPS = "data_ext/further/gbdmaps/41467_2021_23853_MOESM4_ESM.xlsx"
 
 # (log name, script, arguments, isolated mode); arguments are relative to replication/environment
 STEPS = [
     ("run_log.txt", "env_federalism.py", [], False),
     ("run_esm_wofi_log.txt", "esm_wofi.py",
-     [str(REPO), "data_ext/lab/sngwofi/oecd_sng_wofi_cofog.csv", OUT], True),
-    ("run_table2_log.txt", "ext_r3_table2.py", ["--out", OUT], False),
+     [str(REPO), "data_ext/further/sngwofi/oecd_sng_wofi_cofog.csv", OUT], True),
+    ("run_table2_log.txt", "ext_table2_columns.py", ["--out", OUT], False),
     ("run_anthro_log.txt", "ext_anthro.py", ["--main", "env_federalism.py", "--gbdmaps", GBDMAPS, "--out", OUT],
      False),
-    ("run_counts_log.txt", "ext_r3_counts.py", ["--out", OUT], False),
-    ("run_es_log.txt", "ext_es.py", ["--out", OUT, "--rai", "data_ext/lab/RAI_country-april-2021.xlsx"], False),
+    ("run_counts_log.txt", "ext_text_counts.py", ["--out", OUT], False),
+    ("run_es_log.txt", "ext_es.py", ["--out", OUT, "--rai", "data_ext/further/RAI_country-april-2021.xlsx"], False),
     ("run_es_esm_log.txt", "ext_es_esm.py", [OUT, f"{OUT}/ESM1_TableS1_countries.csv"], False),
     ("run_iv_log.txt", "ext_iv.py", [OUT], False),
     ("run_iv_esm_log.txt", "ext_iv_esm.py", [OUT], False),
-    ("run_mech_log.txt", "ext_mech.py", ["--ext", "data_ext/lab", "--out", OUT], False),
-    ("run_r2_log.txt", "ext_r2.py",
-     ["--ext", "data_ext/lab", "--esm", f"{OUT}/ESM1_TableS3_sngwofi_comparison.csv", "--out", OUT], False),
-    ("run_r3c_log.txt", "ext_r3c.py",
-     ["--main", "env_federalism.py", "--anthro", "ext_anthro.py", "--dl", "data_ext/lab/r3c",
-      "--gbdmaps", GBDMAPS, "--ceds-bcoc", "data_ext/lab/ceds", "--out", OUT], True),
-    ("run_make_esm_r3c_log.txt", "make_esm_r3c.py", [OUT], False),
-    ("run_r4_log.txt", "ext_r4.py", ["--out", OUT], False),
+    ("run_mech_log.txt", "ext_mech.py", ["--ext", "data_ext/further", "--out", OUT], False),
+    ("run_further_estimates_log.txt", "ext_further_estimates.py",
+     ["--ext", "data_ext/further", "--esm", f"{OUT}/ESM1_TableS3_sngwofi_comparison.csv", "--out", OUT], False),
+    ("run_source_controls_log.txt", "ext_source_controls.py",
+     ["--main", "env_federalism.py", "--anthro", "ext_anthro.py", "--dl", "data_ext/further/source_controls",
+      "--gbdmaps", GBDMAPS, "--ceds-bcoc", "data_ext/further/ceds", "--out", OUT], True),
+    ("run_make_esm_source_controls_log.txt", "make_esm_source_controls.py", [OUT], False),
+    ("run_share_variants_log.txt", "ext_share_variants.py", ["--out", OUT], False),
     ("run_esm_tables_log.txt", "esm_tables.py", [OUT], False),
-    ("run_ext_r5z_log.txt", "ext_r5z.py", [], False),
-    ("run_make_r5z_tables_log.txt", "make_r5z_tables.py", [], False),
-    ("run_ext_r5w_log.txt", "ext_r5w.py", [], True),
-    ("run_ext_r5f_log.txt", "ext_r5f.py", [], False),
-    ("run_make_esm_r5f_log.txt", "make_esm_r5f.py", [], False),
-    ("run_ext_r5i_log.txt", "ext_r5i.py", [], False),
-    ("run_ext_r5i_table4_log.txt", "ext_r5i_table4.py", [], False),
-    ("run_ext_r6_log.txt", "ext_r6.py", ["--out", OUT], True),
-    ("run_ext_r8_counts_log.txt", "ext_r8_counts.py", ["--out", OUT], False),
+    ("run_ext_zero_shares_log.txt", "ext_zero_shares.py", [], False),
+    ("run_make_zero_shares_tables_log.txt", "make_zero_shares_tables.py", [], False),
+    ("run_ext_alt_measures_log.txt", "ext_alt_measures.py", [], True),
+    ("run_ext_divisions_log.txt", "ext_divisions.py", [], False),
+    ("run_make_esm_divisions_log.txt", "make_esm_divisions.py", [], False),
+    ("run_ext_specification_log.txt", "ext_specification.py", [], False),
+    ("run_ext_specification_table4_log.txt", "ext_specification_table4.py", [], False),
+    ("run_ext_wofi_panel_log.txt", "ext_wofi_panel.py", ["--out", OUT], True),
+    ("run_ext_sample_flow_log.txt", "ext_sample_flow.py", ["--out", OUT], False),
+    ("run_ext_between_within_log.txt", "ext_between_within.py", ["--out", OUT, "--inputs", OUT], False),
+    ("run_make_esm_between_within_log.txt", "make_esm_between_within.py", [OUT], False),
 ]
-NEEDED = ["data_ext/lab/RAI_country-april-2021.xlsx", "data_ext/lab/rugged/rugged_data.csv",
-          "data_ext/lab/sngwofi/oecd_sng_wofi_cofog.csv",
-          "data_ext/lab/ceds/BC_CEDS_estimates_by_country_sector_v_2025_03_18.csv",
-          "data_ext/lab/r3c/ceds/SO2_CEDS_estimates_by_country_sector_v_2025_03_18.csv",
+NEEDED = ["data_ext/further/RAI_country-april-2021.xlsx", "data_ext/further/rugged/rugged_data.csv",
+          "data_ext/further/sngwofi/oecd_sng_wofi_cofog.csv",
+          "data_ext/further/ceds/BC_CEDS_estimates_by_country_sector_v_2025_03_18.csv",
+          "data_ext/further/source_controls/ceds/SO2_CEDS_estimates_by_country_sector_v_2025_03_18.csv",
           str(REPO / "data" / "gfs_raw_data.xlsx"),
           str(REPO / "replication" / "harmonisation" / "output" / "harmonised_all_divisions.csv")]
 
